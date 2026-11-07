@@ -40,11 +40,41 @@ $inv = & $exe inventory | ConvertFrom-Json
 Write-Host "inventory: $($inv.hostname), $($inv.os.name) $($inv.os.version), $($inv.software.Count) programs"
 if (-not $inv.hostname -or $inv.software.Count -lt 1) { throw "inventory looks empty" }
 
+# The tray app: installed, started at logon, and able to render its pop-up
+# (the images are kept as a CI artifact).
+$tray = Join-Path $env:ProgramFiles 'FleetWarden Agent\FleetWardenTray.exe'
+if (-not (Test-Path $tray)) { throw "tray app missing" }
+$runKey = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
+$run = if ($runKey.PSObject.Properties['FleetWardenTray']) { $runKey.FleetWardenTray } else { '' }
+if ($run -ne "`"$tray`"") { throw "tray app Run entry is '$run'" }
+$shots = Join-Path $env:RUNNER_TEMP 'tray'
+New-Item -ItemType Directory -Force $shots | Out-Null
+foreach ($demo in @('install', 'en', '--light'), @('reboot', 'nl', '--dark'), @('install', 'nl', '--light')) {
+    $png = Join-Path $shots "popup-$($demo[0])-$($demo[1]).png"
+    $p = Start-Process $tray -ArgumentList '--demo', $demo[0], '--lang', $demo[1], $demo[2], '--screenshot', "`"$png`"" -PassThru
+    if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "tray app hung rendering $($demo -join ' ')" }
+    if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw "tray app could not render its pop-up ($($demo -join ' '), exit $($p.ExitCode))" }
+    Write-Host "rendered $png ($((Get-Item $png).Length) bytes)"
+}
+
+# A real Windows Update scan through WUA (the runner image disables the service).
+Set-Service wuauserv -StartupType Manual -ErrorAction SilentlyContinue
+$sw = [Diagnostics.Stopwatch]::StartNew()
+$scan = (& $exe patch-scan) -join "`n" | ConvertFrom-Json
+if ($LASTEXITCODE) { throw "patch-scan failed (exit $LASTEXITCODE)" }
+Write-Host "patch scan: source $($scan.source), $(@($scan.updates).Count) updates, reboot pending $($scan.rebootPending), $([int]$sw.Elapsed.TotalSeconds)s"
+foreach ($u in @($scan.updates) | Select-Object -First 10) { Write-Host "  [$($u.category)] $($u.title)" }
+if ($scan.source -notin 'windows-update', 'wsus') { throw "unexpected update source '$($scan.source)'" }
+
 # Reinstall without settings (the update path) keeps the configuration.
 Invoke-Msi "/i `"$msi`" REINSTALL=ALL REINSTALLMODE=vomus" "$env:RUNNER_TEMP\repair.log"
 if ((& $exe status) -notmatch 'Waiting to enroll') { throw "repair lost the configuration" }
 
 if ($NextMsi) {
+# A running tray app must not block the upgrade.
+$trayProc = Start-Process $tray -PassThru
+Start-Sleep -Seconds 2
+if ($trayProc.HasExited) { throw "tray app exited right after starting (exit $($trayProc.ExitCode))" }
 # Self-update helper: upgrade to the next MSI from an update plan, wait for the
 # new version to report a connection, and write the result for the agent.
 $state = Join-Path $env:ProgramData 'FleetWarden'
@@ -70,6 +100,8 @@ if ($result.state -ne 'completed') {
 }
 if (-not (Get-Service FleetWardenAgent -ErrorAction SilentlyContinue)) { throw "service missing after the update helper ran" }
 if ((& $exe status) -notmatch 'Waiting to enroll') { throw "the upgrade lost the configuration" }
+if (-not $trayProc.HasExited) { $trayProc.Kill(); throw "the upgrade did not close the running tray app" }
+if (-not (Test-Path $tray)) { throw "tray app missing after the upgrade" }
 }
 
 # Uninstall removes the service, the files and the local enrollment.
@@ -78,4 +110,6 @@ Invoke-Msi "/x `"$installed`"" "$env:RUNNER_TEMP\uninstall.log"
 if (Get-Service FleetWardenAgent -ErrorAction SilentlyContinue) { throw "service still present after uninstall" }
 if (Test-Path $exe) { throw "agent executable still present after uninstall" }
 if (Test-Path $config) { throw "agent configuration still present after uninstall" }
+if (Test-Path $tray) { throw "tray app still present after uninstall" }
+if ((Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).PSObject.Properties['FleetWardenTray']) { throw "tray Run entry still present after uninstall" }
 Write-Host "MSI test passed"

@@ -51,14 +51,22 @@ installeren (buiten het venster), bijvoorbeeld een driver voor één machine.
   uitstellen (maximaal *Aantal keer uitstellen*, telkens met *Uitstellen met*
   minuten); na de laatste keer herstart het apparaat toch.
 - **Automatisch herstarten**: herstart direct na het installeren; een
-  ingelogde gebruiker ziet eerst een aftelling.
+  ingelogde Windows-gebruiker ziet eerst de pop-up met een aftelling.
 - **Nooit herstarten**: het apparaat meldt *Herstart nodig* en je herstart het
   zelf.
 
 Met **Eerst de ingelogde gebruiker vragen** toont Windows vóór het installeren
-een pop-up rechtsonder, met dezelfde regels voor uitstellen. Zonder antwoord
-binnen de aftelling gaat de taak door. Zonder ingelogde gebruiker (servers)
-start de taak meteen. De pop-up gebruikt je huisstijl (productnaam en kleur).
+een pop-up rechtsonder, met dezelfde regels voor uitstellen. Bij een herstart
+ziet een ingelogde gebruiker de pop-up altijd, ook als dit uit staat. Zonder
+antwoord binnen de aftelling gaat de taak door. Zonder ingelogde gebruiker
+(servers) start de taak meteen. De pop-up gebruikt je huisstijl (productnaam
+en kleur) en de Windows-taal van de gebruiker (Engels of Nederlands).
+
+De pop-up komt van de FleetWarden-trayapp (`FleetWardenTray.exe`), die de MSI
+naast de agent installeert. Die start bij het inloggen, en de agent start hem
+ook in open sessies zodra hij iets te vragen heeft. Er is geen extra runtime
+nodig (.NET Framework 4.7.2 zit in Windows 10 en 11) en hij praat alleen via
+een lokale named pipe met de agentservice.
 
 ## Windows Update
 

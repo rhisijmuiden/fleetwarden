@@ -51,15 +51,22 @@ over the category rule; **Follow policy** removes the decision. On a device's
   *Times the user may postpone*, each time by *Postpone by* minutes); after
   the last postpone the device restarts anyway.
 - **Restart automatically**: restarts right after installing; a logged-on
-  user sees a countdown first.
+  Windows user sees the pop-up with a countdown first.
 - **Never restart**: the device reports *Restart pending* and you restart it
   yourself.
 
 With **Ask the logged-on user first**, Windows shows a pop-up at the bottom
-right before installing, with the same postpone rules. Without an answer
-within the countdown the job goes ahead. Without a logged-on user (servers)
-the job starts right away. The pop-up uses your branding (product name and
-colour).
+right before installing, with the same postpone rules. A restart always
+shows the pop-up to a logged-on user, also when this is off. Without an
+answer within the countdown the job goes ahead. Without a logged-on user
+(servers) the job starts right away. The pop-up uses your branding (product
+name and colour) and the user's Windows language (English or Dutch).
+
+The pop-up comes from the FleetWarden tray app (`FleetWardenTray.exe`),
+which the MSI installs next to the agent. It starts at logon, and the agent
+also starts it in open sessions when it has something to ask. It needs no
+extra runtime (.NET Framework 4.7.2 is part of Windows 10 and 11) and talks
+to the agent service over a local named pipe only.
 
 ## Windows Update
 

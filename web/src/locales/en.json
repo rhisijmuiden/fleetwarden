@@ -1094,7 +1094,7 @@
     "days": "days",
     "restartAndUsers": "Restart and users",
     "notifyUsers": "Ask the logged-on user first",
-    "notifyUsersHint": "Windows shows a pop-up at the bottom right. Without a logged-on user the job goes ahead right away.",
+    "notifyUsersHint": "Before installing, Windows shows a pop-up at the bottom right. Restarts always show one. Without a logged-on user the job goes ahead right away.",
     "maxPostpones": "Times the user may postpone",
     "postponeMinutes": "Postpone by (minutes)",
     "countdown": "Countdown (seconds)",

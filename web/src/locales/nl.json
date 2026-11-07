@@ -1094,7 +1094,7 @@
     "days": "dagen",
     "restartAndUsers": "Herstarten en gebruikers",
     "notifyUsers": "Eerst de ingelogde gebruiker vragen",
-    "notifyUsersHint": "Windows toont een pop-up rechtsonder. Zonder ingelogde gebruiker gaat de taak direct door.",
+    "notifyUsersHint": "Vóór het installeren toont Windows een pop-up rechtsonder. Bij een herstart altijd. Zonder ingelogde gebruiker gaat de taak direct door.",
     "maxPostpones": "Aantal keer uitstellen",
     "postponeMinutes": "Uitstellen met (minuten)",
     "countdown": "Aftelling (seconden)",

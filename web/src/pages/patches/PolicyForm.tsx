@@ -193,7 +193,7 @@ export function PolicyForm({
             )}
           </Field>
           <Switch checked={d.notifyUsers} onChange={(v) => set("notifyUsers", v)} label={t("patches.notifyUsers")} description={t("patches.notifyUsersHint")} />
-          {d.notifyUsers && (
+          {(d.notifyUsers || d.reboot !== "never") && (
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label={t("patches.maxPostpones")}>
                 {(id) => <Input id={id} type="number" min={0} max={20} value={d.maxPostpones} onChange={(e) => set("maxPostpones", Number(e.target.value) || 0)} />}

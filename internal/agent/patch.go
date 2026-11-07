@@ -346,11 +346,13 @@ func (a *Agent) runPatchJob(ctx context.Context, job agentproto.PatchInstall) {
 	// The device restarts; the next start reports the outcome.
 }
 
-// askUser shows a prompt when the policy wants that and someone is logged
-// on. It returns false when the agent is stopping.
+// askUser shows a prompt when someone is logged on: before installing when
+// the policy asks for that, and always before a restart (a question with
+// "ask the user", a countdown with "restart automatically"). It returns
+// false when the agent is stopping.
 func (r *patchRun) askUser(ctx context.Context, kind string) bool {
 	n := r.a.Notify
-	if !r.job.Notify || n == nil {
+	if n == nil || (kind == PromptInstall && !r.job.Notify) {
 		return true
 	}
 	canPostpone := kind == PromptInstall || r.job.Reboot == agentproto.RebootPrompt
