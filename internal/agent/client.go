@@ -177,6 +177,9 @@ func (a *Agent) Run(ctx context.Context) error {
 	a.ctx = ctx
 	a.mu.Unlock()
 	if !a.Once {
+		if a.Notify == nil {
+			a.Notify = platformNotifier(ctx, a.Log)
+		}
 		a.resumePatchJob(ctx)
 	}
 	backoff = newBackoff()

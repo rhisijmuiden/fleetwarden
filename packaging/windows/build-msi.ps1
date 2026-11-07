@@ -29,13 +29,17 @@ foreach ($ext in 'WixToolset.Util.wixext', 'WixToolset.UI.wixext') {
 $here = $PSScriptRoot
 dotnet build "$here/CustomActions/FleetWardenCA.csproj" -c Release --nologo
 if ($LASTEXITCODE) { throw "building the custom actions failed" }
+dotnet build "$here/Tray/FleetWardenTray.csproj" -c Release --nologo -p:Version=$msiVersion
+if ($LASTEXITCODE) { throw "building the tray app failed" }
+$tray = Join-Path $here 'Tray/bin/Release/net472/FleetWardenTray.exe'
+if (-not (Test-Path $tray)) { throw "FleetWardenTray.exe was not produced" }
 $ca = Get-ChildItem -Recurse "$here/CustomActions/bin/Release" -Filter FleetWardenCA.CA.dll | Select-Object -First 1
 if (-not $ca) { throw "FleetWardenCA.CA.dll was not produced" }
 
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $out = Join-Path $OutDir "fleetwarden-agent_${Version}_x64.msi"
 wix build -arch x64 -ext WixToolset.Util.wixext -ext WixToolset.UI.wixext `
-    -d "Version=$msiVersion" -d "AgentExe=$((Resolve-Path $AgentExe).Path)" -d "CADll=$($ca.FullName)" `
+    -d "Version=$msiVersion" -d "AgentExe=$((Resolve-Path $AgentExe).Path)" -d "CADll=$($ca.FullName)" -d "TrayExe=$((Resolve-Path $tray).Path)" `
     -o $out "$here/FleetWardenAgent.wxs"
 if ($LASTEXITCODE) { throw "wix build failed" }
 Remove-Item -ErrorAction SilentlyContinue ([IO.Path]::ChangeExtension($out, '.wixpdb'))

@@ -3,9 +3,11 @@ module github.com/rhisijmuiden/fleetwarden
 go 1.26.0
 
 require (
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/coder/websocket v1.8.14
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/go-jose/go-jose/v4 v4.1.4
+	github.com/go-ole/go-ole v1.3.0
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/jlaffaye/ftp v0.2.4
 	github.com/klauspost/compress v1.20.3

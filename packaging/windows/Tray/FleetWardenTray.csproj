@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The FleetWarden tray app: shows the agent's patch prompts (install and
+       restart) at the bottom right for the logged-on user. It talks to the
+       agent service over the named pipe \\.\pipe\FleetWardenAgent.Tray.
+       .NET Framework 4.7.2 ships with every supported Windows version, so
+       endpoints need no extra runtime. Built by build-msi.ps1. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>FleetWardenTray</AssemblyName>
+    <RootNamespace>FleetWarden.Tray</RootNamespace>
+    <StartupObject>FleetWarden.Tray.Program</StartupObject>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <Version Condition="'$(Version)' == ''">0.0.0</Version>
+    <Product>FleetWarden Agent</Product>
+    <Company>FleetWarden</Company>
+    <Copyright>FleetWarden contributors</Copyright>
+    <DebugType>none</DebugType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- WPF and Windows Forms by plain references: the pop-up's XAML is
+         loaded at run time, so no XAML compiler (and no WindowsDesktop SDK)
+         is needed and the project also builds on Linux. -->
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Runtime.Serialization" />
+  </ItemGroup>
+</Project>

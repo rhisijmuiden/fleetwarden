@@ -69,11 +69,24 @@
             <RegistryValue Name="CustomSource" Type="integer" Value="1" />
           </RegistryKey>
         </Component>
+        <!-- The tray app shows patch prompts to logged-on users. It starts at
+             logon; the agent also starts it in open sessions when it has
+             something to ask. -->
+        <Component Id="TrayApp" Bitness="always64">
+          <File Id="TrayExe" Source="$(var.TrayExe)" Name="FleetWardenTray.exe" KeyPath="yes" />
+          <File Id="TrayConfig" Source="$(var.TrayExe).config" Name="FleetWardenTray.exe.config" />
+          <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run" Name="FleetWardenTray" Type="string" Value="&quot;[#TrayExe]&quot;" />
+        </Component>
       </Directory>
     </StandardDirectory>
 
+    <!-- Close running tray apps (in every session) before files are replaced
+         or removed, so an update needs no restart. -->
+    <util:CloseApplication Id="CloseTray" Target="FleetWardenTray.exe" CloseMessage="yes" ElevatedCloseMessage="yes" TerminateProcess="0" Timeout="5" RebootPrompt="no" />
+
     <Feature Id="Agent" Title="FleetWarden Agent" Level="1">
       <ComponentRef Id="AgentService" />
+      <ComponentRef Id="TrayApp" />
     </Feature>
 
     <!-- Write the enrollment settings before the service starts. The command
