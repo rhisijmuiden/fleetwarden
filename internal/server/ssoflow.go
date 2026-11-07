@@ -102,7 +102,7 @@ func (s *Server) handleSSOCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	// Roles are derived from the token at every login, so removing someone
 	// from the Entra group takes effect at their next sign-in.
-	role, ok := sso.ResolveRole(id, mappings)
+	role, scope, ok := sso.ResolveRole(id, mappings)
 	if !ok {
 		reason := "no_role"
 		if id.GroupsOverage {
@@ -112,7 +112,7 @@ func (s *Server) handleSSOCallback(w http.ResponseWriter, r *http.Request) {
 		loginRedirect(w, r, "sso_no_role")
 		return
 	}
-	u, err := s.upsertSSOUser(r, id, role)
+	u, err := s.upsertSSOUser(r, id, role, scope)
 	if errors.Is(err, errDisabled) {
 		s.auditAs(r, &u, "", "auth.login", u.Username, false, map[string]any{"method": "entra", "reason": "disabled"})
 		loginRedirect(w, r, "account_disabled")
@@ -138,14 +138,21 @@ func (s *Server) handleSSOCallback(w http.ResponseWriter, r *http.Request) {
 
 var errDisabled = errors.New("account disabled")
 
-func (s *Server) upsertSSOUser(r *http.Request, id sso.Identity, role auth.Role) (store.User, error) {
+func (s *Server) upsertSSOUser(r *http.Request, id sso.Identity, role auth.Role, scope store.Scope) (store.User, error) {
 	ctx := r.Context()
 	u, err := s.st.UserByExternalID(ctx, id.ExternalID())
 	if errors.Is(err, store.ErrNotFound) {
-		return s.st.CreateUser(ctx, store.User{
+		u, err = s.st.CreateUser(ctx, store.User{
 			Username: id.Username, DisplayName: id.Name, Email: id.Email, Source: "entra",
 			ExternalID: id.ExternalID(), Role: string(role),
 		})
+		if err != nil {
+			return u, err
+		}
+		if err := s.st.SetUserScope(ctx, u.ID, !scope.All, scope.Groups); err != nil {
+			return u, err
+		}
+		return s.st.UserByID(ctx, u.ID)
 	}
 	if err != nil {
 		return u, err
@@ -157,6 +164,9 @@ func (s *Server) upsertSSOUser(r *http.Request, id sso.Identity, role auth.Role)
 		s.auditAs(r, &u, "", "user.role_sync", u.Username, true, map[string]any{"from": u.Role, "to": string(role)})
 	}
 	if err := s.st.SyncSSOUser(ctx, u.ID, id.Username, id.Name, id.Email, string(role)); err != nil {
+		return u, err
+	}
+	if err := s.st.SetUserScope(ctx, u.ID, !scope.All, scope.Groups); err != nil {
 		return u, err
 	}
 	return s.st.UserByID(ctx, u.ID)

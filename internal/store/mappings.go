@@ -14,11 +14,15 @@ type RoleMapping struct {
 	Value     string    `json:"value"`
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"createdAt"`
+	Scoped    bool      `json:"scoped"`
+	Groups    []int64   `json:"groups"`
 }
 
 // ListRoleMappings returns all mappings.
 func (s *Store) ListRoleMappings(ctx context.Context) ([]RoleMapping, error) {
-	rows, err := s.pool.Query(ctx, "SELECT id, claim, value, role, created_at FROM role_mappings ORDER BY claim, value")
+	rows, err := s.pool.Query(ctx, `SELECT id, claim, value, role, created_at, scoped,
+		COALESCE((SELECT array_agg(group_id ORDER BY group_id) FROM role_mapping_scopes s WHERE s.mapping_id = role_mappings.id), '{}')
+		FROM role_mappings ORDER BY claim, value`)
 	if err != nil {
 		return nil, err
 	}

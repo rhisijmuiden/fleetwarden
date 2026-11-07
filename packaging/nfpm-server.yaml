@@ -22,6 +22,8 @@ depends:
   - ca-certificates
   - curl
   - jq
+recommends:
+  - msitools # bakes the server address and token into the Windows agent MSI
 contents:
   - src: dist/linux-amd64/fleetwarden-server
     dst: /usr/bin/fleetwarden-server
@@ -42,6 +44,11 @@ contents:
   - src: packaging/updater/fleetwarden-update
     dst: /usr/lib/fleetwarden/fleetwarden-update
     file_info: { mode: 0755 }
+  # Agent installers of the same version, handed out by the Add client wizard
+  # until the server downloads newer agent releases.
+  - src: dist/agent/
+    dst: /usr/share/fleetwarden/agent/
+    type: tree
   - src: LICENSE
     dst: /usr/share/doc/fleetwarden-server/copyright
 scripts:

@@ -32,7 +32,15 @@ type Server struct {
 	UpdateStatusDir string
 	// EnvFile is the configuration file, included in backups for reference (FW_ENV_FILE).
 	EnvFile string
+	// AgentDir holds the agent installers shipped with the server package (FW_AGENT_DIR).
+	AgentDir string
 }
+
+// AgentKeyPath is the server's Ed25519 key that agents pin at enrollment.
+func (c Server) AgentKeyPath() string { return filepath.Join(c.DataDir, "agent-signing.key") }
+
+// AgentReleasesDir holds agent releases downloaded from GitHub or uploaded.
+func (c Server) AgentReleasesDir() string { return filepath.Join(c.DataDir, "agent-releases") }
 
 // BackupDir is the parent folder of "local folder" backup locations.
 func (c Server) BackupDir() string { return filepath.Join(c.DataDir, "backups") }
@@ -70,6 +78,7 @@ func FromEnv() (Server, error) {
 
 		UpdateStatusDir: getenv("FW_UPDATE_STATUS_DIR", "/var/lib/fleetwarden-update"),
 		EnvFile:         getenv("FW_ENV_FILE", "/etc/fleetwarden/server.env"),
+		AgentDir:        getenv("FW_AGENT_DIR", "/usr/share/fleetwarden/agent"),
 	}
 	proxies, err := ParsePrefixes(getenv("FW_TRUSTED_PROXIES", "127.0.0.1/32,::1/128"))
 	if err != nil {

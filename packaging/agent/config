@@ -1,0 +1,13 @@
+#!/bin/sh
+# debconf config script: asks for the server and token on an interactive
+# install when the agent is not configured yet.
+set -e
+# shellcheck disable=SC1091
+. /usr/share/debconf/confmodule
+if [ -s /etc/fleetwarden-agent/agent.json ] || [ -s /usr/share/fleetwarden-agent/enroll.json ] || [ -n "${FW_TOKEN:-}" ]; then
+    exit 0
+fi
+db_input high fleetwarden-agent/server || true
+db_input high fleetwarden-agent/token || true
+db_go || true
+exit 0

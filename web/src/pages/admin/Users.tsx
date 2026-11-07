@@ -4,6 +4,7 @@ import { KeyRound, Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { del, get, patch, post, type Role, type User } from "../../api";
 import { useAuth } from "../../auth";
 import { Alert, Badge, Button, Card, CopyField, Field, Input, Modal, PageHeader, Select, Spinner, Switch, formatDate, useErrorText } from "../../components/ui";
+import { GroupScope } from "../../components/GroupScope";
 
 const roles: Role[] = ["administrator", "technician", "readonly"];
 
@@ -69,7 +70,14 @@ export function Users() {
                         {u.email && u.email !== u.username ? ` · ${u.email}` : ""}
                       </div>
                     </td>
-                    <td className="px-3 py-3">{t(`roles.${u.role}`)}</td>
+                    <td className="px-3 py-3">
+                      {t(`roles.${u.role}`)}
+                      {u.scoped && u.role !== "administrator" && (
+                        <span className="ml-2">
+                          <Badge tone="primary">{t("users.scopedBadge", { count: u.scopeGroups.length })}</Badge>
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-3">
                       <Badge tone={u.source === "entra" ? "primary" : "neutral"}>{t(`users.sources.${u.source}`)}</Badge>
                     </td>
@@ -162,6 +170,8 @@ function UserForm({ editing, onClose, onSaved }: { editing: Editing; onClose: ()
   const [role, setRole] = useState<Role>("technician");
   const [disabled, setDisabled] = useState(false);
   const [password, setPassword] = useState("");
+  const [scoped, setScoped] = useState(false);
+  const [scopeGroups, setScopeGroups] = useState<number[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -172,6 +182,8 @@ function UserForm({ editing, onClose, onSaved }: { editing: Editing; onClose: ()
     setRole(user?.role ?? "technician");
     setDisabled(user?.disabled ?? false);
     setPassword("");
+    setScoped(user?.scoped ?? false);
+    setScopeGroups(user?.scopeGroups ?? []);
     setError(null);
   }, [editing, user]);
 
@@ -181,10 +193,18 @@ function UserForm({ editing, onClose, onSaved }: { editing: Editing; onClose: ()
     setError(null);
     try {
       if (user) {
-        await patch(`/users/${user.id}`, { displayName, email, role: user.source === "local" ? role : undefined, disabled });
+        const local = user.source === "local";
+        await patch(`/users/${user.id}`, {
+          displayName,
+          email,
+          role: local ? role : undefined,
+          disabled,
+          scoped: local ? scoped : undefined,
+          scopeGroups: local ? scopeGroups : undefined,
+        });
         onSaved(undefined, user.username);
       } else {
-        const r = await post<{ user: User; oneTimePassword?: string }>("/users", { username, displayName, email, role, password });
+        const r = await post<{ user: User; oneTimePassword?: string }>("/users", { username, displayName, email, role, password, scoped, scopeGroups });
         onSaved(r.oneTimePassword, r.user.username);
       }
     } catch (err) {
@@ -231,6 +251,18 @@ function UserForm({ editing, onClose, onSaved }: { editing: Editing; onClose: ()
             </Select>
           )}
         </Field>
+        {!entra && (
+          <GroupScope
+            scoped={scoped && role !== "administrator"}
+            groups={scopeGroups}
+            disabled={role === "administrator"}
+            onChange={(sc, g) => {
+              setScoped(sc);
+              setScopeGroups(g);
+            }}
+          />
+        )}
+        {entra && user?.scoped && <p className="text-xs text-muted">{t("users.scopeFromEntra")}</p>}
         {!user && (
           <Field label={t("users.initialPassword")} hint={t("users.initialPasswordHint")}>
             {(id) => <Input id={id} type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />}

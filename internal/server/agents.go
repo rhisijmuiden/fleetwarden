@@ -1,0 +1,502 @@
+package server
+
+import (
+	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+	"unicode/utf8"
+
+	"github.com/coder/websocket"
+
+	"github.com/rhisijmuiden/fleetwarden/internal/agentproto"
+	"github.com/rhisijmuiden/fleetwarden/internal/store"
+	"github.com/rhisijmuiden/fleetwarden/internal/version"
+)
+
+// Agent connection timing.
+const (
+	agentAuthTimeout   = 15 * time.Second
+	agentHeartbeat     = 60 * time.Second
+	agentInventoryMins = 6 * 60
+	agentPingInterval  = 30 * time.Second
+	agentWriteTimeout  = 20 * time.Second
+	agentReadLimit     = 16 << 20 // a full inventory with thousands of programs
+	maxSoftwareEntries = 10000
+)
+
+// LoadOrCreateAgentKey loads the Ed25519 key the server signs agent messages
+// with, creating it on first start. Agents pin its public key at enrollment,
+// so the file is part of backups.
+func LoadOrCreateAgentKey(path string) (ed25519.PrivateKey, error) {
+	raw, err := os.ReadFile(path)
+	if err == nil {
+		if len(raw) != ed25519.SeedSize {
+			return nil, fmt.Errorf("%s: unexpected key size", path)
+		}
+		return ed25519.NewKeyFromSeed(raw), nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
+	_, key, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+		return nil, err
+	}
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, key.Seed(), 0o600); err != nil {
+		return nil, err
+	}
+	return key, os.Rename(tmp, path)
+}
+
+func (s *Server) agentPublicKey() ed25519.PublicKey { return s.agentKey.Public().(ed25519.PublicKey) }
+
+// ---- hub of connected agents ----
+
+type agentConn struct {
+	deviceID string
+	groupID  int64
+	sess     *agentproto.Session
+	ws       *websocket.Conn
+	out      chan *agentproto.Envelope
+	cancel   context.CancelFunc
+	since    time.Time
+}
+
+type agentHub struct {
+	mu    sync.RWMutex
+	conns map[string]*agentConn
+}
+
+func newAgentHub() *agentHub { return &agentHub{conns: map[string]*agentConn{}} }
+
+// add registers a connection and closes an older one of the same device.
+func (h *agentHub) add(c *agentConn) {
+	h.mu.Lock()
+	old := h.conns[c.deviceID]
+	h.conns[c.deviceID] = c
+	h.mu.Unlock()
+	if old != nil {
+		old.cancel()
+	}
+}
+
+func (h *agentHub) remove(c *agentConn) {
+	h.mu.Lock()
+	if h.conns[c.deviceID] == c {
+		delete(h.conns, c.deviceID)
+	}
+	h.mu.Unlock()
+}
+
+func (h *agentHub) online(id string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	_, ok := h.conns[id]
+	return ok
+}
+
+func (h *agentHub) onlineIDs() []string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	ids := make([]string, 0, len(h.conns))
+	for id := range h.conns {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
+// send queues a signed message for a connected device. It reports false
+// when the device is offline or its queue is full.
+func (h *agentHub) send(id, typ string, v any) bool {
+	h.mu.RLock()
+	c := h.conns[id]
+	h.mu.RUnlock()
+	if c == nil {
+		return false
+	}
+	e, err := c.sess.Seal(typ, "", v)
+	if err != nil {
+		return false
+	}
+	select {
+	case c.out <- e:
+		return true
+	default:
+		return false
+	}
+}
+
+func (h *agentHub) closeAll() {
+	h.mu.Lock()
+	conns := h.conns
+	h.conns = map[string]*agentConn{}
+	h.mu.Unlock()
+	for _, c := range conns {
+		c.cancel()
+	}
+}
+
+// CloseAgents drops every agent connection (on shutdown; agents reconnect).
+func (s *Server) CloseAgents() { s.hub.closeAll() }
+
+// ---- public agent endpoints ----
+
+func (s *Server) agentRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET "+agentproto.PathHello, s.handleAgentHello)
+	mux.HandleFunc("POST "+agentproto.PathEnroll, s.handleEnroll)
+	mux.HandleFunc("GET "+agentproto.PathWS, s.handleAgentWS)
+	mux.HandleFunc("GET /agent/install.ps1", s.handleInstallPS1)
+	mux.HandleFunc("GET /agent/install.sh", s.handleInstallSh)
+	mux.HandleFunc("GET /agent/download/{file}", s.handleAgentDownload)
+}
+
+func (s *Server) handleAgentHello(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, agentproto.Hello{
+		Product: s.loadBranding(r.Context()).ProductName, Version: version.Version,
+		ProtocolVersion: agentproto.Version, ServerPublicKey: s.agentPublicKey(),
+	})
+}
+
+func cleanText(v string, max int) string {
+	v = strings.TrimSpace(strings.ToValidUTF8(v, ""))
+	v = strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f {
+			return -1
+		}
+		return r
+	}, v)
+	if len(v) > max {
+		v = v[:max]
+		for !utf8.ValidString(v) {
+			v = v[:len(v)-1]
+		}
+	}
+	return v
+}
+
+func validPlatform(p string) bool { return p == "windows" || p == "linux" }
+
+func (s *Server) handleEnroll(w http.ResponseWriter, r *http.Request) {
+	ip := ClientIP(r)
+	if s.agentFails.Blocked(ip) {
+		apiError(w, http.StatusTooManyRequests, "rate_limited")
+		return
+	}
+	var req agentproto.EnrollRequest
+	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		apiError(w, http.StatusBadRequest, "bad_request")
+		return
+	}
+	req.Hostname = cleanText(req.Hostname, 255)
+	req.MachineID = cleanText(req.MachineID, 128)
+	if req.Hostname == "" || !validPlatform(req.Platform) || len(req.PublicKey) != ed25519.PublicKeySize {
+		apiError(w, http.StatusBadRequest, "bad_request")
+		return
+	}
+	tok, err := s.st.TokenByValue(r.Context(), strings.TrimSpace(req.Token))
+	if err != nil || !tok.Usable(s.now()) {
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			s.internalError(w, r, err)
+			return
+		}
+		s.agentFails.Fail(ip)
+		s.auditAs(r, nil, "agent", "device.enroll", req.Hostname, false, map[string]any{"reason": "invalid_token", "platform": req.Platform})
+		apiError(w, http.StatusUnauthorized, "invalid_token")
+		return
+	}
+	if !ed25519.Verify(req.PublicKey, agentproto.EnrollProof(req.Token, req.PublicKey), req.Proof) {
+		apiError(w, http.StatusBadRequest, "bad_proof")
+		return
+	}
+	groupID, groupName := tok.GroupID, tok.GroupName
+	if name := cleanText(req.Group, 100); name != "" {
+		if g, err := s.st.GroupByName(r.Context(), name); err == nil {
+			groupID, groupName = g.ID, g.Name
+		}
+	}
+	d := store.Device{
+		GroupID: groupID, TokenID: &tok.ID, PublicKey: req.PublicKey, MachineID: req.MachineID, Hostname: req.Hostname,
+		Platform: req.Platform, Arch: cleanText(req.Arch, 20), AgentVersion: cleanText(req.AgentVersion, 50), RemoteIP: ip,
+	}
+	action := "device.enroll"
+	prev, err := store.Device{}, store.ErrNotFound
+	if d.MachineID != "" {
+		prev, err = s.st.DeviceByMachine(r.Context(), d.MachineID)
+	}
+	if err == nil && prev.Platform == d.Platform {
+		// The same machine enrolls again (agent reinstalled): keep its history.
+		d.ID, action = prev.ID, "device.reenroll"
+		s.hub.send(prev.ID, agentproto.TypeRemove, nil) // an old agent with the previous key must stop
+		err = s.st.ReEnrollDevice(r.Context(), d)
+	} else {
+		d.ID = newUUID()
+		err = s.st.CreateDevice(r.Context(), d)
+	}
+	if err != nil {
+		s.internalError(w, r, err)
+		return
+	}
+	s.auditAs(r, nil, "agent", action, d.Hostname, true, map[string]any{
+		"deviceId": d.ID, "group": groupName, "platform": d.Platform, "token": tok.Prefix,
+	})
+	writeJSON(w, http.StatusOK, agentproto.EnrollResponse{DeviceID: d.ID, ServerPublicKey: s.agentPublicKey(), GroupName: groupName})
+}
+
+func newUUID() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
+	}
+	b[6] = b[6]&0x0f | 0x40
+	b[8] = b[8]&0x3f | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
+
+// handleAgentWS runs one agent session: challenge, signed auth, then signed
+// messages both ways.
+func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
+	ip := ClientIP(r)
+	if s.agentFails.Blocked(ip) {
+		apiError(w, http.StatusTooManyRequests, "rate_limited")
+		return
+	}
+	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{CompressionMode: websocket.CompressionContextTakeover})
+	if err != nil {
+		return
+	}
+	defer ws.CloseNow() //nolint:errcheck
+	ws.SetReadLimit(agentReadLimit)
+	ctx, cancel := context.WithCancel(s.bgCtx)
+	defer cancel()
+
+	nonce := make([]byte, 32)
+	if _, err := rand.Read(nonce); err != nil {
+		return
+	}
+	ch, _ := agentproto.NewEnvelope(agentproto.TypeChallenge, "", 0, agentproto.Challenge{
+		Nonce: nonce, ServerTime: s.now().UTC(), ProtocolVersion: agentproto.Version,
+	})
+	if err := writeEnvelope(ctx, ws, ch); err != nil {
+		return
+	}
+
+	actx, acancel := context.WithTimeout(ctx, agentAuthTimeout)
+	first, err := readEnvelope(actx, ws)
+	acancel()
+	if err != nil || first.Type != agentproto.TypeAuth || first.Seq != 1 {
+		ws.Close(websocket.StatusPolicyViolation, "authentication required") //nolint:errcheck
+		return
+	}
+	var a agentproto.Auth
+	if err := first.Decode(&a); err != nil {
+		ws.Close(websocket.StatusPolicyViolation, "bad auth") //nolint:errcheck
+		return
+	}
+	dev, err := s.st.DeviceByID(ctx, a.DeviceID)
+	if errors.Is(err, store.ErrNotFound) {
+		s.agentFails.Fail(ip)
+		ws.Close(4404, "unknown device") //nolint:errcheck
+		return
+	}
+	if err != nil {
+		ws.Close(websocket.StatusInternalError, "") //nolint:errcheck
+		return
+	}
+	sess := agentproto.NewSession(nonce, s.agentKey, ed25519.PublicKey(dev.PublicKey), agentproto.ToAgent)
+	if err := sess.Open(first); err != nil {
+		s.agentFails.Fail(ip)
+		ws.Close(4401, "bad signature") //nolint:errcheck
+		return
+	}
+	if a.ProtocolVersion != agentproto.Version {
+		ws.Close(4426, "unsupported protocol version") //nolint:errcheck
+		return
+	}
+
+	c := &agentConn{deviceID: dev.ID, groupID: dev.GroupID, sess: sess, ws: ws, out: make(chan *agentproto.Envelope, 32), cancel: cancel, since: s.now()}
+	welcome, _ := sess.Seal(agentproto.TypeWelcome, "", agentproto.Welcome{
+		DeviceID: dev.ID, HeartbeatSeconds: int(agentHeartbeat / time.Second), InventoryMinutes: agentInventoryMins,
+		InventoryRequired: dev.InventoryAt == nil || s.now().Sub(*dev.InventoryAt) > agentInventoryMins*time.Minute,
+	})
+	if err := writeEnvelope(ctx, ws, welcome); err != nil {
+		return
+	}
+	s.hub.add(c)
+	defer s.hub.remove(c)
+	_ = s.st.TouchDevice(context.WithoutCancel(ctx), dev.ID, ip, cleanText(a.AgentVersion, 50), dev.LoggedInUser, dev.LocalIPs, nil)
+	s.log.Info("agent connected", "device", dev.ID, "host", dev.Hostname, "ip", ip)
+	defer s.log.Info("agent disconnected", "device", dev.ID, "host", dev.Hostname)
+
+	go s.agentWriter(ctx, c)
+	for {
+		e, err := readEnvelope(ctx, ws)
+		if err != nil {
+			return
+		}
+		if err := sess.Open(e); err != nil {
+			ws.Close(4401, "bad signature") //nolint:errcheck
+			return
+		}
+		if err := s.handleAgentMessage(ctx, c, ip, e); err != nil {
+			s.log.Warn("agent message", "device", dev.ID, "type", e.Type, "err", err)
+		}
+	}
+}
+
+func (s *Server) agentWriter(ctx context.Context, c *agentConn) {
+	ping := time.NewTicker(agentPingInterval)
+	defer ping.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			c.ws.Close(websocket.StatusGoingAway, "") //nolint:errcheck
+			return
+		case e := <-c.out:
+			if err := writeEnvelope(ctx, c.ws, e); err != nil {
+				c.cancel()
+				return
+			}
+		case <-ping.C:
+			pctx, cancel := context.WithTimeout(ctx, agentWriteTimeout)
+			err := c.ws.Ping(pctx)
+			cancel()
+			if err != nil {
+				c.cancel()
+				return
+			}
+		}
+	}
+}
+
+func writeEnvelope(ctx context.Context, ws *websocket.Conn, e *agentproto.Envelope) error {
+	raw, err := json.Marshal(e)
+	if err != nil {
+		return err
+	}
+	wctx, cancel := context.WithTimeout(ctx, agentWriteTimeout)
+	defer cancel()
+	return ws.Write(wctx, websocket.MessageText, raw)
+}
+
+func readEnvelope(ctx context.Context, ws *websocket.Conn) (*agentproto.Envelope, error) {
+	typ, raw, err := ws.Read(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if typ != websocket.MessageText {
+		return nil, errors.New("binary message")
+	}
+	var e agentproto.Envelope
+	if err := json.Unmarshal(raw, &e); err != nil {
+		return nil, err
+	}
+	return &e, nil
+}
+
+func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string, e *agentproto.Envelope) error {
+	switch e.Type {
+	case agentproto.TypeHeartbeat:
+		var hb agentproto.Heartbeat
+		if err := e.Decode(&hb); err != nil {
+			return err
+		}
+		return s.st.TouchDevice(ctx, c.deviceID, ip, cleanText(hb.AgentVersion, 50), cleanText(hb.LoggedInUser, 255),
+			cleanList(hb.LocalIPs, 32, 64), validTime(hb.BootTime))
+	case agentproto.TypeInventory:
+		var inv agentproto.Inventory
+		if err := e.Decode(&inv); err != nil {
+			return err
+		}
+		if err := s.saveInventory(ctx, c.deviceID, inv); err != nil {
+			return err
+		}
+		return s.st.TouchDevice(ctx, c.deviceID, ip, cleanText(inv.AgentVersion, 50), cleanText(inv.LoggedInUser, 255),
+			cleanList(inv.LocalIPs, 32, 64), validTime(inv.BootTime))
+	default:
+		return fmt.Errorf("unknown message type %q", e.Type)
+	}
+}
+
+func validTime(t time.Time) *time.Time {
+	if t.IsZero() || t.Year() < 2000 || t.After(time.Now().Add(24*time.Hour)) {
+		return nil
+	}
+	return &t
+}
+
+func cleanList(in []string, maxItems, maxLen int) []string {
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		if v = cleanText(v, maxLen); v != "" && len(out) < maxItems {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+func validKind(k string) string {
+	switch k {
+	case "workstation", "server", "hypervisor":
+		return k
+	}
+	return "workstation"
+}
+
+func (s *Server) saveInventory(ctx context.Context, id string, inv agentproto.Inventory) error {
+	hw := inv.Hardware
+	if len(hw.Disks) > 64 {
+		hw.Disks = hw.Disks[:64]
+	}
+	if len(hw.Volumes) > 128 {
+		hw.Volumes = hw.Volumes[:128]
+	}
+	if len(hw.Network) > 64 {
+		hw.Network = hw.Network[:64]
+	}
+	if len(hw.GPUs) > 8 {
+		hw.GPUs = hw.GPUs[:8]
+	}
+	hwRaw, err := json.Marshal(hw)
+	if err != nil {
+		return err
+	}
+	sw := inv.Software
+	if len(sw) > maxSoftwareEntries {
+		sw = sw[:maxSoftwareEntries]
+	}
+	rows := make([]store.SoftwareRow, 0, len(sw))
+	for _, p := range sw {
+		name := cleanText(p.Name, 300)
+		if name == "" {
+			continue
+		}
+		row := store.SoftwareRow{Name: name, Version: cleanText(p.Version, 100), Publisher: cleanText(p.Publisher, 200),
+			Source: cleanText(p.Source, 20), SizeBytes: max(p.SizeBytes, 0)}
+		if on := cleanText(p.InstalledOn, 10); on != "" {
+			row.InstalledOn = &on
+		}
+		rows = append(rows, row)
+	}
+	return s.st.SaveInventory(ctx, id, store.InventoryUpdate{
+		Hostname: cleanText(inv.Hostname, 255), OSName: cleanText(inv.OS.Name, 200), OSVersion: cleanText(inv.OS.Version, 100),
+		OSBuild: cleanText(inv.OS.Build, 100), Kind: validKind(inv.OS.Kind), Domain: cleanText(inv.OS.Domain, 255),
+		OU: cleanText(inv.OS.OU, 500), DomainJoined: inv.OS.DomainJoined, Manufacturer: cleanText(hw.Manufacturer, 200),
+		Model: cleanText(hw.Model, 200), Serial: cleanText(hw.Serial, 200), CPU: cleanText(hw.CPU, 200),
+		LoggedInUser: cleanText(inv.LoggedInUser, 255), CPUCores: max(hw.CPUCores, 0), MemoryBytes: max(hw.MemoryBytes, 0),
+		LocalIPs: cleanList(inv.LocalIPs, 32, 64), BootTime: validTime(inv.BootTime), Hardware: hwRaw, Software: rows,
+	})
+}

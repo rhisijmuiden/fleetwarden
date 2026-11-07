@@ -1,0 +1,41 @@
+# nfpm configuration for the fleetwarden-agent Debian package (Debian, Ubuntu, Proxmox VE).
+# Build with: make agent-debs (copies each architecture's binary to dist/agent-stage first).
+# Keep gzip compression: the server adds the enrollment file to data.tar.gz
+# when a user downloads the package from the Add client wizard.
+name: fleetwarden-agent
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: FleetWarden <https://github.com/rhisijmuiden/fleetwarden>
+description: |
+  FleetWarden endpoint agent.
+  Connects this machine to a FleetWarden management server for inventory,
+  patching, software deployment and remote access.
+vendor: FleetWarden
+homepage: https://github.com/rhisijmuiden/fleetwarden
+license: AGPL-3.0-only WITH Commons-Clause
+depends:
+  - ca-certificates
+recommends:
+  - debconf
+contents:
+  - src: dist/agent-stage/fleetwarden-agent # copied from dist/linux-ARCH by make agent-debs
+    dst: /usr/bin/fleetwarden-agent
+    file_info: { mode: 0755 }
+  - src: packaging/agent/fleetwarden-agent.service
+    dst: /lib/systemd/system/fleetwarden-agent.service
+  - src: packaging/agent/README.enroll
+    dst: /usr/share/fleetwarden-agent/README
+  - src: LICENSE
+    dst: /usr/share/doc/fleetwarden-agent/copyright
+deb:
+  compression: gzip
+  scripts:
+    templates: packaging/agent/templates
+    config: packaging/agent/config
+scripts:
+  postinstall: packaging/agent/postinst.sh
+  preremove: packaging/agent/prerm.sh
+  postremove: packaging/agent/postrm.sh

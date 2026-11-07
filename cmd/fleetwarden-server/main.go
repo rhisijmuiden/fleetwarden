@@ -8,6 +8,8 @@
 //	fleetwarden-server backup [--full]  run a backup to all enabled locations now
 //	fleetwarden-server restore-apply    apply a restore staged in the web interface (root;
 //	                                    started by fleetwarden-restore.path)
+//	fleetwarden-server enrollment-token [--group NAME] [--expires-days N]
+//	                                    create an agent enrollment token (scripts, tests)
 package main
 
 import (
@@ -57,8 +59,10 @@ func main() {
 		err = backupNow(log, flag.Args()[1:])
 	case "restore-apply":
 		err = restoreApply(flag.Args()[1:])
+	case "enrollment-token":
+		err = enrollmentToken(flag.Args()[1:])
 	default:
-		err = fmt.Errorf("unknown command %q (commands: bootstrap, reset-admin, backup, restore-apply)", cmd)
+		err = fmt.Errorf("unknown command %q (commands: bootstrap, reset-admin, backup, restore-apply, enrollment-token)", cmd)
 	}
 	if err != nil {
 		log.Error("fleetwarden-server", "err", err)
@@ -308,7 +312,11 @@ func run(log *slog.Logger) error {
 		} else if pw != "" {
 			log.Warn("created the administrator account; the one-time password is in " + cfg.InitialPasswordPath())
 		}
-		deps.DB, deps.Store, deps.Secrets = pool, st, box
+		agentKey, err := server.LoadOrCreateAgentKey(cfg.AgentKeyPath())
+		if err != nil {
+			return err
+		}
+		deps.DB, deps.Store, deps.Secrets, deps.AgentKey = pool, st, box, agentKey
 	} else {
 		log.Warn("FW_DATABASE_URL is not set; running without a database")
 	}
@@ -333,9 +341,47 @@ func run(log *slog.Logger) error {
 		}
 	case <-ctx.Done():
 		log.Info("shutting down")
+		app.CloseAgents()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		return srv.Shutdown(shutdownCtx)
 	}
+	return nil
+}
+
+func enrollmentToken(args []string) error {
+	if done, err := dropToServiceUser(); done || err != nil {
+		return err
+	}
+	fs := flag.NewFlagSet("enrollment-token", flag.ContinueOnError)
+	group := fs.String("group", "Default", "device group")
+	days := fs.Int("expires-days", 0, "days until the token expires (0: never)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	cfg, err := loadCLI()
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	box, err := secrets.LoadOrCreate(cfg.SecretKeyPath())
+	if err != nil {
+		return err
+	}
+	pool, err := db.Open(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	st := store.New(pool)
+	g, err := st.GroupByName(ctx, *group)
+	if err != nil {
+		return fmt.Errorf("group %q: %w", *group, err)
+	}
+	_, plain, err := server.CreateEnrollmentToken(ctx, st, box, store.EnrollmentToken{GroupID: g.ID, Description: "command line", CreatedBy: "cli"}, *days, 0)
+	if err != nil {
+		return err
+	}
+	fmt.Println(plain)
 	return nil
 }

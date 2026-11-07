@@ -9,7 +9,9 @@ export type Permission =
   | "settings.manage"
   | "audit.view"
   | "system.update"
-  | "backup.manage";
+  | "backup.manage"
+  | "groups.manage"
+  | "agents.manage";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -25,6 +27,8 @@ export type User = {
   language: "en" | "nl";
   disabled: boolean;
   breakGlass: boolean;
+  scoped: boolean;
+  scopeGroups: number[];
   createdAt: string;
   lastLoginAt: string | null;
 };
@@ -63,7 +67,108 @@ export type AuthSettings = {
   clientIp: string;
 };
 
-export type RoleMapping = { id: number; claim: "group" | "role"; value: string; role: Role; createdAt: string };
+export type RoleMapping = { id: number; claim: "group" | "role"; value: string; role: Role; createdAt: string; scoped: boolean; groups: number[] };
+
+export type Channel = "production" | "test";
+
+export type DeviceGroup = {
+  id: number;
+  name: string;
+  description: string;
+  updateRing: number;
+  agentChannel: Channel | null;
+  windowStart: number | null;
+  windowEnd: number | null;
+  createdAt: string;
+  deviceCount: number;
+  onlineCount: number;
+};
+
+export type Platform = "windows" | "linux";
+
+export type Disk = { name: string; model: string; sizeBytes: number; media: string };
+export type Volume = { mount: string; fileSystem: string; sizeBytes: number; freeBytes: number };
+export type NetIface = { name: string; mac: string; ips: string[] | null };
+export type Hardware = {
+  manufacturer: string;
+  model: string;
+  serial: string;
+  bios: string;
+  cpu: string;
+  cpuCores: number;
+  cpuThreads: number;
+  memoryBytes: number;
+  disks: Disk[] | null;
+  volumes: Volume[] | null;
+  network: NetIface[] | null;
+  gpus?: string[] | null;
+  virtual: boolean;
+};
+
+export type Device = {
+  id: string;
+  groupId: number;
+  groupName: string;
+  hostname: string;
+  platform: Platform;
+  arch: string;
+  agentVersion: string;
+  osName: string;
+  osVersion: string;
+  osBuild: string;
+  kind: "workstation" | "server" | "hypervisor";
+  domain: string;
+  domainJoined: boolean;
+  ou: string;
+  manufacturer: string;
+  model: string;
+  serial: string;
+  cpu: string;
+  cpuCores: number;
+  memoryBytes: number;
+  loggedInUser: string;
+  remoteIp: string;
+  localIps: string[];
+  bootTime: string | null;
+  hardware?: Hardware;
+  enrolledAt: string;
+  lastSeenAt: string;
+  inventoryAt: string | null;
+  notes: string;
+  online: boolean;
+};
+
+export type DeviceList = { items: Device[]; total: number };
+export type DeviceStats = { total: number; online: number; platform: Record<string, number> };
+
+export type SoftwareRow = { name: string; version: string; publisher: string; installedOn: string | null; source: string; sizeBytes: number };
+
+export type EnrollmentToken = {
+  id: number;
+  prefix: string;
+  description: string;
+  groupId: number;
+  groupName: string;
+  createdBy: string;
+  createdAt: string;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  maxUses: number | null;
+  uses: number;
+  lastUsedAt: string | null;
+};
+
+export type InstallPackage = { platform: Platform; arch: string; kind: "msi" | "deb"; version: string; url: string; name: string };
+
+export type InstallInfo = {
+  token: string;
+  serverUrl: string;
+  usable: boolean;
+  windowsCommand: string;
+  linuxCommand: string;
+  msiexecCommand: string;
+  downloads: InstallPackage[];
+};
 
 export type MailConfig = {
   enabled: boolean;
