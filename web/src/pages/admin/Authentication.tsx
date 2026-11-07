@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { ExternalLink, FlaskConical, Plus, Trash2 } from "lucide-react";
 import { del, get, post, put, type AuthSettings, type Role, type RoleMapping } from "../../api";
+import { GroupScope, useGroups } from "../../components/GroupScope";
 import { Alert, Badge, Button, Card, CopyField, Field, Input, PageHeader, Select, Spinner, Switch, useErrorText } from "../../components/ui";
 
 const guideUrl = (lang: string) =>
@@ -125,7 +126,11 @@ function Mappings() {
   const [claim, setClaim] = useState<"group" | "role">("group");
   const [value, setValue] = useState("");
   const [role, setRole] = useState<Role>("technician");
+  const [scoped, setScoped] = useState(false);
+  const [scopeGroups, setScopeGroups] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const groups = useGroups();
+  const groupName = (id: number) => groups?.find((g) => g.id === id)?.name ?? `#${id}`;
 
   const load = useCallback(() => {
     get<RoleMapping[]>("/settings/role-mappings").then(setList).catch((e) => setError(errorText(e)));
@@ -136,8 +141,10 @@ function Mappings() {
     e.preventDefault();
     setError(null);
     try {
-      await post("/settings/role-mappings", { claim, value, role });
+      await post("/settings/role-mappings", { claim, value, role, scoped: scoped && role !== "administrator", groups: scopeGroups });
       setValue("");
+      setScoped(false);
+      setScopeGroups([]);
       load();
     } catch (err) {
       setError(errorText(err));
@@ -176,6 +183,17 @@ function Mappings() {
           <Button type="submit" icon={<Plus className="size-4" />}>
             {t("common.add")}
           </Button>
+          <div className="md:col-span-4">
+            <GroupScope
+              scoped={scoped && role !== "administrator"}
+              groups={scopeGroups}
+              disabled={role === "administrator"}
+              onChange={(sc, g) => {
+                setScoped(sc);
+                setScopeGroups(g);
+              }}
+            />
+          </div>
         </form>
         {!list ? (
           <Spinner />
@@ -189,6 +207,7 @@ function Mappings() {
                 <code className="min-w-0 flex-1 truncate font-mono text-xs">{m.value}</code>
                 <span className="text-muted">→</span>
                 <span className="font-medium">{t(`roles.${m.role}`)}</span>
+                {m.scoped && <Badge tone="primary">{m.groups.length ? m.groups.map(groupName).join(", ") : t("scope.noneSelected")}</Badge>}
                 <Button
                   variant="ghost"
                   size="sm"

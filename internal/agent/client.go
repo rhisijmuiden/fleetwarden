@@ -1,0 +1,481 @@
+package agent
+
+import (
+	"bytes"
+	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"math/big"
+	"net/http"
+	"os"
+	"runtime"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/coder/websocket"
+
+	"github.com/rhisijmuiden/fleetwarden/internal/agentproto"
+	"github.com/rhisijmuiden/fleetwarden/internal/version"
+)
+
+// ErrRemoved means the server deleted this device; the agent stops.
+var ErrRemoved = errors.New("this device was removed from the management server")
+
+// ErrInvalidToken means the enrollment token was refused.
+var ErrInvalidToken = errors.New("the enrollment token is invalid, expired or revoked")
+
+// Agent runs the connection to the management server.
+type Agent struct {
+	ConfigPath string
+	Log        *slog.Logger
+	HTTP       *http.Client
+	// Collect gathers the inventory; defaults to the platform collector.
+	Collect func(ctx context.Context) (agentproto.Inventory, error)
+	// Once stops after the first inventory was sent (install tests).
+	Once bool
+
+	mu  sync.Mutex
+	cfg Config
+}
+
+func (a *Agent) init() {
+	if a.Log == nil {
+		a.Log = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+	if a.HTTP == nil {
+		a.HTTP = &http.Client{Timeout: 60 * time.Second, Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment, TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
+			TLSHandshakeTimeout: 15 * time.Second, IdleConnTimeout: 90 * time.Second,
+		}}
+	}
+	if a.Collect == nil {
+		a.Collect = CollectInventory
+	}
+}
+
+// Enroll registers the agent with its token and stores the device identity.
+func (a *Agent) Enroll(ctx context.Context) error {
+	a.init()
+	cfg, err := LoadConfig(a.ConfigPath)
+	if err != nil {
+		return err
+	}
+	if cfg.Enrolled() {
+		return nil
+	}
+	if cfg.Server == "" || cfg.Token == "" {
+		return errors.New("not configured: run 'fleetwarden-agent configure --server URL --token TOKEN'")
+	}
+	pub, key, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return err
+	}
+	host, _ := os.Hostname()
+	req := agentproto.EnrollRequest{
+		Token: cfg.Token, PublicKey: pub, MachineID: machineID(), Hostname: host, Platform: runtime.GOOS,
+		Arch: runtime.GOARCH, AgentVersion: version.Version, Group: cfg.Group,
+		Proof: ed25519.Sign(key, agentproto.EnrollProof(cfg.Token, pub)),
+	}
+	body, _ := json.Marshal(req)
+	hreq, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.Server+agentproto.PathEnroll, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	hreq.Header.Set("Content-Type", "application/json")
+	hreq.Header.Set("User-Agent", "fleetwarden-agent/"+version.Version)
+	res, err := a.HTTP.Do(hreq)
+	if err != nil {
+		return fmt.Errorf("enroll: %w", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode == http.StatusUnauthorized {
+		return ErrInvalidToken
+	}
+	if res.StatusCode != http.StatusOK {
+		msg, _ := io.ReadAll(io.LimitReader(res.Body, 512))
+		return fmt.Errorf("enroll: server answered %s: %s", res.Status, strings.TrimSpace(string(msg)))
+	}
+	var out agentproto.EnrollResponse
+	if err := json.NewDecoder(io.LimitReader(res.Body, 64<<10)).Decode(&out); err != nil {
+		return fmt.Errorf("enroll: %w", err)
+	}
+	if out.DeviceID == "" || len(out.ServerPublicKey) != ed25519.PublicKeySize {
+		return errors.New("enroll: incomplete answer from the server")
+	}
+	cfg.DeviceID, cfg.PrivateKey, cfg.ServerPublicKey = out.DeviceID, key.Seed(), out.ServerPublicKey
+	cfg.Token, cfg.Group = "", ""
+	if err := SaveConfig(a.ConfigPath, cfg); err != nil {
+		return err
+	}
+	a.Log.Info("enrolled", "device", out.DeviceID, "group", out.GroupName, "server", cfg.Server)
+	return nil
+}
+
+// Run enrolls when needed and keeps the session open until ctx ends,
+// reconnecting with backoff. It returns ErrRemoved when the server deleted
+// the device.
+func (a *Agent) Run(ctx context.Context) error {
+	a.init()
+	backoff := newBackoff()
+	for {
+		err := a.Enroll(ctx)
+		if err == nil {
+			break
+		}
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		a.Log.Warn("enrollment failed, retrying", "err", err)
+		if a.Once {
+			return err
+		}
+		if !sleep(ctx, backoff.next(errors.Is(err, ErrInvalidToken))) {
+			return ctx.Err()
+		}
+	}
+	backoff = newBackoff()
+	for {
+		cfg, err := LoadConfig(a.ConfigPath)
+		if err != nil {
+			return err
+		}
+		a.mu.Lock()
+		a.cfg = cfg
+		a.mu.Unlock()
+		start := time.Now()
+		err = a.session(ctx, cfg)
+		switch {
+		case errors.Is(err, ErrRemoved):
+			a.Log.Warn("the server removed this device; clearing the enrollment")
+			cfg.DeviceID, cfg.PrivateKey, cfg.ServerPublicKey = "", nil, nil
+			_ = SaveConfig(a.ConfigPath, cfg)
+			return err
+		case errors.Is(err, errSessionDone):
+			return nil
+		case ctx.Err() != nil:
+			return ctx.Err()
+		}
+		if a.Once {
+			return err
+		}
+		if time.Since(start) > 5*time.Minute {
+			backoff = newBackoff() // the connection was healthy for a while
+		}
+		wait := backoff.next(errors.Is(err, errUnknownDevice))
+		a.Log.Warn("connection lost, reconnecting", "err", err, "in", wait.Round(time.Second))
+		if !sleep(ctx, wait) {
+			return ctx.Err()
+		}
+	}
+}
+
+var (
+	errSessionDone   = errors.New("session finished")
+	errUnknownDevice = errors.New("the server does not know this device")
+)
+
+func (a *Agent) session(ctx context.Context, cfg Config) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	dctx, dcancel := context.WithTimeout(ctx, 30*time.Second)
+	ws, res, err := websocket.Dial(dctx, wsURL(cfg.Server)+agentproto.PathWS, &websocket.DialOptions{
+		HTTPClient:      a.HTTP,
+		HTTPHeader:      http.Header{"User-Agent": {"fleetwarden-agent/" + version.Version}},
+		CompressionMode: websocket.CompressionContextTakeover,
+	})
+	dcancel()
+	if res != nil && res.Body != nil {
+		res.Body.Close()
+	}
+	if err != nil {
+		return fmt.Errorf("connect: %w", err)
+	}
+	defer ws.CloseNow() //nolint:errcheck
+	ws.SetReadLimit(4 << 20)
+
+	ch, err := readEnvelope(ctx, ws, 30*time.Second)
+	if err != nil {
+		return closeReason(err)
+	}
+	var c agentproto.Challenge
+	if ch.Type != agentproto.TypeChallenge || ch.Decode(&c) != nil || len(c.Nonce) < 16 {
+		return errors.New("unexpected first message from the server")
+	}
+	sess := agentproto.NewSession(c.Nonce, cfg.Key(), ed25519.PublicKey(cfg.ServerPublicKey), agentproto.ToServer)
+	auth, _ := sess.Seal(agentproto.TypeAuth, "", agentproto.Auth{DeviceID: cfg.DeviceID, AgentVersion: version.Version, ProtocolVersion: agentproto.Version})
+	if err := writeEnvelope(ctx, ws, auth); err != nil {
+		return err
+	}
+	wel, err := readEnvelope(ctx, ws, 30*time.Second)
+	if err != nil {
+		return closeReason(err)
+	}
+	var w agentproto.Welcome
+	if sess.Open(wel) != nil || wel.Type != agentproto.TypeWelcome || wel.Decode(&w) != nil {
+		// The server could not prove it holds the key we pinned.
+		return errors.New("the server's signature does not match the pinned server key")
+	}
+	a.Log.Info("connected", "server", cfg.Server, "device", cfg.DeviceID)
+
+	out := make(chan *agentproto.Envelope, 16)
+	send := func(typ string, v any) {
+		e, err := sess.Seal(typ, "", v)
+		if err != nil {
+			return
+		}
+		select {
+		case out <- e:
+		case <-ctx.Done():
+		}
+	}
+	errc := make(chan error, 2)
+	go func() { // writer
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case e := <-out:
+				if err := writeEnvelope(ctx, ws, e); err != nil {
+					errc <- err
+					return
+				}
+			}
+		}
+	}()
+	inventoryNow := make(chan struct{}, 1)
+	if w.InventoryRequired || a.Once {
+		inventoryNow <- struct{}{}
+	}
+	sent := make(chan struct{}, 1)
+	go func() { // timers: heartbeat and inventory
+		hb := time.NewTicker(seconds(w.HeartbeatSeconds, 60))
+		inv := time.NewTicker(time.Duration(max(w.InventoryMinutes, 15)) * time.Minute)
+		defer hb.Stop()
+		defer inv.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-hb.C:
+				send(agentproto.TypeHeartbeat, collectHeartbeat())
+			case <-inv.C:
+				a.sendInventory(ctx, send)
+			case <-inventoryNow:
+				a.sendInventory(ctx, send)
+				select {
+				case sent <- struct{}{}:
+				default:
+				}
+			}
+		}
+	}()
+	go func() { // reader
+		for {
+			e, err := readEnvelope(ctx, ws, 0)
+			if err != nil {
+				errc <- closeReason(err)
+				return
+			}
+			if err := sess.Open(e); err != nil {
+				errc <- err
+				return
+			}
+			switch e.Type {
+			case agentproto.TypeInventoryRequest:
+				select {
+				case inventoryNow <- struct{}{}:
+				default:
+				}
+			case agentproto.TypeRemove:
+				errc <- ErrRemoved
+				return
+			case agentproto.TypeUpdate:
+				a.handleUpdate(ctx, e, send)
+			default:
+				a.Log.Debug("ignoring message", "type", e.Type)
+			}
+		}
+	}()
+	if a.Once {
+		select {
+		case <-sent:
+			// Give the writer a moment to flush, then close cleanly.
+			time.Sleep(500 * time.Millisecond)
+			ws.Close(websocket.StatusNormalClosure, "") //nolint:errcheck
+			return errSessionDone
+		case err := <-errc:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	select {
+	case err := <-errc:
+		return err
+	case <-ctx.Done():
+		ws.Close(websocket.StatusGoingAway, "agent stopping") //nolint:errcheck
+		return ctx.Err()
+	}
+}
+
+func (a *Agent) sendInventory(ctx context.Context, send func(string, any)) {
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	inv, err := a.Collect(cctx)
+	if err != nil {
+		a.Log.Warn("inventory incomplete", "err", err)
+	}
+	inv.CollectedAt = time.Now().UTC()
+	inv.Heartbeat = collectHeartbeat()
+	if inv.Hostname == "" {
+		inv.Hostname, _ = os.Hostname()
+	}
+	send(agentproto.TypeInventory, inv)
+	a.Log.Info("inventory sent", "programs", len(inv.Software))
+}
+
+func collectHeartbeat() agentproto.Heartbeat {
+	return agentproto.Heartbeat{LoggedInUser: loggedInUser(), BootTime: bootTime(), LocalIPs: localIPs(), AgentVersion: version.Version}
+}
+
+func seconds(v, def int) time.Duration {
+	if v < 10 {
+		v = def
+	}
+	return time.Duration(v) * time.Second
+}
+
+func closeReason(err error) error {
+	switch websocket.CloseStatus(err) {
+	case 4404:
+		return errUnknownDevice
+	case 4401:
+		return errors.New("the server rejected this agent's signature")
+	}
+	return err
+}
+
+func writeEnvelope(ctx context.Context, ws *websocket.Conn, e *agentproto.Envelope) error {
+	raw, err := json.Marshal(e)
+	if err != nil {
+		return err
+	}
+	wctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	return ws.Write(wctx, websocket.MessageText, raw)
+}
+
+func readEnvelope(ctx context.Context, ws *websocket.Conn, timeout time.Duration) (*agentproto.Envelope, error) {
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+	typ, raw, err := ws.Read(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if typ != websocket.MessageText {
+		return nil, errors.New("unexpected binary message")
+	}
+	var e agentproto.Envelope
+	return &e, json.Unmarshal(raw, &e)
+}
+
+// ---- backoff ----
+
+type backoff struct{ cur time.Duration }
+
+func newBackoff() *backoff { return &backoff{} }
+
+// next returns the next wait: 5 s doubling to 5 minutes, or one hour for
+// errors that will not fix themselves soon. Jitter spreads reconnects after a
+// server restart.
+func (b *backoff) next(slow bool) time.Duration {
+	if slow {
+		return time.Hour
+	}
+	if b.cur == 0 {
+		b.cur = 5 * time.Second
+	} else if b.cur *= 2; b.cur > 5*time.Minute {
+		b.cur = 5 * time.Minute
+	}
+	j, _ := rand.Int(rand.Reader, big.NewInt(int64(b.cur/2)+1))
+	return b.cur/2 + time.Duration(j.Int64())
+}
+
+func sleep(ctx context.Context, d time.Duration) bool {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-t.C:
+		return true
+	}
+}
+
+// ---- connection test for the installer wizard ----
+
+// TestResult is printed by "fleetwarden-agent test-connection" as JSON.
+type TestResult struct {
+	OK          bool      `json:"ok"`
+	Server      string    `json:"server"`
+	Product     string    `json:"product,omitempty"`
+	Version     string    `json:"version,omitempty"`
+	Error       string    `json:"error,omitempty"`
+	TLS         bool      `json:"tls"`
+	CertSubject string    `json:"certSubject,omitempty"`
+	CertIssuer  string    `json:"certIssuer,omitempty"`
+	CertExpires time.Time `json:"certExpires,omitzero"`
+	CertSHA256  string    `json:"certSha256,omitempty"`
+}
+
+// TestConnection checks that a FleetWarden server answers at the address and
+// reports its certificate.
+func TestConnection(ctx context.Context, server string) TestResult {
+	res := TestResult{Server: server}
+	norm, err := NormalizeServer(server)
+	if err != nil {
+		res.Error = err.Error()
+		return res
+	}
+	res.Server = norm
+	var peer *x509.Certificate
+	client := &http.Client{Timeout: 20 * time.Second, Transport: &http.Transport{Proxy: http.ProxyFromEnvironment,
+		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, VerifyConnection: func(cs tls.ConnectionState) error {
+			if len(cs.PeerCertificates) > 0 {
+				peer = cs.PeerCertificates[0]
+			}
+			return nil
+		}}}}
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, norm+agentproto.PathHello, nil)
+	r, err := client.Do(req)
+	if peer != nil {
+		res.TLS = true
+		res.CertSubject = peer.Subject.String()
+		res.CertIssuer = peer.Issuer.String()
+		res.CertExpires = peer.NotAfter
+		res.CertSHA256 = fingerprint(peer.Raw)
+	}
+	if err != nil {
+		res.Error = err.Error()
+		return res
+	}
+	defer r.Body.Close()
+	var h agentproto.Hello
+	if r.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(r.Body, 64<<10)).Decode(&h) != nil || h.ProtocolVersion == 0 {
+		res.Error = "this address does not answer as a FleetWarden server (" + r.Status + ")"
+		return res
+	}
+	res.OK, res.Product, res.Version = true, h.Product, h.Version
+	return res
+}

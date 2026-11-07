@@ -45,11 +45,13 @@ func pathID(r *http.Request) (int64, bool) {
 }
 
 type createUserReq struct {
-	Username    string `json:"username"`
-	DisplayName string `json:"displayName"`
-	Email       string `json:"email"`
-	Role        string `json:"role"`
-	Password    string `json:"password"`
+	Username    string  `json:"username"`
+	DisplayName string  `json:"displayName"`
+	Email       string  `json:"email"`
+	Role        string  `json:"role"`
+	Password    string  `json:"password"`
+	Scoped      bool    `json:"scoped"`
+	ScopeGroups []int64 `json:"scopeGroups"`
 }
 
 type userWithPassword struct {
@@ -103,15 +105,24 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		s.internalError(w, r, err)
 		return
 	}
-	s.audit(r, "user.create", u.Username, true, map[string]any{"role": u.Role})
+	if req.Scoped && req.Role != string(auth.RoleAdministrator) {
+		if err := s.st.SetUserScope(r.Context(), u.ID, true, req.ScopeGroups); err != nil {
+			s.internalError(w, r, err)
+			return
+		}
+		u, _ = s.st.UserByID(r.Context(), u.ID)
+	}
+	s.audit(r, "user.create", u.Username, true, map[string]any{"role": u.Role, "scoped": u.Scoped, "groups": u.ScopeGroups})
 	writeJSON(w, http.StatusCreated, userWithPassword{User: u, OneTimePassword: oneTime})
 }
 
 type updateUserReq struct {
-	DisplayName *string `json:"displayName"`
-	Email       *string `json:"email"`
-	Role        *string `json:"role"`
-	Disabled    *bool   `json:"disabled"`
+	DisplayName *string  `json:"displayName"`
+	Email       *string  `json:"email"`
+	Role        *string  `json:"role"`
+	Disabled    *bool    `json:"disabled"`
+	Scoped      *bool    `json:"scoped"`
+	ScopeGroups *[]int64 `json:"scopeGroups"`
 }
 
 func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -185,6 +196,27 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	if err := s.st.UpdateProfile(r.Context(), u.ID, next.DisplayName, next.Email, next.Role, next.Disabled); err != nil {
 		s.internalError(w, r, err)
 		return
+	}
+	if req.Scoped != nil || req.ScopeGroups != nil {
+		if u.Source != "local" {
+			apiError(w, http.StatusBadRequest, "role_managed_by_entra")
+			return
+		}
+		scoped, groups := u.Scoped, u.ScopeGroups
+		if req.Scoped != nil {
+			scoped = *req.Scoped
+		}
+		if req.ScopeGroups != nil {
+			groups = *req.ScopeGroups
+		}
+		if next.Role == string(auth.RoleAdministrator) {
+			scoped = false // administrators always see every group
+		}
+		if err := s.st.SetUserScope(r.Context(), u.ID, scoped, groups); err != nil {
+			s.internalError(w, r, err)
+			return
+		}
+		changes["scoped"], changes["groups"] = scoped, groups
 	}
 	if next.Disabled || next.Role != u.Role {
 		_ = s.st.DeleteUserSessions(r.Context(), u.ID, "")

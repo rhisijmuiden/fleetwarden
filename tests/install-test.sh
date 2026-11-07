@@ -90,6 +90,23 @@ api -X POST -d '{"username":"admin","password":"install-test-password-1"}' "$bas
 api "$base/users" | jq -e 'length == 1' >/dev/null || { echo "restore did not bring back the old accounts" >&2; exit 1; }
 api "$base/audit?q=backup.restore_result" | jq -e '.[0].success == true' >/dev/null || { echo "restore result not audited" >&2; exit 1; }
 
+# Agent: enroll this machine with the one-liner from the Add client wizard,
+# using the agent package bundled with the server.
+ls /usr/share/fleetwarden/agent/fleetwarden-agent_*_amd64.deb >/dev/null || { echo "no bundled agent package" >&2; exit 1; }
+token=$(fleetwarden-server enrollment-token --group Default)
+[[ "$token" == fwe_* ]] || { echo "enrollment-token printed '$token'" >&2; exit 1; }
+curl -fsSL http://127.0.0.1:8080/agent/install.sh | bash -s -- "$token"
+[[ "$(stat -c '%a' /etc/fleetwarden-agent/agent.json)" == 600 ]] || { echo "agent config has wrong permissions" >&2; exit 1; }
+fleetwarden-agent status | grep -q 'Waiting to enroll' || { echo "agent was not configured from the baked package" >&2; exit 1; }
+# No systemd here: run one agent cycle in the foreground (enroll + inventory).
+fleetwarden-agent once || { cat /tmp/server.log; exit 1; }
+fleetwarden-agent status | grep -q 'Enrolled as device' || { echo "agent did not enroll" >&2; exit 1; }
+devices=$(api "$base/devices")
+echo "devices: $(jq -c '.items[0] | {hostname, platform, osName, groupName, inventoryAt}' <<<"$devices")"
+jq -e '.total == 1 and .items[0].platform == "linux" and .items[0].inventoryAt != null' <<<"$devices" >/dev/null || { echo "device not registered: $devices" >&2; exit 1; }
+dev_id=$(jq -r '.items[0].id' <<<"$devices")
+api "$base/devices/$dev_id/software" | jq -e 'length > 10 and any(.[]; .name == "fleetwarden-agent")' >/dev/null || { echo "software inventory missing" >&2; exit 1; }
+
 # Re-installing (upgrade path) must keep the configuration, the secret key and the accounts.
 before=$(sha256sum /etc/fleetwarden/server.env /var/lib/fleetwarden/secret.key)
 apt-get install -y -qq --reinstall "$(realpath "$deb")" >/dev/null

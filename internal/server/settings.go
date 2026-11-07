@@ -226,6 +226,7 @@ func (s *Server) handleCreateMapping(w http.ResponseWriter, r *http.Request) {
 	if req.Claim == "group" {
 		req.Value = strings.ToLower(req.Value)
 	}
+	scoped := req.Scoped && req.Role != string(auth.RoleAdministrator)
 	m, err := s.st.CreateRoleMapping(r.Context(), req)
 	if errors.Is(err, store.ErrConflict) {
 		apiError(w, http.StatusConflict, "mapping_exists")
@@ -235,7 +236,15 @@ func (s *Server) handleCreateMapping(w http.ResponseWriter, r *http.Request) {
 		s.internalError(w, r, err)
 		return
 	}
-	s.audit(r, "settings.role_mapping.create", m.Claim+":"+m.Value, true, map[string]any{"role": m.Role})
+	if err := s.st.SetMappingScope(r.Context(), m.ID, scoped, req.Groups); err != nil {
+		s.internalError(w, r, err)
+		return
+	}
+	m.Scoped, m.Groups = scoped, req.Groups
+	if !scoped || m.Groups == nil {
+		m.Groups = []int64{}
+	}
+	s.audit(r, "settings.role_mapping.create", m.Claim+":"+m.Value, true, map[string]any{"role": m.Role, "scoped": scoped, "groups": m.Groups})
 	writeJSON(w, http.StatusCreated, m)
 }
 

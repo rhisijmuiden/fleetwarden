@@ -25,19 +25,22 @@ type User struct {
 	Language           string     `json:"language"`
 	Disabled           bool       `json:"disabled"`
 	BreakGlass         bool       `json:"breakGlass"`
+	Scoped             bool       `json:"scoped"`
+	ScopeGroups        []int64    `json:"scopeGroups"`
 	CreatedAt          time.Time  `json:"createdAt"`
 	LastLoginAt        *time.Time `json:"lastLoginAt"`
 }
 
 const userCols = `id, username, display_name, email, source, COALESCE(external_id, ''), COALESCE(password_hash, ''),
 	must_change_password, COALESCE(totp_secret, ''), totp_enabled, totp_last_step, role, language, disabled,
-	break_glass, created_at, last_login_at`
+	break_glass, created_at, last_login_at, scoped,
+	COALESCE((SELECT array_agg(group_id ORDER BY group_id) FROM user_group_scopes WHERE user_id = users.id), '{}')`
 
 func scanUser(row pgx.Row) (User, error) {
 	var u User
 	err := row.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Email, &u.Source, &u.ExternalID, &u.PasswordHash,
 		&u.MustChangePassword, &u.TOTPSecret, &u.TOTPEnabled, &u.TOTPLastStep, &u.Role, &u.Language, &u.Disabled,
-		&u.BreakGlass, &u.CreatedAt, &u.LastLoginAt)
+		&u.BreakGlass, &u.CreatedAt, &u.LastLoginAt, &u.Scoped, &u.ScopeGroups)
 	return u, mapErr(err)
 }
 

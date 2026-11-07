@@ -3,6 +3,8 @@ package server
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"io"
@@ -45,6 +47,8 @@ type Deps struct {
 	SSO     *sso.Client
 	// Backup overrides how backup locations are reached (tests).
 	Backup backup.Options
+	// AgentKey signs messages to agents; a fresh key is generated when nil (tests).
+	AgentKey ed25519.PrivateKey
 }
 
 // Mailer delivers one message with a mail configuration.
@@ -65,6 +69,11 @@ type Server struct {
 	ipFails  *auth.Limiter
 	usrFails *auth.Limiter
 	now      func() time.Time
+
+	agentKey   ed25519.PrivateKey
+	hub        *agentHub
+	pkgs       pkgCatalog
+	agentFails *auth.Limiter
 
 	backupOpts backup.Options
 	backupMu   sync.Mutex // held while a backup runs or a restore is prepared
@@ -96,8 +105,12 @@ func New(cfg config.Server, d Deps) *Server {
 	if d.SSO == nil {
 		d.SSO = sso.NewClient()
 	}
+	if d.AgentKey == nil {
+		_, d.AgentKey, _ = ed25519.GenerateKey(rand.Reader)
+	}
 	bgCtx, bgCancel := context.WithCancel(context.Background())
 	return &Server{
+		agentKey: d.AgentKey, hub: newAgentHub(), agentFails: auth.NewLimiter(30, 15*time.Minute),
 		bgCtx: bgCtx, bgCancel: bgCancel,
 		cfg: cfg, db: d.DB, st: d.Store, box: d.Secrets, log: d.Log, mailer: d.Mailer, sso: d.SSO, updates: d.Updates, backupOpts: d.Backup,
 		ipFails:  auth.NewLimiter(20, 15*time.Minute),
@@ -136,6 +149,8 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/auth/sso/callback", s.handleSSOCallback)
 	mux.HandleFunc("GET /api/v1/branding", s.handleBranding)
 	mux.HandleFunc("GET /api/v1/branding/{asset}", s.handleBrandingAsset)
+	s.agentRoutes(mux)
+	s.deviceRoutes(mux)
 
 	// Signed in. allowPending lets a user with a forced password change reach these.
 	mux.Handle("GET /api/v1/auth/me", s.authed("", allowPending, s.handleMe))

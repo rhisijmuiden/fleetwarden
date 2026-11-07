@@ -44,6 +44,7 @@ your own password at the first sign-in. Lost it? Run
 - Optional Microsoft Entra ID sign-in: [docs/entra-sso.md](docs/entra-sso.md)
 - Updates and channels: [docs/updates.md](docs/updates.md)
 - Backup and restore: [docs/backup.md](docs/backup.md)
+- Agents, Add client and enrollment: [docs/agents.md](docs/agents.md)
 
 ## Development
 

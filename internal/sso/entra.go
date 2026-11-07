@@ -183,9 +183,11 @@ func (c *Client) Test(ctx context.Context, cfg Config) error {
 	return nil
 }
 
-// ResolveRole picks the most privileged role that any of the user's groups or
-// app roles maps to. ok is false when nothing matches: the user gets no access.
-func ResolveRole(id Identity, mappings []store.RoleMapping) (auth.Role, bool) {
+// ResolveRole picks the most privileged role among the mappings that match
+// the identity, and the device-group scope of that role: all groups when any
+// matching mapping with that role is unscoped, otherwise the union of their
+// groups. It returns false when nothing matches.
+func ResolveRole(id Identity, mappings []store.RoleMapping) (auth.Role, store.Scope, bool) {
 	best, found := auth.Role(""), false
 	has := func(list []string, v string) bool {
 		for _, x := range list {
@@ -195,15 +197,37 @@ func ResolveRole(id Identity, mappings []store.RoleMapping) (auth.Role, bool) {
 		}
 		return false
 	}
+	var matched []store.RoleMapping
 	for _, m := range mappings {
 		r := auth.Role(m.Role)
 		if !auth.ValidRole(r) {
 			continue
 		}
-		match := (m.Claim == "group" && has(id.Groups, m.Value)) || (m.Claim == "role" && has(id.Roles, m.Value))
-		if match && (!found || r.Rank() < best.Rank()) {
-			best, found = r, true
+		if (m.Claim == "group" && has(id.Groups, m.Value)) || (m.Claim == "role" && has(id.Roles, m.Value)) {
+			matched = append(matched, m)
+			if !found || r.Rank() < best.Rank() {
+				best, found = r, true
+			}
 		}
 	}
-	return best, found
+	if !found {
+		return best, store.Scope{}, false
+	}
+	scope := store.Scope{Groups: []int64{}}
+	seen := map[int64]bool{}
+	for _, m := range matched {
+		if auth.Role(m.Role) != best {
+			continue
+		}
+		if !m.Scoped || best == auth.RoleAdministrator {
+			return best, store.Scope{All: true}, true
+		}
+		for _, g := range m.Groups {
+			if !seen[g] {
+				seen[g] = true
+				scope.Groups = append(scope.Groups, g)
+			}
+		}
+	}
+	return best, scope, true
 }

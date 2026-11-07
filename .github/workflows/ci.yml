@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: shellcheck installer/*.sh packaging/scripts/*.sh packaging/updater/fleetwarden-update tests/*.sh
+      - run: shellcheck installer/*.sh packaging/scripts/*.sh packaging/updater/fleetwarden-update tests/*.sh packaging/agent/*.sh packaging/agent/config
 
   package:
     name: Debian package
@@ -135,6 +135,8 @@ jobs:
           name: web
           path: web/dist/
       - run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
+      - name: Agent packages (bundled with the server package)
+        run: VERSION=${{ needs.meta.outputs.version }} packaging/agent/build-debs.sh
       # nfpm turns 0.1.0-test.5 into the Debian version 0.1.0~test.5 (sorts below 0.1.0).
       # The file keeps the semver name because GitHub rewrites "~" in asset names.
       - run: VERSION=${{ needs.meta.outputs.version }} nfpm package -f packaging/nfpm-server.yaml -p deb -t "dist/fleetwarden-server_${{ needs.meta.outputs.version }}_amd64.deb"
@@ -146,7 +148,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: deb
-          path: dist/*.deb
+          path: |
+            dist/*.deb
+            dist/agent/
           retention-days: 7
 
   install-test:
@@ -178,6 +182,7 @@ jobs:
         run: |
           mkdir -p release
           cp artifacts/deb/*.deb release/
+          cp artifacts/deb/agent/*.deb release/
           v=${{ needs.meta.outputs.version }}
           for p in linux-amd64 linux-arm64; do
             cp "artifacts/binaries/$p/fleetwarden-agent" "release/fleetwarden-agent_${v}_${p}"

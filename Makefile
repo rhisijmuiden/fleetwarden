@@ -7,7 +7,7 @@ PKG      := github.com/rhisijmuiden/fleetwarden/internal/version
 LDFLAGS  := -s -w -X $(PKG).Version=$(VERSION) -X $(PKG).Commit=$(COMMIT) -X $(PKG).Channel=$(CHANNEL) -X $(PKG).BuildDate=$(DATE)
 GOBUILD  := CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)"
 
-.PHONY: all test web server agents deb clean
+.PHONY: all test web server agents agent-debs deb clean
 
 all: web server agents
 
@@ -27,7 +27,11 @@ agents:
 	GOOS=linux   GOARCH=arm64 $(GOBUILD) -o dist/linux-arm64/fleetwarden-agent ./cmd/fleetwarden-agent
 	GOOS=windows GOARCH=amd64 $(GOBUILD) -o dist/windows-amd64/fleetwarden-agent.exe ./cmd/fleetwarden-agent
 
-deb: web server
+# Agent packages for Debian/Proxmox; the server package bundles them (and the MSI, when built).
+agent-debs: agents
+	VERSION=$(VERSION) packaging/agent/build-debs.sh
+
+deb: web server agent-debs
 	VERSION=$(VERSION) nfpm package -f packaging/nfpm-server.yaml -p deb -t dist/fleetwarden-server_$(VERSION)_amd64.deb
 
 clean:

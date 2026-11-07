@@ -24,13 +24,15 @@ const (
 	PermAuditView      Permission = "audit.view"
 	PermSystemUpdate   Permission = "system.update"
 	PermBackupManage   Permission = "backup.manage"
+	PermGroupsManage   Permission = "groups.manage"
+	PermAgentsManage   Permission = "agents.manage" // agent releases and update rings
 )
 
 // Roles lists the roles in order of privilege.
 var Roles = []Role{RoleAdministrator, RoleTechnician, RoleReadOnly}
 
 var rolePermissions = map[Role][]Permission{
-	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage},
+	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage},
 	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage},
 	RoleReadOnly:      {PermDashboardView, PermDevicesView},
 }

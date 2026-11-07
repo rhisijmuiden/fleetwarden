@@ -38,8 +38,8 @@ export const navigation: NavGroup[] = [
   {
     label: "nav.endpoints",
     items: [
-      { path: "/devices", label: "nav.devices", icon: Monitor, phase: 3 },
-      { path: "/groups", label: "nav.groups", icon: FolderTree, phase: 3 },
+      { path: "/devices", label: "nav.devices", icon: Monitor, perm: "devices.view" },
+      { path: "/groups", label: "nav.groups", icon: FolderTree, perm: "devices.view" },
     ],
   },
   {

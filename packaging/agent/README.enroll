@@ -1,0 +1,8 @@
+FleetWarden agent
+
+Configure the agent with:
+  sudo fleetwarden-agent configure --server https://em.example.com --token TOKEN
+  sudo systemctl restart fleetwarden-agent
+
+A package downloaded from the "Add client" wizard of the management server
+contains enroll.json in this folder and enrolls by itself.
