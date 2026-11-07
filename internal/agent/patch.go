@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -37,6 +38,7 @@ const (
 	PromptInstall = "install"
 	PromptReboot  = "reboot"
 	PromptBrowser = "browser" // the browsers in Apps close to update
+	PromptRemote  = "remote"  // may Operator see and control this computer?
 )
 
 // Prompt is a question for the logged-on user (the pop-up on Windows).
@@ -52,12 +54,18 @@ type Prompt struct {
 	AccentColor      string `json:"accentColor"`
 	// Apps names the programs a browser prompt is about.
 	Apps []string `json:"apps,omitempty"`
+	// Operator is who asks for a remote session.
+	Operator string `json:"operator,omitempty"`
 }
 
 // Answer is the user's choice. Without a choice before the countdown ends
 // the job goes ahead.
 type Answer struct {
 	Postpone bool `json:"postpone"`
+	// Answered is set when the user chose; Allow is the answer to a remote
+	// session prompt.
+	Answered bool `json:"answered,omitempty"`
+	Allow    bool `json:"allow,omitempty"`
 }
 
 // Notifier shows prompts to the logged-on users.
@@ -69,6 +77,10 @@ type Notifier interface {
 
 // ErrNoUser means nobody is logged on (or no pop-up app runs) to ask.
 var ErrNoUser = errors.New("no logged-on user to ask")
+
+// ErrNoTray means a user is logged on but the pop-up app did not start. It
+// matches ErrNoUser, so jobs that go ahead without an answer still do.
+var ErrNoTray = fmt.Errorf("%w: the pop-up app did not start", ErrNoUser)
 
 const (
 	patchJobFile     = "patch-job.json"

@@ -75,6 +75,7 @@ type Server struct {
 
 	agentKey   ed25519.PrivateKey
 	hub        *agentHub
+	remote     remoteHub
 	pkgs       pkgCatalog
 	agentFails *auth.Limiter
 	fetcher    releaseFetcher
@@ -165,6 +166,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.patchRoutes(mux)
 	s.agentUpdateRoutes(mux)
 	s.softwareRoutes(mux)
+	s.remoteRoutes(mux)
 
 	// Signed in. allowPending lets a user with a forced password change reach these.
 	mux.Handle("GET /api/v1/auth/me", s.authed("", allowPending, s.handleMe))

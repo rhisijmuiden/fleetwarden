@@ -276,11 +276,13 @@ type groupReq struct {
 	WindowStart  *int    `json:"windowStart"`
 	WindowEnd    *int    `json:"windowEnd"`
 	PatchPolicy  *int64  `json:"patchPolicyId"`
+	// RemoteConsent: auto, direct, notify or ask (empty keeps auto).
+	RemoteConsent string `json:"remoteConsent"`
 }
 
 func (req groupReq) toGroup() (store.DeviceGroup, string) {
 	g := store.DeviceGroup{Name: cleanText(req.Name, 100), Description: cleanText(req.Description, 500), UpdateRing: req.UpdateRing,
-		WindowStart: req.WindowStart, WindowEnd: req.WindowEnd}
+		WindowStart: req.WindowStart, WindowEnd: req.WindowEnd, RemoteConsent: req.RemoteConsent}
 	if req.PatchPolicy != nil && *req.PatchPolicy > 0 {
 		g.PatchPolicy = req.PatchPolicy
 	}
@@ -289,6 +291,9 @@ func (req groupReq) toGroup() (store.DeviceGroup, string) {
 	}
 	if g.UpdateRing < 0 || g.UpdateRing > 3 {
 		return g, "invalid_ring"
+	}
+	if !validConsentSetting(g.RemoteConsent) {
+		return g, "invalid_consent"
 	}
 	if req.AgentChannel != nil && *req.AgentChannel != "" {
 		if !updates.ValidChannel(*req.AgentChannel) {
@@ -364,7 +369,7 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request) {
 		s.internalError(w, r, err)
 		return
 	}
-	s.audit(r, "group.update", g.Name, true, map[string]any{"ring": g.UpdateRing, "channel": g.AgentChannel, "patchPolicy": g.PatchPolicy})
+	s.audit(r, "group.update", g.Name, true, map[string]any{"ring": g.UpdateRing, "channel": g.AgentChannel, "patchPolicy": g.PatchPolicy, "remoteConsent": g.RemoteConsent})
 	g, _ = s.st.GroupByID(r.Context(), id)
 	writeJSON(w, http.StatusOK, g)
 }

@@ -13,6 +13,7 @@ namespace FleetWarden.Tray
         [DataMember(Name = "prompt", EmitDefaultValue = false)] public Prompt Prompt;
         [DataMember(Name = "id", EmitDefaultValue = false)] public string Id;
         [DataMember(Name = "postpone", EmitDefaultValue = false)] public bool Postpone;
+        [DataMember(Name = "allow", EmitDefaultValue = false)] public bool Allow;
         [DataMember(Name = "lang", EmitDefaultValue = false)] public string Lang;
         [DataMember(Name = "apps", EmitDefaultValue = false)] public CloseApp[] Apps;
         [DataMember(Name = "closed", EmitDefaultValue = false)] public string[] Closed;
@@ -42,6 +43,7 @@ namespace FleetWarden.Tray
         public const string Install = "install";
         public const string Reboot = "reboot";
         public const string Browser = "browser";
+        public const string Remote = "remote";
 
         [DataMember(Name = "id")] public string Id;
         [DataMember(Name = "kind")] public string Kind;
@@ -53,6 +55,7 @@ namespace FleetWarden.Tray
         [DataMember(Name = "productName")] public string ProductName;
         [DataMember(Name = "accentColor")] public string AccentColor;
         [DataMember(Name = "apps", EmitDefaultValue = false)] public string[] Apps;
+        [DataMember(Name = "operator", EmitDefaultValue = false)] public string Operator;
     }
 
     // A program to close before an update and open again afterwards.

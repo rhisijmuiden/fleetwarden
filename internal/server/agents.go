@@ -464,6 +464,8 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 		return s.handlePatchStatusMsg(ctx, c, e)
 	case agentproto.TypeSoftwareStatus:
 		return s.handleSoftwareStatusMsg(ctx, c, e)
+	case agentproto.TypeRemoteStatus:
+		return s.handleRemoteStatusMsg(c, e)
 	default:
 		return fmt.Errorf("unknown message type %q", e.Type)
 	}

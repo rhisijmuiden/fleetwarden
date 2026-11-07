@@ -13,7 +13,9 @@ namespace FleetWarden.Tray
 
         public static string Product(Prompt p) => string.IsNullOrWhiteSpace(p?.ProductName) ? "FleetWarden" : p.ProductName.Trim();
 
-        public static string Title(Prompt p) => p.Kind == Prompt.Reboot
+        public static string Title(Prompt p) => p.Kind == Prompt.Remote
+            ? T("Remote support request", "Verzoek om hulp op afstand")
+            : p.Kind == Prompt.Reboot
             ? T("Restart required", "Herstart nodig")
             : p.Kind == Prompt.Browser
                 ? T($"{Apps(p)} will be updated", $"{Apps(p)} {(Many(p) ? "worden" : "wordt")} bijgewerkt")
@@ -29,8 +31,13 @@ namespace FleetWarden.Tray
 
         static bool Many(Prompt p) => p.Apps != null && p.Apps.Length > 1;
 
+        public static string Operator(Prompt p) => string.IsNullOrWhiteSpace(p?.Operator) ? T("A technician", "Een medewerker") : p.Operator.Trim();
+
         public static string Body(Prompt p)
         {
+            if (p.Kind == Prompt.Remote)
+                return T($"{Operator(p)} from your IT department wants to see and control this computer. Only allow this if you expect it.",
+                         $"{Operator(p)} van je IT-afdeling wil meekijken en deze computer bedienen. Sta dit alleen toe als je dit verwacht.");
             if (p.Kind == Prompt.Browser)
                 return Many(p)
                     ? T("The browsers close for a moment to install an update and open again by themselves. Your windows and tabs come back. Finish what you are typing first.",
@@ -50,13 +57,15 @@ namespace FleetWarden.Tray
         {
             var time = left.TotalHours >= 1 ? left.ToString(@"h\:mm\:ss") : left.ToString(@"m\:ss");
             if (p.Kind == Prompt.Browser) return T($"Closing in {time}", $"Sluit over {time}");
+            if (p.Kind == Prompt.Remote) return T($"Declined automatically in {time}", $"Wordt automatisch geweigerd over {time}");
             return p.Kind == Prompt.Reboot ? T($"Restarting in {time}", $"Herstart over {time}") : T($"Installing in {time}", $"Installatie start over {time}");
         }
 
-        public static string Now(Prompt p) => p.Kind == Prompt.Reboot ? T("Restart now", "Nu herstarten")
+        public static string Now(Prompt p) => p.Kind == Prompt.Remote ? T("Allow", "Toestaan")
+            : p.Kind == Prompt.Reboot ? T("Restart now", "Nu herstarten")
             : p.Kind == Prompt.Browser ? T("Update now", "Nu bijwerken") : T("Install now", "Nu installeren");
 
-        public static string Postpone(Prompt p) => T($"Postpone {Duration(p.PostponeMinutes)}", $"{Duration(p.PostponeMinutes)} uitstellen");
+        public static string Postpone(Prompt p) => p.Kind == Prompt.Remote ? T("Deny", "Weigeren") : T($"Postpone {Duration(p.PostponeMinutes)}", $"{Duration(p.PostponeMinutes)} uitstellen");
 
         public static string Duration(int minutes)
         {
@@ -67,6 +76,7 @@ namespace FleetWarden.Tray
 
         public static string PostponesLeft(Prompt p)
         {
+            if (p.Kind == Prompt.Remote) return "";
             if (!p.CanPostpone) return T("This can no longer be postponed.", "Dit kan niet meer worden uitgesteld.");
             return p.PostponesLeft == 1
                 ? T("You can postpone 1 more time.", "Je kunt nog 1 keer uitstellen.")
@@ -76,7 +86,12 @@ namespace FleetWarden.Tray
         public static string ManagedBy(Prompt p) => T($"{Product(p)} · managed by your IT department", $"{Product(p)} · beheerd door je IT-afdeling");
 
         public static string TrayConnected => T("Connected to the agent. No action needed.", "Verbonden met de agent. Geen actie nodig.");
-        public static string TrayWaiting(Prompt p) => T("An update needs your attention.", "Een update vraagt je aandacht.");
+        public static string TrayWaiting(Prompt p) => p.Kind == Prompt.Remote
+            ? T("Someone asks to see your screen.", "Iemand vraagt om mee te kijken.")
+            : T("An update needs your attention.", "Een update vraagt je aandacht.");
+        public static string TrayRemote(Prompt p) => T($"{Operator(p)} is connected to this computer.", $"{Operator(p)} is verbonden met deze computer.");
+        public static string BannerText(Prompt p) => T($"{Operator(p)} is viewing and controlling this screen", $"{Operator(p)} kijkt mee en bedient dit scherm");
+        public static string EndSession => T("End session", "Sessie beëindigen");
         public static string TrayDisconnected => T("Not connected to the agent.", "Niet verbonden met de agent.");
         public static string ShowPrompt => T("Show notification", "Melding tonen");
     }

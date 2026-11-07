@@ -56,6 +56,9 @@ type Agent struct {
 	// Processes finds and stops running programs (browser updates);
 	// defaults to the platform implementation.
 	Processes ProcessControl
+	// Remote opens remote desktop sessions; defaults to the platform
+	// backend (nil where there is none).
+	Remote RemoteBackend
 	// Minute is the length of a postpone minute; tests shorten it.
 	Minute time.Duration
 	// MachineID overrides the platform machine ID (tests).
@@ -67,7 +70,8 @@ type Agent struct {
 	cfg      Config
 	updating atomic.Bool
 	patch    patchState
-	software softwareState   // guarded by mu
+	software softwareState // guarded by mu
+	remote   remoteState
 	ctx      context.Context // of Run: jobs outlive a single session
 	// installMu keeps patch installs and software jobs apart: Windows
 	// Installer and dpkg run one installation at a time.
@@ -195,6 +199,9 @@ func (a *Agent) Run(ctx context.Context) error {
 	if !a.Once {
 		if a.Notify == nil {
 			a.Notify = platformNotifier(ctx, a.Log)
+		}
+		if a.Remote == nil {
+			a.Remote = platformRemote(a.Log)
 		}
 		a.resumePatchJob(ctx)
 		a.resumeSoftwareJob()
@@ -376,6 +383,10 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 				a.handlePatchInstall(e)
 			case agentproto.TypeSoftwareJob:
 				a.handleSoftwareJob(e)
+			case agentproto.TypeRemoteStart:
+				a.handleRemoteStart(e, send)
+			case agentproto.TypeRemoteStop:
+				a.handleRemoteStop(e)
 			default:
 				a.Log.Debug("ignoring message", "type", e.Type)
 			}
