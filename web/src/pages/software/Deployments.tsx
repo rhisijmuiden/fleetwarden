@@ -12,7 +12,7 @@ const finished = (d: Deployment) => !!d.cancelledAt || (d.counts.pending === 0 &
 
 function ActionBadge({ d }: { d: Deployment }) {
   const { t } = useTranslation();
-  return <Badge tone={d.action === "uninstall" ? "danger" : "primary"}>{t(`software.actions.${d.action}`)}</Badge>;
+  return <Badge tone={d.action === "uninstall" ? "danger" : d.action === "browsers" ? "warning" : "primary"}>{t(`software.actions.${d.action}`)}</Badge>;
 }
 
 function DeploymentState({ d }: { d: Deployment }) {
@@ -118,7 +118,7 @@ export function Deployments() {
   );
 }
 
-const stateFilters: ("" | "running" | JobState)[] = ["", "running", "pending", "completed", "skipped", "failed", "cancelled", "expired"];
+const stateFilters: ("" | "running" | JobState)[] = ["", "running", "waiting", "pending", "completed", "skipped", "failed", "cancelled", "expired"];
 const runningStates: JobState[] = ["sent", "downloading", "installing", "uninstalling"];
 
 export function DeploymentDetail() {
@@ -220,6 +220,12 @@ export function DeploymentDetail() {
         </Card>
         <Card title={t("deployments.details")}>
           <dl className="space-y-2 text-sm">
+            {d.action === "browsers" && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted">{t("deployments.browsers")}</dt>
+                <dd className="text-right">{t("deployments.browsersLatest")}</dd>
+              </div>
+            )}
             {p && (
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">{t("deployments.package")}</dt>

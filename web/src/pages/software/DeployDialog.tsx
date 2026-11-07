@@ -2,13 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
-import { get, post, type Deployment, type DeviceGroup, type DeviceList, type Platform } from "../../api";
+import { get, post, type BrowserKey, type Deployment, type DeviceGroup, type DeviceList, type Platform } from "../../api";
 import { Alert, Button, Field, Input, Modal, Switch, useErrorText } from "../../components/ui";
 import { PlatformBadge } from "../devices/util";
 
 export type DeployTarget =
   | { action: "install"; packageId: number; name: string; platform: Platform; deviceIds?: string[] }
-  | { action: "uninstall"; name: string; platform: Platform; versions: string[]; deviceIds?: string[] };
+  | { action: "uninstall"; name: string; platform: Platform; versions: string[]; deviceIds?: string[] }
+  | { action: "browsers"; name: string; platform: "windows"; browsers: BrowserKey[]; deviceIds?: string[] };
+
+const allBrowsers: { key: BrowserKey; name: string }[] = [
+  { key: "chrome", name: "Google Chrome" },
+  { key: "edge", name: "Microsoft Edge" },
+  { key: "firefox", name: "Mozilla Firefox" },
+];
 
 // DeployDialog picks devices and groups, the start time and the expiry for
 // an install or uninstall.
@@ -28,6 +35,7 @@ export function DeployDialog({ target, onClose }: { target: DeployTarget | null;
   const [version, setVersion] = useState("");
   const [args, setArgs] = useState("");
   const [purge, setPurge] = useState(false);
+  const [browsers, setBrowsers] = useState<BrowserKey[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,13 +44,14 @@ export function DeployDialog({ target, onClose }: { target: DeployTarget | null;
     setGroupIds([]);
     setDeviceIds(target.deviceIds ?? []);
     setFilter("");
-    setOngoing(target.action === "install");
+    setOngoing(target.action !== "uninstall");
     setLater(false);
     setStartAt("");
     setExpireDays(7);
     setVersion("");
     setArgs("");
     setPurge(false);
+    setBrowsers(target.action === "browsers" ? target.browsers : []);
     setError(null);
     get<DeviceGroup[]>("/groups")
       .then(setGroups)
@@ -79,6 +88,7 @@ export function DeployDialog({ target, onClose }: { target: DeployTarget | null;
         startAt: later && startAt ? new Date(startAt).toISOString() : "",
       };
       if (target.action === "install") body.packageId = target.packageId;
+      else if (target.action === "browsers") body.browsers = browsers;
       else body.uninstall = { name: target.name, version, platform: target.platform, args, purge };
       const d = await post<Deployment>("/deployments", body);
       onClose();
@@ -95,14 +105,25 @@ export function DeployDialog({ target, onClose }: { target: DeployTarget | null;
       open
       wide
       onClose={onClose}
-      title={target.action === "install" ? t("software.deploy.titleInstall", { name: target.name }) : t("software.deploy.titleUninstall", { name: target.name })}
+      title={
+        target.action === "install"
+          ? t("software.deploy.titleInstall", { name: target.name })
+          : target.action === "browsers"
+            ? t("software.deploy.titleBrowsers")
+            : t("software.deploy.titleUninstall", { name: target.name })
+      }
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
             {t("common.cancel")}
           </Button>
-          <Button variant={target.action === "uninstall" ? "danger" : "primary"} loading={busy} disabled={groupIds.length === 0 && deviceIds.length === 0} onClick={submit}>
-            {target.action === "install" ? t("software.deploy.start") : t("software.deploy.startUninstall")}
+          <Button
+            variant={target.action === "uninstall" ? "danger" : "primary"}
+            loading={busy}
+            disabled={(groupIds.length === 0 && deviceIds.length === 0) || (target.action === "browsers" && browsers.length === 0)}
+            onClick={submit}
+          >
+            {target.action === "uninstall" ? t("software.deploy.startUninstall") : t("software.deploy.start")}
           </Button>
         </>
       }
@@ -112,6 +133,22 @@ export function DeployDialog({ target, onClose }: { target: DeployTarget | null;
         <p className="flex items-center gap-2 text-sm text-muted">
           <PlatformBadge platform={target.platform} /> {t("software.deploy.platformHint")}
         </p>
+        {target.action === "browsers" && (
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {allBrowsers.map((b) => (
+                <label
+                  key={b.key}
+                  className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${browsers.includes(b.key) ? "border-primary bg-primary/5" : "border-line"}`}
+                >
+                  <input type="checkbox" checked={browsers.includes(b.key)} onChange={() => setBrowsers((l) => toggle(l, b.key))} className="accent-primary" />
+                  {b.name}
+                </label>
+              ))}
+            </div>
+            <Alert tone="info">{t("software.deploy.browsersHint")}</Alert>
+          </div>
+        )}
 
         <div className="grid gap-5 md:grid-cols-2">
           <div className="space-y-2">

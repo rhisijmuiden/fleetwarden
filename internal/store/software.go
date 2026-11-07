@@ -185,6 +185,7 @@ type Deployment struct {
 	UninstallVersion string     `json:"uninstallVersion"`
 	UninstallArgs    string     `json:"uninstallArgs"`
 	UninstallPurge   bool       `json:"uninstallPurge"`
+	Browsers         []string   `json:"browsers"`
 	GroupIDs         []int64    `json:"groupIds"`
 	Ongoing          bool       `json:"ongoing"`
 	StartAt          time.Time  `json:"startAt"`
@@ -209,7 +210,7 @@ type JobCounts struct {
 }
 
 const deploymentCols = `x.id, x.name, x.action, x.package_id, x.platform, x.uninstall_name, x.uninstall_version, x.uninstall_args,
-	x.uninstall_purge, x.group_ids, x.ongoing, x.start_at, x.expire_days, x.requested_by, x.created_at, x.cancelled_at,
+	x.uninstall_purge, x.browsers, x.group_ids, x.ongoing, x.start_at, x.expire_days, x.requested_by, x.created_at, x.cancelled_at,
 	COALESCE((SELECT json_agg(json_build_object('id', g.id, 'name', g.name) ORDER BY lower(g.name)) FROM device_groups g
 		WHERE g.id = ANY(x.group_ids)), '[]')`
 
@@ -229,12 +230,15 @@ func scanDeployment(row pgx.Row) (Deployment, error) {
 	var groups []byte
 	c := &x.Counts
 	err := row.Scan(&x.ID, &x.Name, &x.Action, &x.PackageID, &x.Platform, &x.UninstallName, &x.UninstallVersion, &x.UninstallArgs,
-		&x.UninstallPurge, &x.GroupIDs, &x.Ongoing, &x.StartAt, &expire, &x.RequestedBy, &x.CreatedAt, &x.CancelledAt, &groups,
+		&x.UninstallPurge, &x.Browsers, &x.GroupIDs, &x.Ongoing, &x.StartAt, &expire, &x.RequestedBy, &x.CreatedAt, &x.CancelledAt, &groups,
 		&c.Total, &c.Pending, &c.Running, &c.Completed, &c.Skipped, &c.Failed, &c.Cancelled, &c.Reboot)
 	if err != nil {
 		return x, mapErr(err)
 	}
 	x.ExpireDays = int(expire)
+	if x.Browsers == nil {
+		x.Browsers = []string{}
+	}
 	x.Groups = []GroupRef{}
 	_ = json.Unmarshal(groups, &x.Groups)
 	if x.GroupIDs == nil {
@@ -262,10 +266,13 @@ func (s *Store) CreateDeployment(ctx context.Context, d NewDeployment) (int64, i
 		d.GroupIDs = []int64{}
 	}
 	var id int64
+	if d.Browsers == nil {
+		d.Browsers = []string{}
+	}
 	err = tx.QueryRow(ctx, `INSERT INTO software_deployments (name, action, package_id, platform, uninstall_name, uninstall_version,
-		uninstall_args, uninstall_purge, group_ids, ongoing, start_at, expire_days, requested_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
-		d.Name, d.Action, d.PackageID, d.Platform, d.UninstallName, d.UninstallVersion, d.UninstallArgs, d.UninstallPurge, d.GroupIDs,
+		uninstall_args, uninstall_purge, browsers, group_ids, ongoing, start_at, expire_days, requested_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
+		d.Name, d.Action, d.PackageID, d.Platform, d.UninstallName, d.UninstallVersion, d.UninstallArgs, d.UninstallPurge, d.Browsers, d.GroupIDs,
 		d.Ongoing, d.StartAt, int16(d.ExpireDays), d.RequestedBy).Scan(&id)
 	if err != nil {
 		return 0, 0, mapErr(err)
@@ -431,7 +438,7 @@ func (s *Store) RetrySoftwareJobs(ctx context.Context, id int64, sc Scope) (int,
 func (s *Store) ExpandDeployments(ctx context.Context) (int, error) {
 	tag, err := s.pool.Exec(ctx, `INSERT INTO software_jobs (deployment_id, device_id)
 		SELECT x.id, d.id FROM software_deployments x JOIN devices d ON d.group_id = ANY(x.group_ids) AND d.platform = x.platform
-		WHERE x.ongoing AND x.cancelled_at IS NULL AND (x.action = 'uninstall' OR x.package_id IS NOT NULL)
+		WHERE x.ongoing AND x.cancelled_at IS NULL AND (x.action IN ('uninstall', 'browsers') OR x.package_id IS NOT NULL)
 		ON CONFLICT DO NOTHING`)
 	return int(tag.RowsAffected()), err
 }
@@ -682,6 +689,67 @@ func (s *Store) DevicesInScope(ctx context.Context, sc Scope, ids []string) (map
 			return nil, err
 		}
 		out[id] = p
+	}
+	return out, rows.Err()
+}
+
+// BrowserEntry is a browser in a device's inventory.
+type BrowserEntry struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+// BrowserDevice is a Windows device with the browsers in its inventory.
+type BrowserDevice struct {
+	ID        string         `json:"deviceId"`
+	Hostname  string         `json:"hostname"`
+	GroupID   int64          `json:"groupId"`
+	GroupName string         `json:"groupName"`
+	LastSeen  *time.Time     `json:"lastSeen"`
+	Entries   []BrowserEntry `json:"-"`
+}
+
+// BrowserInventory lists the Windows devices in the scope with their
+// Chrome, Edge and Firefox entries.
+func (s *Store) BrowserInventory(ctx context.Context, sc Scope) ([]BrowserDevice, error) {
+	rows, err := s.pool.Query(ctx, `SELECT d.id::text, d.hostname, d.group_id, g.name, d.last_seen_at,
+		COALESCE(json_agg(json_build_object('name', ds.name, 'version', ds.version)) FILTER (WHERE ds.name IS NOT NULL), '[]')
+		FROM devices d JOIN device_groups g ON g.id = d.group_id
+		LEFT JOIN device_software ds ON ds.device_id = d.id AND (ds.name IN ('Google Chrome', 'Microsoft Edge') OR ds.name LIKE 'Mozilla Firefox%')
+		WHERE d.platform = 'windows' AND ($1 OR d.group_id = ANY($2))
+		GROUP BY d.id, g.name ORDER BY lower(d.hostname)`, sc.All, sc.groups())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []BrowserDevice{}
+	for rows.Next() {
+		var d BrowserDevice
+		var entries []byte
+		if err := rows.Scan(&d.ID, &d.Hostname, &d.GroupID, &d.GroupName, &d.LastSeen, &entries); err != nil {
+			return nil, err
+		}
+		_ = json.Unmarshal(entries, &d.Entries)
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
+// DeviceSoftwareLike returns the inventory names of a device that start with prefix.
+func (s *Store) DeviceSoftwareLike(ctx context.Context, deviceID, prefix string) ([]string, error) {
+	rows, err := s.pool.Query(ctx, `SELECT DISTINCT name FROM device_software WHERE device_id::text = $1 AND starts_with(name, $2) ORDER BY name`,
+		deviceID, prefix)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []string{}
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
 	}
 	return out, rows.Err()
 }

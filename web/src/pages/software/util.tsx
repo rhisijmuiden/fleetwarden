@@ -8,6 +8,7 @@ const stateTone: Record<JobState, "neutral" | "primary" | "success" | "warning" 
   downloading: "primary",
   installing: "primary",
   uninstalling: "primary",
+  waiting: "warning",
   completed: "success",
   skipped: "neutral",
   failed: "danger",

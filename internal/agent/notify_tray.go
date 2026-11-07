@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net"
+	"slices"
 	"sync"
 	"time"
 )
@@ -18,6 +19,12 @@ import (
 //	tray  -> agent  {"type":"answer","id":"12-1","postpone":true}
 //	agent -> tray   {"type":"close","id":"12-1"}
 //
+// Browser updates close and reopen programs in the user's session:
+//
+//	agent -> tray   {"type":"close-apps","id":"browsers-7","apps":[...CloseApp],"timeoutSeconds":30}
+//	tray  -> agent  {"type":"apps-closed","id":"browsers-7","closed":["chrome"]}
+//	agent -> tray   {"type":"launch-apps","id":"browsers-7"}
+//
 // Every connected tray shows the prompt; the first answer counts. A tray
 // that connects while a prompt is open gets it too.
 type trayMsg struct {
@@ -26,6 +33,10 @@ type trayMsg struct {
 	ID       string  `json:"id,omitempty"`
 	Postpone bool    `json:"postpone,omitempty"`
 	Lang     string  `json:"lang,omitempty"`
+	// close-apps, apps-closed
+	Apps           []CloseApp `json:"apps,omitempty"`
+	Closed         []string   `json:"closed,omitempty"`
+	TimeoutSeconds int        `json:"timeoutSeconds,omitempty"`
 }
 
 // trayHub implements Notifier for tray apps that connect to the agent.
@@ -47,6 +58,7 @@ type trayHub struct {
 	joined   chan struct{} // closed when a tray says hello
 	current  *Prompt
 	answers  chan trayMsg
+	closed   chan trayMsg
 	launched map[uint32]time.Time
 }
 
@@ -60,7 +72,7 @@ func newTrayHub(log *slog.Logger) *trayHub {
 	return &trayHub{
 		log: log, joinWait: 30 * time.Second, grace: 15 * time.Second,
 		clients: map[*trayClient]struct{}{}, joined: make(chan struct{}),
-		answers: make(chan trayMsg, 16), launched: map[uint32]time.Time{},
+		answers: make(chan trayMsg, 16), closed: make(chan trayMsg, 16), launched: map[uint32]time.Time{},
 	}
 }
 
@@ -135,6 +147,13 @@ func (h *trayHub) handle(conn net.Conn) {
 			if registered {
 				select {
 				case h.answers <- m:
+				default:
+				}
+			}
+		case "apps-closed":
+			if registered {
+				select {
+				case h.closed <- m:
 				default:
 				}
 			}
@@ -248,5 +267,55 @@ func (h *trayHub) closePrompt(id string) {
 	clients, _ := h.snapshot()
 	for _, c := range clients {
 		_ = c.send(trayMsg{Type: "close", ID: id})
+	}
+}
+
+// CloseApps asks every connected tray to close the apps in its session and
+// collects which ones were open and are now closed.
+func (h *trayHub) CloseApps(ctx context.Context, id string, apps []CloseApp, wait time.Duration) []string {
+	clients, _ := h.snapshot()
+drain:
+	for {
+		select {
+		case <-h.closed:
+		default:
+			break drain
+		}
+	}
+	sent := 0
+	for _, c := range clients {
+		if c.send(trayMsg{Type: "close-apps", ID: id, Apps: apps, TimeoutSeconds: int(wait / time.Second)}) == nil {
+			sent++
+		}
+	}
+	var out []string
+	t := time.NewTimer(wait + h.grace)
+	defer t.Stop()
+	for got := 0; got < sent; {
+		select {
+		case m := <-h.closed:
+			if m.ID != id {
+				continue
+			}
+			got++
+			for _, k := range m.Closed {
+				if !slices.Contains(out, k) {
+					out = append(out, k)
+				}
+			}
+		case <-t.C:
+			return out
+		case <-ctx.Done():
+			return out
+		}
+	}
+	return out
+}
+
+// LaunchApps lets every tray open again what it closed for id.
+func (h *trayHub) LaunchApps(_ context.Context, id string) {
+	clients, _ := h.snapshot()
+	for _, c := range clients {
+		_ = c.send(trayMsg{Type: "launch-apps", ID: id})
 	}
 }

@@ -89,6 +89,37 @@ Vul voor andere programma's de stille parameters van de leverancier in bij
 `purge` met *Ook configuratiebestanden verwijderen*). De FleetWarden-agent zelf
 kan zo niet worden verwijderd.
 
+## Browserupdates
+
+**Software > Browsers** toont de versie van Google Chrome, Microsoft Edge en
+Mozilla Firefox op elk Windows-apparaat, naast de nieuwste versie in de
+winget-catalogus. **Browsers bijwerken** start een uitrol voor de verouderde
+apparaten; je kunt er ook een starten via **Uitrollen** voor groepen (met
+*Groepen bijhouden*) of hem plannen met *Later starten*.
+
+Per apparaat doet de agent het volgende:
+
+1. kijkt welke browsers voor de hele computer geïnstalleerd zijn en ouder zijn
+   dan de catalogus. Browsers die bijgewerkt of niet aanwezig zijn, worden
+   overgeslagen. Firefox houdt zijn editie (ESR) en taal (bijvoorbeeld
+   `Mozilla.Firefox.nl`).
+2. downloadt de installatiebestanden en controleert hun SHA-256-hash.
+3. toont, als een browser open is, een pop-up: *Google Chrome wordt
+   bijgewerkt. De browser sluit over 60 seconden en je tabbladen komen daarna
+   terug.* De gebruiker kan uitstellen met dezelfde instellingen als het
+   patchbeleid van de groep van het apparaat (standaard 3 keer, 60 minuten).
+   De uitrol toont *Wacht op gebruiker* zolang hij is uitgesteld.
+4. sluit de browsers: Chrome en Edge sluiten normaal met alle vensters tegelijk
+   en starten opnieuw met `--restore-last-session`; Firefox wordt beëindigd en
+   herstelt zijn sessie bij de volgende start
+   (`browser.sessionstore.resume_session_once`).
+5. installeert stil, opent de browsers weer voor de gebruiker en meldt de
+   versies voor en na.
+
+Browserupdates gebruiken de FleetWarden-tray-app (geïnstalleerd met de agent)
+voor de pop-up en om de browsers weer te openen. Zonder aangemelde gebruiker
+wordt de update meteen uitgevoerd.
+
 ## Rechten
 
 - **Softwarebibliotheek beheren** (`software.manage`, beheerders): pakketten

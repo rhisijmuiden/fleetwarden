@@ -209,3 +209,43 @@ func TestWUACategory(t *testing.T) {
 		t.Errorf("wuaResultText = %q", wuaResultText(4, -2145124329))
 	}
 }
+
+func TestTrayHubCloseAndLaunchApps(t *testing.T) {
+	h, addr := startHub(t)
+	a := dialTray(t, addr)
+	b := dialTray(t, addr)
+	waitClients(t, h, 2)
+	apps := []CloseApp{{Key: "chrome", Name: "Google Chrome", Process: "chrome", RestoreArgs: "--restore-last-session"}, {Key: "firefox", Name: "Mozilla Firefox", Process: "firefox", Firefox: true}}
+	got := make(chan []string, 1)
+	go func() { got <- h.CloseApps(context.Background(), "browsers-3", apps, time.Second) }()
+	for i, tr := range []*fakeTray{a, b} {
+		m := tr.next()
+		if m.Type != "close-apps" || m.ID != "browsers-3" || len(m.Apps) != 2 || m.Apps[1].Firefox != true || m.TimeoutSeconds != 1 {
+			t.Fatalf("tray %d got %+v", i, m)
+		}
+	}
+	a.send(trayMsg{Type: "apps-closed", ID: "old", Closed: []string{"edge"}}) // another job: ignored
+	a.send(trayMsg{Type: "apps-closed", ID: "browsers-3", Closed: []string{"chrome"}})
+	b.send(trayMsg{Type: "apps-closed", ID: "browsers-3", Closed: []string{"chrome", "firefox"}})
+	select {
+	case keys := <-got:
+		if len(keys) != 2 || keys[0] != "chrome" || keys[1] != "firefox" {
+			t.Errorf("closed %v", keys)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("CloseApps did not return")
+	}
+	h.LaunchApps(context.Background(), "browsers-3")
+	if m := a.next(); m.Type != "launch-apps" || m.ID != "browsers-3" {
+		t.Errorf("launch: %+v", m)
+	}
+
+	// A tray that does not answer does not block the update.
+	start := time.Now()
+	if keys := h.CloseApps(context.Background(), "browsers-4", apps, 10*time.Millisecond); len(keys) != 0 {
+		t.Errorf("closed %v", keys)
+	}
+	if time.Since(start) > 2*time.Second {
+		t.Error("waited too long")
+	}
+}
