@@ -40,6 +40,27 @@ if (-not $inv.hostname -or $inv.software.Count -lt 1) { throw "inventory looks e
 Invoke-Msi "/i `"$msi`" REINSTALL=ALL REINSTALLMODE=vomus" "$env:RUNNER_TEMP\repair.log"
 if ((& $exe status) -notmatch 'Waiting to enroll') { throw "repair lost the configuration" }
 
+# Self-update helper: install a package from an update plan, wait for the new
+# version to report a connection, and write the result for the agent.
+$state = Join-Path $env:ProgramData 'FleetWarden'
+$upd = Join-Path $state 'update'
+New-Item -ItemType Directory -Force $upd | Out-Null
+Copy-Item $msi (Join-Path $upd 'fleetwarden-agent_9.9.9_x64.msi')
+Copy-Item $exe (Join-Path $upd 'fleetwarden-agent-helper.exe')
+$started = (Get-Date).ToUniversalTime()
+@{ version = '9.9.9'; fromVersion = '0.0.1'; package = (Join-Path $upd 'fleetwarden-agent_9.9.9_x64.msi'); stateDir = $state; startedAt = $started.ToString('o') } |
+    ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $upd 'plan.json')
+Remove-Item (Join-Path $state 'update-result.json') -ErrorAction SilentlyContinue
+$helper = Start-Process (Join-Path $upd 'fleetwarden-agent-helper.exe') -ArgumentList 'update-helper', '--plan', "`"$(Join-Path $upd 'plan.json')`"" -PassThru
+Start-Sleep -Seconds 3
+@{ version = '9.9.9'; at = (Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $state 'connected.json')
+if (-not $helper.WaitForExit(240000)) { throw "update helper did not finish" }
+$result = Get-Content (Join-Path $state 'update-result.json') -Raw | ConvertFrom-Json
+Write-Host "update helper: $($result.state) $($result.message)"
+Get-Content (Join-Path $upd 'helper.log') -ErrorAction SilentlyContinue
+if ($result.state -ne 'completed') { throw "update helper reported $($result.state): $($result.message)" }
+if (-not (Get-Service FleetWardenAgent -ErrorAction SilentlyContinue)) { throw "service missing after the update helper ran" }
+
 # Uninstall removes the service, the files and the local enrollment.
 Invoke-Msi "/x `"$msi`"" "$env:RUNNER_TEMP\uninstall.log"
 if (Get-Service FleetWardenAgent -ErrorAction SilentlyContinue) { throw "service still present after uninstall" }

@@ -337,7 +337,12 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	}
 	s.hub.add(c)
 	defer s.hub.remove(c)
-	_ = s.st.TouchDevice(context.WithoutCancel(ctx), dev.ID, ip, cleanText(a.AgentVersion, 50), dev.LoggedInUser, dev.LocalIPs, nil)
+	agentVersion := cleanText(a.AgentVersion, 50)
+	_ = s.st.TouchDevice(context.WithoutCancel(ctx), dev.ID, ip, agentVersion, dev.LoggedInUser, dev.LocalIPs, nil)
+	if dev.UpdateVersion != "" && dev.UpdateVersion == agentVersion && dev.UpdateState != "completed" {
+		_ = s.st.CompleteDeviceUpdate(context.WithoutCancel(ctx), dev.ID, agentVersion)
+		s.log.Info("agent updated", "device", dev.ID, "host", dev.Hostname, "version", agentVersion)
+	}
 	s.log.Info("agent connected", "device", dev.ID, "host", dev.Hostname, "ip", ip)
 	defer s.log.Info("agent disconnected", "device", dev.ID, "host", dev.Hostname)
 
@@ -426,6 +431,8 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 		}
 		return s.st.TouchDevice(ctx, c.deviceID, ip, cleanText(inv.AgentVersion, 50), cleanText(inv.LoggedInUser, 255),
 			cleanList(inv.LocalIPs, 32, 64), validTime(inv.BootTime))
+	case agentproto.TypeUpdateStatus:
+		return s.handleUpdateStatusMsg(ctx, c, e)
 	default:
 		return fmt.Errorf("unknown message type %q", e.Type)
 	}

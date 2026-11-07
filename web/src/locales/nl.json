@@ -31,7 +31,8 @@
     "branding": "Huisstijl",
     "settings": "Instellingen",
     "info": "Over",
-    "audit": "Auditlog"
+    "audit": "Auditlog",
+    "agentUpdates": "Agent-updates"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -162,7 +163,15 @@
     "invalid_window": "Kies zowel een begin- als een einduur.",
     "device_offline": "Het apparaat is offline.",
     "invalid_token": "Het enrollment-token is ongeldig, verlopen of ingetrokken.",
-    "rate_limited": "Te veel pogingen. Probeer het later opnieuw."
+    "rate_limited": "Te veel pogingen. Probeer het later opnieuw.",
+    "unknown_version": "Deze versie is niet beschikbaar op de server.",
+    "release_in_use": "Een lopende uitrol gebruikt deze versie. Annuleer die eerst.",
+    "invalid_action": "Dat kan niet in de huidige stand van de uitrol.",
+    "invalid_settings": "Controleer de waarden.",
+    "invalid_package_name": "Gebruik de oorspronkelijke bestandsnaam, bijvoorbeeld fleetwarden-agent_1.2.0_x64.msi.",
+    "invalid_package": "Het bestand is geen MSI- of Debian-pakket.",
+    "too_large": "Het bestand is te groot.",
+    "no_file": "Kies een bestand om te uploaden."
   },
   "login": {
     "title": "Inloggen",
@@ -761,7 +770,9 @@
     "installedOn": "Geïnstalleerd",
     "size": "Grootte",
     "findOthers": "Toon alle apparaten met dit programma",
-    "notesHint": "Vrije tekst voor je team, bijvoorbeeld locatie of eigenaar."
+    "notesHint": "Vrije tekst voor je team, bijvoorbeeld locatie of eigenaar.",
+    "agentUpdate": "Agent-update",
+    "agentUpdateTo": "{{state}} naar {{version}}"
   },
   "addClient": {
     "button": "Add client",
@@ -849,5 +860,81 @@
     "windowStart": "Van",
     "windowEnd": "Tot",
     "windowHint": "Servertijd. Een venster als 22:00–06:00 loopt over middernacht."
+  },
+  "agentUpdates": {
+    "title": "Agent-updates",
+    "subtitle": "Nieuwe agentversies komen van GitHub of een upload en gaan ring voor ring naar de apparaatgroepen.",
+    "upload": "Pakket uploaden",
+    "uploaded": "{{name}} is toegevoegd.",
+    "checkNow": "Nu op GitHub kijken",
+    "checked": "GitHub is gecontroleerd op nieuwe agentreleases.",
+    "checkFailed": "Controleren op GitHub is mislukt: {{error}}",
+    "rollouts": "Uitrol",
+    "rolloutsHint": "Een uitrol begint bij ring 0 (pilot). Na de wachttijd volgt de volgende ring; bij te veel mislukte apparaten pauzeert hij.",
+    "noOpenRollout": "Er loopt geen uitrol. Elke agent draait de versie die zijn groep hoort te hebben.",
+    "history": "Eerdere uitrol",
+    "automatic": "automatisch",
+    "soakSummary": "{{hours}} u per ring, pauze na {{failures}} mislukte",
+    "nextRing": "volgende ring {{date}}",
+    "noGroups": "Geen groepen in deze ring",
+    "updatedOf": "{{updated}} van {{total}} bijgewerkt",
+    "inProgress": "{{count}} bezig",
+    "failed": "{{count}} mislukt",
+    "problems": "Apparaten die niet konden bijwerken",
+    "problemsHint": "De agent heeft waar mogelijk zijn vorige versie teruggezet. Gebruik Opnieuw proberen bij de uitrol als de oorzaak is opgelost.",
+    "releases": "Beschikbare versies",
+    "releasesHint": "Groepen zonder eigen agentkanaal volgen het kanaal van de server ({{channel}}). Productiegroepen krijgen alleen releases.",
+    "noReleases": "Nog geen agentpakketten. Kijk op GitHub of upload een pakket.",
+    "version": "Versie",
+    "source": "Bron",
+    "packages": "Pakketten",
+    "devices": "Apparaten",
+    "sources": {
+      "bundled": "Meegeleverd met de server",
+      "github": "GitHub",
+      "upload": "Geüpload",
+      "release": "Gedownload"
+    },
+    "startRollout": "Uitrol starten",
+    "startTitle": "{{version}} uitrollen",
+    "startHint": "Apparaten met een oudere agent krijgen deze versie, ring 0 eerst. Een lopende uitrol op hetzelfde kanaal wordt vervangen.",
+    "started": "De uitrol is gestart.",
+    "deleteTitle": "Versie verwijderen",
+    "deleteConfirm": "De pakketten van versie {{version}} van de server verwijderen? Agents op deze versie kunnen er dan niet meer naar terug.",
+    "settings": "Instellingen",
+    "autoDownload": "Nieuwe releases van GitHub downloaden",
+    "autoDownloadHint": "Kijkt elk uur voor de kanalen die je groepen gebruiken.",
+    "autoRollout": "Voor elke nieuwe release een uitrol starten",
+    "autoRolloutHint": "Uit: nieuwe versies worden alleen gedownload en je start de uitrol zelf.",
+    "soakHours": "Wachttijd (uren)",
+    "soakHint": "Hoe lang elke ring loopt voor de volgende ring.",
+    "maxFailures": "Pauzeren na mislukte",
+    "maxFailuresHint": "Mislukte apparaten per ring voordat de uitrol pauzeert.",
+    "keepReleases": "Versies bewaren",
+    "keepReleasesHint": "Oudere downloads worden verwijderd, tenzij apparaten ze nog draaien.",
+    "lastCheck": "Laatst gecontroleerd: {{date}}",
+    "never": "nooit",
+    "status": {
+      "active": "Bezig",
+      "paused": "Gepauzeerd",
+      "completed": "Klaar",
+      "cancelled": "Geannuleerd",
+      "superseded": "Vervangen"
+    },
+    "state": {
+      "sent": "Verstuurd",
+      "downloading": "Downloaden",
+      "installing": "Installeren",
+      "completed": "Bijgewerkt",
+      "failed": "Mislukt",
+      "rolled-back": "Teruggezet"
+    },
+    "actions": {
+      "pause": "Pauzeren",
+      "resume": "Hervatten",
+      "advance": "Nu volgende ring",
+      "retry": "Mislukte opnieuw",
+      "cancel": "Annuleren"
+    }
   }
 }

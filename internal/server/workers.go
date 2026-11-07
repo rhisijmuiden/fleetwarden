@@ -29,6 +29,8 @@ func (s *Server) RunWorkers(ctx context.Context) {
 	if err := s.st.FailInterruptedBackupRuns(ctx); err != nil {
 		s.log.Warn("backup history", "err", err)
 	}
+	s.bgWG.Add(1)
+	go s.agentReleaseLoop(s.bgCtx)
 	mailTick := time.NewTicker(15 * time.Second)
 	houseTick := time.NewTicker(time.Hour)
 	updTick := time.NewTicker(time.Minute)
@@ -44,6 +46,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 		case <-updTick.C:
 			s.reportUpdateOutcome(ctx)
 			s.backupTick(ctx)
+			s.agentUpdateTick(ctx)
 		case <-houseTick.C:
 			if err := s.st.PurgeSessions(ctx, sessionIdle); err != nil {
 				s.log.Warn("purge sessions", "err", err)

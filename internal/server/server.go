@@ -74,6 +74,7 @@ type Server struct {
 	hub        *agentHub
 	pkgs       pkgCatalog
 	agentFails *auth.Limiter
+	fetcher    releaseFetcher
 
 	backupOpts backup.Options
 	backupMu   sync.Mutex // held while a backup runs or a restore is prepared
@@ -151,6 +152,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/branding/{asset}", s.handleBrandingAsset)
 	s.agentRoutes(mux)
 	s.deviceRoutes(mux)
+	s.agentUpdateRoutes(mux)
 
 	// Signed in. allowPending lets a user with a forced password change reach these.
 	mux.Handle("GET /api/v1/auth/me", s.authed("", allowPending, s.handleMe))

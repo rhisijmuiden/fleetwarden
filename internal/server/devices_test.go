@@ -39,7 +39,7 @@ func newTestAgent(t *testing.T, e *env, token, host string, once bool) *agent.Ag
 	if err := agent.SaveConfig(path, agent.Config{Server: e.ts.URL, Token: token}); err != nil {
 		t.Fatal(err)
 	}
-	return &agent.Agent{ConfigPath: path, Once: once, Collect: fakeInventory(host)}
+	return &agent.Agent{ConfigPath: path, StateDir: t.TempDir(), Once: once, Collect: fakeInventory(host)}
 }
 
 func (e *env) createToken(c *client, groupID int64) (store.EnrollmentToken, installInfo) {

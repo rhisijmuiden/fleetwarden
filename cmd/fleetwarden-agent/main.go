@@ -11,6 +11,7 @@
 //	fleetwarden-agent test-connection --server URL
 //	                                           check a server address (installer wizard)
 //	fleetwarden-agent forget                   remove the enrollment (uninstall)
+//	fleetwarden-agent update-helper --plan F   install a self-update (started by the agent)
 //	fleetwarden-agent -version
 package main
 
@@ -23,6 +24,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -37,6 +39,14 @@ func main() {
 	v := version.Get()
 	if *showVersion {
 		fmt.Printf("fleetwarden-agent %s (%s, %s channel, %s)\n", v.Version, v.Commit, v.Channel, v.Platform)
+		return
+	}
+	// The update helper is started by the service but is not one itself.
+	if flag.Arg(0) == "update-helper" {
+		if err := updateHelper(flag.Args()[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "fleetwarden-agent:", err)
+			os.Exit(1)
+		}
 		return
 	}
 	if isWindowsService() {
@@ -200,4 +210,24 @@ func forget() error {
 		return err
 	}
 	return nil
+}
+
+// updateHelper installs a self-update; it logs next to the plan.
+func updateHelper(args []string) error {
+	fs := flag.NewFlagSet("update-helper", flag.ContinueOnError)
+	plan := fs.String("plan", "", "update plan written by the agent")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *plan == "" {
+		return errors.New("--plan is required")
+	}
+	logf, err := os.OpenFile(filepath.Join(filepath.Dir(*plan), "helper.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	defer logf.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+	return agent.RunUpdateHelper(ctx, *plan, slog.New(slog.NewTextHandler(logf, nil)))
 }

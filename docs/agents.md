@@ -82,6 +82,32 @@ window. Technicians and read-only users can be limited to device groups
 (**Users & roles**, or per Entra role mapping); administrators always see
 every group.
 
+## Agent updates
+
+**Administration > Agent updates** shows the agent versions on the server and
+rolls them out:
+
+- Every hour the server checks the GitHub releases for the channels your
+  groups use (production groups only take releases, test groups also take
+  test builds), downloads the agent packages and checks them against the
+  release's `SHA256SUMS`. **Check GitHub now** does the same at once. You can
+  also **upload** an `.msi` or `.deb` with its original file name.
+- A **rollout** sends a version to the groups ring by ring: ring 0 (pilot)
+  first, then rings 1, 2 and 3. A ring runs for the soak time (24 hours by
+  default) before the next one starts; rings without devices are skipped. When
+  more devices in a ring fail than allowed (2 by default), the rollout pauses.
+  You can pause, resume, skip to the next ring, retry failed devices or cancel.
+  With **Start a rollout for each new release** on, new releases start a
+  rollout by themselves.
+- Agents only update inside their group's update window and never downgrade.
+- The agent downloads the package with a signed request, checks its SHA-256
+  and hands over to a helper process (a copy of itself) that runs `msiexec` or
+  `dpkg`. If the install fails or the new version does not connect to the
+  server within 5 minutes, the helper reinstalls the previous version and the
+  device shows up under **Devices that could not update**.
+- Downloaded releases are not part of backups; the server downloads them again.
+  The newest 5 are kept, plus every version a device still runs.
+
 ## Command line
 
 ```

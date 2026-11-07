@@ -267,19 +267,24 @@ type Device struct {
 	InventoryAt  *time.Time      `json:"inventoryAt"`
 	Notes        string          `json:"notes"`
 	Online       bool            `json:"online"` // filled in by the server
+
+	UpdateVersion string     `json:"updateVersion"` // agent update: target version
+	UpdateState   string     `json:"updateState"`
+	UpdateMessage string     `json:"updateMessage"`
+	UpdateAt      *time.Time `json:"updateAt"`
 }
 
 const deviceCols = `d.id::text, d.group_id, g.name, d.token_id, d.public_key, d.machine_id, d.hostname, d.platform, d.arch,
 	d.agent_version, d.os_name, d.os_version, d.os_build, d.kind, d.domain, d.domain_joined, d.ou, d.manufacturer, d.model,
 	d.serial, d.cpu, d.cpu_cores, d.memory_bytes, d.logged_in_user, d.remote_ip, d.local_ips, d.boot_time, d.hardware,
-	d.enrolled_at, d.last_seen_at, d.inventory_at, d.notes`
+	d.enrolled_at, d.last_seen_at, d.inventory_at, d.notes, d.update_version, d.update_state, d.update_message, d.update_at`
 
 func scanDevice(row pgx.Row) (Device, error) {
 	var d Device
 	err := row.Scan(&d.ID, &d.GroupID, &d.GroupName, &d.TokenID, &d.PublicKey, &d.MachineID, &d.Hostname, &d.Platform, &d.Arch,
 		&d.AgentVersion, &d.OSName, &d.OSVersion, &d.OSBuild, &d.Kind, &d.Domain, &d.DomainJoined, &d.OU, &d.Manufacturer,
 		&d.Model, &d.Serial, &d.CPU, &d.CPUCores, &d.MemoryBytes, &d.LoggedInUser, &d.RemoteIP, &d.LocalIPs, &d.BootTime,
-		&d.Hardware, &d.EnrolledAt, &d.LastSeenAt, &d.InventoryAt, &d.Notes)
+		&d.Hardware, &d.EnrolledAt, &d.LastSeenAt, &d.InventoryAt, &d.Notes, &d.UpdateVersion, &d.UpdateState, &d.UpdateMessage, &d.UpdateAt)
 	return d, mapErr(err)
 }
 

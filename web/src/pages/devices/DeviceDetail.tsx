@@ -119,6 +119,19 @@ export function DeviceDetail() {
                 [t("devices.remoteIp"), device.remoteIp],
                 [t("devices.bootTime"), device.bootTime ? `${formatDate(device.bootTime, i18n.language)} (${timeAgo(device.bootTime, i18n.language)})` : ""],
                 [t("devices.agentVersion"), device.agentVersion],
+                [
+                  t("devices.agentUpdate"),
+                  device.updateVersion && device.updateState && device.updateState !== "completed" ? (
+                    <span title={device.updateMessage}>
+                      <Badge tone={device.updateState === "failed" || device.updateState === "rolled-back" ? "danger" : "primary"}>
+                        {t("devices.agentUpdateTo", { state: t(`agentUpdates.state.${device.updateState}`), version: device.updateVersion })}
+                      </Badge>
+                      {device.updateMessage && <span className="mt-1 block text-xs text-muted">{device.updateMessage}</span>}
+                    </span>
+                  ) : (
+                    ""
+                  ),
+                ],
                 [t("devices.enrolled"), formatDate(device.enrolledAt, i18n.language)],
                 [t("devices.inventoryAt"), device.inventoryAt ? timeAgo(device.inventoryAt, i18n.language) : t("devices.noInventory")],
               ]}

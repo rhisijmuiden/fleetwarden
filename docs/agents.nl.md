@@ -83,6 +83,32 @@ updatevenster. Technici en alleen-lezen-gebruikers kun je beperken tot
 apparaatgroepen (**Gebruikers & rollen**, of per Entra-rolkoppeling);
 beheerders zien altijd alle groepen.
 
+## Agent-updates
+
+**Administratie > Agent-updates** toont de agentversies op de server en rolt ze uit:
+
+- Elk uur kijkt de server in de GitHub-releases voor de kanalen die je groepen
+  gebruiken (productiegroepen krijgen alleen releases, testgroepen ook
+  testbuilds), downloadt de agentpakketten en controleert ze tegen de
+  `SHA256SUMS` van de release. **Nu op GitHub kijken** doet dat meteen. Je kunt
+  ook een `.msi` of `.deb` met de oorspronkelijke bestandsnaam **uploaden**.
+- Een **uitrol** stuurt een versie ring voor ring naar de groepen: eerst ring 0
+  (pilot), dan ring 1, 2 en 3. Een ring loopt de wachttijd (standaard 24 uur)
+  voordat de volgende begint; ringen zonder apparaten worden overgeslagen. Mislukken
+  er in een ring meer apparaten dan toegestaan (standaard 2), dan pauzeert de
+  uitrol. Je kunt pauzeren, hervatten, direct naar de volgende ring gaan,
+  mislukte apparaten opnieuw proberen of annuleren. Met **Voor elke nieuwe
+  release een uitrol starten** aan start een nieuwe release vanzelf een uitrol.
+- Agents werken alleen bij binnen het updatevenster van hun groep en gaan nooit
+  terug naar een oudere versie.
+- De agent downloadt het pakket met een ondertekend verzoek, controleert de
+  SHA-256 en geeft het door aan een hulpproces (een kopie van zichzelf) dat
+  `msiexec` of `dpkg` uitvoert. Mislukt de installatie of maakt de nieuwe versie
+  binnen 5 minuten geen verbinding met de server, dan zet het hulpproces de vorige
+  versie terug en staat het apparaat onder **Apparaten die niet konden bijwerken**.
+- Gedownloade releases zitten niet in de back-up; de server haalt ze opnieuw op.
+  De nieuwste 5 blijven bewaard, plus elke versie die een apparaat nog draait.
+
 ## Opdrachtregel
 
 ```

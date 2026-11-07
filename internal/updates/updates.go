@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -54,6 +55,8 @@ type ghRelease struct {
 	Body        string    `json:"body"`
 	Assets      []struct {
 		Name string `json:"name"`
+		URL  string `json:"browser_download_url"`
+		Size int64  `json:"size"`
 	} `json:"assets"`
 }
 
@@ -140,6 +143,52 @@ func hasServerPackage(r ghRelease) bool {
 		}
 	}
 	return false
+}
+
+// Asset is a file of a release.
+type Asset struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+	Size int64  `json:"size"`
+}
+
+// AgentRelease is a published release with agent packages.
+type AgentRelease struct {
+	Version     string    `json:"version"`
+	Prerelease  bool      `json:"prerelease"`
+	PublishedAt time.Time `json:"publishedAt"`
+	Assets      []Asset   `json:"assets"` // agent packages and SHA256SUMS
+}
+
+// AgentReleases lists releases that ship agent packages, newest first.
+func (c *Checker) AgentReleases(ctx context.Context, force bool) ([]AgentRelease, error) {
+	all, err := c.releases(ctx, force)
+	if err != nil {
+		return nil, err
+	}
+	var out []AgentRelease
+	for _, r := range all {
+		v := strings.TrimPrefix(r.TagName, "v")
+		if r.Draft || !ValidVersion(v) {
+			continue
+		}
+		ar := AgentRelease{Version: v, Prerelease: r.Prerelease || strings.Contains(v, "-"), PublishedAt: r.PublishedAt}
+		pkgs := 0
+		for _, a := range r.Assets {
+			if a.Name == "SHA256SUMS" || (strings.HasPrefix(a.Name, "fleetwarden-agent_"+v+"_") &&
+				(strings.HasSuffix(a.Name, ".deb") || strings.HasSuffix(a.Name, ".msi"))) {
+				ar.Assets = append(ar.Assets, Asset{Name: a.Name, URL: a.URL, Size: a.Size})
+				if a.Name != "SHA256SUMS" {
+					pkgs++
+				}
+			}
+		}
+		if pkgs > 0 {
+			out = append(out, ar)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return Compare(out[i].Version, out[j].Version) > 0 })
+	return out, nil
 }
 
 // Request is the file the server writes for the updater.
