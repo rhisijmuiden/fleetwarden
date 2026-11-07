@@ -12,7 +12,8 @@ DB_USER=fleetwarden
 if ! getent passwd fleetwarden >/dev/null; then
     adduser --system --group --home /var/lib/fleetwarden --no-create-home --quiet fleetwarden
 fi
-install -d -o fleetwarden -g fleetwarden -m 0750 /var/lib/fleetwarden /var/log/fleetwarden /var/lib/fleetwarden/update
+install -d -o fleetwarden -g fleetwarden -m 0750 /var/lib/fleetwarden /var/log/fleetwarden /var/lib/fleetwarden/update \
+    /var/lib/fleetwarden/restore /var/lib/fleetwarden/backups /var/lib/fleetwarden/tmp
 install -d -o root -g fleetwarden -m 0750 "$CONF_DIR"
 # Written by the privileged updater, read by the server.
 install -d -o root -g root -m 0755 /var/lib/fleetwarden-update /var/cache/fleetwarden
@@ -80,6 +81,7 @@ if has_systemd; then
     systemctl daemon-reload
     systemctl enable fleetwarden-server.service >/dev/null 2>&1 || true
     systemctl enable --now fleetwarden-update.path >/dev/null 2>&1 || true
+    systemctl enable --now fleetwarden-restore.path >/dev/null 2>&1 || true
     systemctl restart fleetwarden-server.service
 fi
 exit 0

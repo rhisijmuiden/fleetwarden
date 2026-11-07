@@ -51,6 +51,45 @@ api -X POST -d "{\"current\":\"$admin_pw\",\"new\":\"install-test-password-1\"}"
 api http://127.0.0.1:8080/api/v1/users | jq -e 'length == 1' >/dev/null
 [[ ! -e "$pw_file" ]] || { echo "initial password file not removed after the password change" >&2; exit 1; }
 
+# Backup to a local folder, then restore it with the restore helper (as the
+# fleetwarden-restore.service would, but without systemd).
+base=http://127.0.0.1:8080/api/v1
+api -X PUT -d '{"new":"install-test-passphrase"}' "$base/backup/passphrase" >/dev/null
+loc_id=$(api -X POST -d '{"name":"Local","type":"local","path":"install-test","enabled":true}' "$base/backup/locations" | jq -r .id)
+wait_backup() {
+    for _ in $(seq 1 120); do
+        p=$(api "$base/backup/progress")
+        [[ "$(jq -r .running <<<"$p")" == "false" ]] && { echo "$p"; return 0; }
+        sleep 1
+    done
+    echo "backup did not finish" >&2; return 1
+}
+api -X POST -d '{"kind":"full"}' "$base/backup/run" >/dev/null
+progress=$(wait_backup)
+[[ "$(jq -r ".locations[\"$loc_id\"].state" <<<"$progress")" == succeeded ]] || { echo "backup failed: $progress" >&2; cat /tmp/server.log; exit 1; }
+# The command line backup runs an incremental one.
+fleetwarden-server backup | grep -q 'Backup completed' || { echo "command line backup failed" >&2; exit 1; }
+api -X POST -d '{"username":"after-backup","role":"readonly"}' "$base/users" >/dev/null
+api "$base/users" | jq -e 'length == 2' >/dev/null
+snap=$(api -X POST -d "{\"locationId\":$loc_id}" "$base/backup/snapshots" | jq -c '[.[] | select(.kind == "full")][0]')
+api -X POST -d "{\"locationId\":$loc_id,\"chain\":$(jq .chain <<<"$snap"),\"snapshot\":$(jq .id <<<"$snap"),\"confirm\":\"RESTORE\"}" "$base/backup/restore" >/dev/null
+for _ in $(seq 1 60); do
+    state=$(api "$base/backup/restore" | jq -r .state)
+    [[ "$state" == requested || "$state" == failed ]] && break
+    sleep 1
+done
+[[ "$state" == requested ]] || { echo "restore was not staged: $(api "$base/backup/restore")" >&2; exit 1; }
+kill %1; wait %1 2>/dev/null || true
+fleetwarden-server restore-apply
+jq -e '.state == "completed"' /var/lib/fleetwarden-update/restore-status.json >/dev/null || { cat /var/lib/fleetwarden-update/restore-status.json; exit 1; }
+[[ ! -e /var/lib/fleetwarden/restore/request.json ]] || { echo "restore request not removed" >&2; exit 1; }
+runuser -u fleetwarden -- /usr/bin/fleetwarden-server >/tmp/server.log 2>&1 &
+for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz >/dev/null 2>&1 && break; sleep 1; done
+rm -f /tmp/cookies
+api -X POST -d '{"username":"admin","password":"install-test-password-1"}' "$base/auth/login" >/dev/null || { echo "login after restore failed" >&2; cat /tmp/server.log; exit 1; }
+api "$base/users" | jq -e 'length == 1' >/dev/null || { echo "restore did not bring back the old accounts" >&2; exit 1; }
+api "$base/audit?q=backup.restore_result" | jq -e '.[0].success == true' >/dev/null || { echo "restore result not audited" >&2; exit 1; }
+
 # Re-installing (upgrade path) must keep the configuration, the secret key and the accounts.
 before=$(sha256sum /etc/fleetwarden/server.env /var/lib/fleetwarden/secret.key)
 apt-get install -y -qq --reinstall "$(realpath "$deb")" >/dev/null

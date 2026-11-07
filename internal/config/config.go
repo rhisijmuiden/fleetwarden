@@ -27,10 +27,26 @@ type Server struct {
 	TrustedProxies []netip.Prefix
 	// DataDir holds server state such as the secret key (FW_DATA_DIR).
 	DataDir string
-	// UpdateStatusDir is where the privileged updater reports progress
-	// (FW_UPDATE_STATUS_DIR). The server only reads it.
+	// UpdateStatusDir is where the privileged updater and restore helper report
+	// progress (FW_UPDATE_STATUS_DIR). The server only reads it.
 	UpdateStatusDir string
+	// EnvFile is the configuration file, included in backups for reference (FW_ENV_FILE).
+	EnvFile string
 }
+
+// BackupDir is the parent folder of "local folder" backup locations.
+func (c Server) BackupDir() string { return filepath.Join(c.DataDir, "backups") }
+
+// RestoreDir holds a downloaded backup waiting to be restored, and the
+// rollback copy of the previous state.
+func (c Server) RestoreDir() string { return filepath.Join(c.DataDir, "restore") }
+
+// TmpDir holds temporary files such as the database dump during a backup.
+func (c Server) TmpDir() string { return filepath.Join(c.DataDir, "tmp") }
+
+// BackupExclude are the top-level entries of DataDir that are not backed up
+// and not replaced by a restore.
+var BackupExclude = []string{"backups", "restore", "tmp", "update", "initial-admin-password", "server.env.from-backup"}
 
 // SecretKeyPath is the AES key that encrypts stored secrets.
 func (c Server) SecretKeyPath() string { return filepath.Join(c.DataDir, "secret.key") }
@@ -53,6 +69,7 @@ func FromEnv() (Server, error) {
 		DataDir:     getenv("FW_DATA_DIR", "/var/lib/fleetwarden"),
 
 		UpdateStatusDir: getenv("FW_UPDATE_STATUS_DIR", "/var/lib/fleetwarden-update"),
+		EnvFile:         getenv("FW_ENV_FILE", "/etc/fleetwarden/server.env"),
 	}
 	proxies, err := ParsePrefixes(getenv("FW_TRUSTED_PROXIES", "127.0.0.1/32,::1/128"))
 	if err != nil {

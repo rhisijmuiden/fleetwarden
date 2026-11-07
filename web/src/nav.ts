@@ -64,7 +64,7 @@ export const navigation: NavGroup[] = [
       { path: "/admin/users", label: "nav.users", icon: Users, perm: "users.manage" },
       { path: "/admin/authentication", label: "nav.authentication", icon: KeyRound, perm: "settings.manage" },
       { path: "/admin/mail", label: "nav.mail", icon: Mail, perm: "settings.manage" },
-      { path: "/admin/backup", label: "nav.backup", icon: DatabaseBackup, phase: 2, perm: "settings.manage" },
+      { path: "/admin/backup", label: "nav.backup", icon: DatabaseBackup, perm: "backup.manage" },
       { path: "/admin/branding", label: "nav.branding", icon: Palette, perm: "settings.manage" },
       { path: "/admin/audit", label: "nav.audit", icon: ScrollText, perm: "audit.view" },
       { path: "/admin/settings", label: "nav.settings", icon: Settings, perm: "settings.manage" },

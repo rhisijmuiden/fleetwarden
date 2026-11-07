@@ -20,6 +20,11 @@
 make test                        # Go vet + tests, i18n check, typecheck
 # API integration tests need an empty PostgreSQL database (CI provides one):
 export FW_TEST_DATABASE_URL=postgres://fwtest:fwtest@127.0.0.1:5432/fwtest?sslmode=disable
+# Backup tests need pg_dump/pg_restore of the same or a newer major version than
+# the server. FTP and FTPS backend tests run when these are set (CI sets them):
+python3 tests/ftpserver.py /tmp/ftp 2121 &               # pip install pyftpdlib pyopenssl
+python3 tests/ftpserver.py /tmp/ftps 2990 cert.pem &     # cert.pem = key + self-signed cert
+export FW_TEST_FTP_ADDR=127.0.0.1:2121 FW_TEST_FTPS_ADDR=127.0.0.1:2990
 FW_DATABASE_URL=... FW_DATA_DIR=./tmp go run ./cmd/fleetwarden-server  # API on 127.0.0.1:8080
 cd web && npm ci && npm run dev  # UI with hot reload, proxies /api to the server
 make all deb                     # binaries and the .deb in dist/ (needs nfpm)

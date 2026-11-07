@@ -35,7 +35,8 @@ const used = new Set();
 for (const f of files) {
   for (const m of readFileSync(f, "utf8").matchAll(/\bt\(\s*"([a-zA-Z0-9_.-]+)"/g)) used.add(m[1]);
 }
-const missing = [...used].filter((k) => !en.has(k));
+// Plural keys exist as key_one / key_other (i18next picks one by count).
+const missing = [...used].filter((k) => !en.has(k) && !(en.has(`${k}_one`) && en.has(`${k}_other`)));
 if (missing.length) {
   console.error("Used in the source but missing in en.json:", missing.join(", "));
   process.exit(1);
