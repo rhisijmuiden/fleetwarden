@@ -135,8 +135,10 @@ jobs:
           dotnet-version: 8.0.x
       - name: Build the MSI
         run: ./packaging/windows/build-msi.ps1 -Version '${{ needs.meta.outputs.version }}' -AgentExe dist/windows-amd64/fleetwarden-agent.exe -OutDir dist/msi
-      - name: Install, check and uninstall
-        run: ./packaging/windows/test-msi.ps1 -Msi (Get-ChildItem dist/msi/*.msi | Select-Object -First 1).FullName
+      - name: Build a newer MSI for the self-update test
+        run: ./packaging/windows/build-msi.ps1 -Version 9.9.9 -AgentExe dist/windows-amd64/fleetwarden-agent.exe -OutDir dist/msi-next
+      - name: Install, check, self-update and uninstall
+        run: ./packaging/windows/test-msi.ps1 -Msi (Get-ChildItem dist/msi/*.msi | Select-Object -First 1).FullName -NextMsi dist/msi-next/fleetwarden-agent_9.9.9_x64.msi
       - uses: actions/upload-artifact@v4
         with:
           name: msi

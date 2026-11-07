@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/coder/websocket"
@@ -41,9 +42,14 @@ type Agent struct {
 	Collect func(ctx context.Context) (agentproto.Inventory, error)
 	// Once stops after the first inventory was sent (install tests).
 	Once bool
+	// StateDir holds update files; defaults to the platform's state folder.
+	StateDir string
+	// StartHelper starts the update helper; defaults to a detached process.
+	StartHelper func(exe, plan string) error
 
-	mu  sync.Mutex
-	cfg Config
+	mu       sync.Mutex
+	cfg      Config
+	updating atomic.Bool
 }
 
 func (a *Agent) init() {
@@ -224,6 +230,7 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 		return errors.New("the server's signature does not match the pinned server key")
 	}
 	a.Log.Info("connected", "server", cfg.Server, "device", cfg.DeviceID)
+	a.markConnected()
 
 	out := make(chan *agentproto.Envelope, 16)
 	send := func(typ string, v any) {
@@ -260,12 +267,14 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 		inv := time.NewTicker(time.Duration(max(w.InventoryMinutes, 15)) * time.Minute)
 		defer hb.Stop()
 		defer inv.Stop()
+		a.reportUpdateResult(send)
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-hb.C:
 				send(agentproto.TypeHeartbeat, collectHeartbeat())
+				a.reportUpdateResult(send) // a rollback may finish after the reconnect
 			case <-inv.C:
 				a.sendInventory(ctx, send)
 			case <-inventoryNow:

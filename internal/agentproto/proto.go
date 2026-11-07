@@ -141,6 +141,35 @@ type Welcome struct {
 	InventoryRequired bool   `json:"inventoryRequired"`
 }
 
+// Update asks the agent to install another agent version. The agent fetches
+// the package with a signed request from PathDownload+Package and checks the
+// hash. Previous is the package of the running version, kept for a rollback
+// when the new version does not come back online.
+type Update struct {
+	Version        string `json:"version"`
+	Package        string `json:"package"`
+	SHA256         string `json:"sha256"`
+	Size           int64  `json:"size"`
+	Previous       string `json:"previous,omitempty"`
+	PreviousSHA256 string `json:"previousSha256,omitempty"`
+}
+
+// Update states reported in UpdateStatus.
+const (
+	UpdateDownloading = "downloading"
+	UpdateInstalling  = "installing"
+	UpdateCompleted   = "completed"
+	UpdateFailed      = "failed"
+	UpdateRolledBack  = "rolled-back"
+)
+
+// UpdateStatus reports the progress of an Update.
+type UpdateStatus struct {
+	Version string `json:"version"`
+	State   string `json:"state"`
+	Message string `json:"message,omitempty"`
+}
+
 // EnrollRequest registers a new agent.
 type EnrollRequest struct {
 	Token        string `json:"token"`

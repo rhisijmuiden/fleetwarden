@@ -3,7 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"strings"
@@ -108,8 +108,11 @@ func TestBackupAndRestore(t *testing.T) {
 
 	// Data files that must come back.
 	os.MkdirAll(filepath.Join(e.cfg.DataDir, "uploads"), 0o750)
-	msi := make([]byte, 3<<20) // incompressible, several chunks
-	rand.Read(msi)
+	// Incompressible and many chunks. A fixed seed keeps the content-defined
+	// chunk boundaries the same between runs, so the share an incremental
+	// backup re-uploads (the chunks around the changed database dump) is stable.
+	msi := make([]byte, 8<<20)
+	rand.NewChaCha8([32]byte{'f', 'w'}).Read(msi)
 	os.WriteFile(filepath.Join(e.cfg.DataDir, "uploads", "agent.msi"), msi, 0o640)
 	keyBefore, _ := os.ReadFile(e.cfg.SecretKeyPath())
 

@@ -21,6 +21,7 @@ import { Backup } from "./pages/admin/backup/Backup";
 import { Devices } from "./pages/devices/Devices";
 import { DeviceDetail } from "./pages/devices/DeviceDetail";
 import { Groups } from "./pages/devices/Groups";
+import { AgentUpdates } from "./pages/admin/AgentUpdates";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
@@ -33,6 +34,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/admin/authentication", perm: "settings.manage", element: <Authentication /> },
   { path: "/admin/mail", perm: "settings.manage", element: <Mail /> },
   { path: "/admin/backup", perm: "backup.manage", element: <Backup /> },
+  { path: "/admin/agent-updates", perm: "agents.manage", element: <AgentUpdates /> },
   { path: "/admin/branding", perm: "settings.manage", element: <Branding /> },
   { path: "/admin/audit", perm: "audit.view", element: <Audit /> },
   { path: "/admin/settings", perm: "settings.manage", element: <Settings /> },

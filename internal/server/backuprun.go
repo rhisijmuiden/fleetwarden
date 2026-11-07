@@ -192,8 +192,11 @@ func (s *Server) startBackup(ctx context.Context, trigger, actor, kind string, o
 	s.bgWG.Add(1)
 	go func() {
 		defer s.bgWG.Done()
-		defer s.backupMu.Unlock()
 		s.runBackup(s.bgContext(), trigger, actor, kind, b, pass, locs)
+		// Report "not running" only after the lock is free, so a new backup
+		// started right after the progress shows done is not refused.
+		s.backupMu.Unlock()
+		s.progress.update(func(p *backupProgress) { p.Running = false })
 	}()
 	return nil
 }
@@ -206,9 +209,11 @@ func (s *Server) BackupNow(ctx context.Context, kind string) error {
 		return err
 	}
 	s.backupMu.Lock()
-	defer s.backupMu.Unlock()
 	s.resetProgress("manual", locs)
-	if failures := s.runBackup(ctx, "manual", "console", kind, b, pass, locs); len(failures) > 0 {
+	failures := s.runBackup(ctx, "manual", "console", kind, b, pass, locs)
+	s.backupMu.Unlock()
+	s.progress.update(func(p *backupProgress) { p.Running = false })
+	if len(failures) > 0 {
 		return errors.New(strings.Join(failures, "; "))
 	}
 	return nil
@@ -271,7 +276,7 @@ func (s *Server) runBackup(ctx context.Context, trigger, actor, kind string, b b
 			finish(l, runs[l.ID], err)
 		}
 		s.backupFailed(ctx, failures)
-		s.progress.update(func(p *backupProgress) { p.Running, p.Phase = false, "done" })
+		s.progress.update(func(p *backupProgress) { p.Phase = "done" })
 		return failures
 	}
 	s.progress.update(func(p *backupProgress) { p.Phase = "upload" })
@@ -292,7 +297,7 @@ func (s *Server) runBackup(ctx context.Context, trigger, actor, kind string, b b
 	if len(failures) > 0 {
 		s.backupFailed(ctx, failures)
 	}
-	s.progress.update(func(p *backupProgress) { p.Running, p.Phase = false, "done" })
+	s.progress.update(func(p *backupProgress) { p.Phase = "done" })
 	return failures
 }
 

@@ -53,8 +53,8 @@ func (c Server) RestoreDir() string { return filepath.Join(c.DataDir, "restore")
 func (c Server) TmpDir() string { return filepath.Join(c.DataDir, "tmp") }
 
 // BackupExclude are the top-level entries of DataDir that are not backed up
-// and not replaced by a restore.
-var BackupExclude = []string{"backups", "restore", "tmp", "update", "initial-admin-password", "server.env.from-backup"}
+// and not replaced by a restore. Agent releases are downloaded again.
+var BackupExclude = []string{"backups", "restore", "tmp", "update", "agent-releases", "initial-admin-password", "server.env.from-backup"}
 
 // SecretKeyPath is the AES key that encrypts stored secrets.
 func (c Server) SecretKeyPath() string { return filepath.Join(c.DataDir, "secret.key") }

@@ -107,9 +107,11 @@ func (c *pkgCatalog) hash(path string, fi os.FileInfo, sums map[string]string) s
 	return sum
 }
 
-func readSums(dir string) map[string]string {
+func readSums(dir string) map[string]string { return readSumsFile(filepath.Join(dir, "SHA256SUMS")) }
+
+func readSumsFile(path string) map[string]string {
 	out := map[string]string{}
-	f, err := os.Open(filepath.Join(dir, "SHA256SUMS"))
+	f, err := os.Open(path)
 	if err != nil {
 		return out
 	}
@@ -172,7 +174,7 @@ func (s *Server) agentPackages() agentPackages {
 	}
 	if dirs, err := os.ReadDir(s.cfg.AgentReleasesDir()); err == nil {
 		for _, d := range dirs {
-			if d.IsDir() && updates.ValidVersion(d.Name()) {
+			if d.IsDir() && validAgentVersion(d.Name()) {
 				out = append(out, s.pkgs.scanDir(filepath.Join(s.cfg.AgentReleasesDir(), d.Name()), "release")...)
 			}
 		}

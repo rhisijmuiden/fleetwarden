@@ -136,6 +136,10 @@ export type Device = {
   inventoryAt: string | null;
   notes: string;
   online: boolean;
+  updateVersion: string;
+  updateState: UpdateState | "";
+  updateMessage: string;
+  updateAt: string | null;
 };
 
 export type DeviceList = { items: Device[]; total: number };
@@ -159,6 +163,70 @@ export type EnrollmentToken = {
 };
 
 export type InstallPackage = { platform: Platform; arch: string; kind: "msi" | "deb"; version: string; url: string; name: string };
+
+export type UpdateState = "sent" | "downloading" | "installing" | "completed" | "failed" | "rolled-back";
+
+export type AgentPackage = {
+  version: string;
+  platform: Platform;
+  arch: string;
+  kind: "msi" | "deb";
+  name: string;
+  sha256: string;
+  size: number;
+  source: "bundled" | "github" | "upload" | "release";
+  added: string;
+};
+
+export type AgentRelease = {
+  version: string;
+  prerelease: boolean;
+  source: AgentPackage["source"];
+  added: string;
+  packages: AgentPackage[];
+  deletable: boolean;
+  devices: number;
+};
+
+export type RolloutStatus = "active" | "paused" | "completed" | "cancelled" | "superseded";
+
+export type RingStats = { ring: number; groups: string[]; devices: number; updated: number; inProgress: number; failed: number; pending: number };
+
+export type Rollout = {
+  id: number;
+  version: string;
+  channel: Channel;
+  status: RolloutStatus;
+  ring: number;
+  ringStartedAt: string;
+  soakHours: number;
+  maxFailures: number;
+  automatic: boolean;
+  message: string;
+  createdBy: string;
+  createdAt: string;
+  rings: RingStats[];
+  soakEndsAt: string | null;
+};
+
+export type AgentUpdateSettings = {
+  autoDownload: boolean;
+  autoRollout: boolean;
+  soakHours: number;
+  maxFailures: number;
+  keepReleases: number;
+  lastCheck: string;
+  lastError: string;
+};
+
+export type AgentUpdates = {
+  settings: AgentUpdateSettings;
+  channel: Channel;
+  releases: AgentRelease[];
+  rollouts: Rollout[];
+  problems: { deviceId: string; hostname: string; from: string; version: string; state: UpdateState; message: string; at: string | null }[];
+  versions: Record<string, number>;
+};
 
 export type InstallInfo = {
   token: string;
@@ -331,7 +399,9 @@ export function setUnauthenticatedHandler(fn: (() => void) | null) {
 export async function api<T = unknown>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const headers: Record<string, string> = { "X-Requested-With": "fleetwarden" };
   let payload: BodyInit | undefined;
-  if (body instanceof Blob) {
+  if (body instanceof FormData) {
+    payload = body; // the browser sets the multipart boundary
+  } else if (body instanceof Blob) {
     payload = body;
     headers["Content-Type"] = body.type || "application/octet-stream";
   } else if (body !== undefined) {

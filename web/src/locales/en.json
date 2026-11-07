@@ -31,7 +31,8 @@
     "branding": "Branding",
     "settings": "Settings",
     "info": "About",
-    "audit": "Audit log"
+    "audit": "Audit log",
+    "agentUpdates": "Agent updates"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -162,7 +163,15 @@
     "invalid_window": "Choose both a start and an end hour.",
     "device_offline": "The device is offline.",
     "invalid_token": "The enrollment token is invalid, expired or revoked.",
-    "rate_limited": "Too many attempts. Try again later."
+    "rate_limited": "Too many attempts. Try again later.",
+    "unknown_version": "This version is not available on the server.",
+    "release_in_use": "A running rollout uses this version. Cancel it first.",
+    "invalid_action": "That is not possible in the rollout's current state.",
+    "invalid_settings": "Check the values.",
+    "invalid_package_name": "Use the original file name, for example fleetwarden-agent_1.2.0_x64.msi.",
+    "invalid_package": "The file is not an MSI or Debian package.",
+    "too_large": "The file is too large.",
+    "no_file": "Choose a file to upload."
   },
   "login": {
     "title": "Sign in",
@@ -761,7 +770,9 @@
     "installedOn": "Installed",
     "size": "Size",
     "findOthers": "Show every device with this program",
-    "notesHint": "Free text for your team, for example location or owner."
+    "notesHint": "Free text for your team, for example location or owner.",
+    "agentUpdate": "Agent update",
+    "agentUpdateTo": "{{state}} to {{version}}"
   },
   "addClient": {
     "button": "Add client",
@@ -849,5 +860,81 @@
     "windowStart": "From",
     "windowEnd": "Until",
     "windowHint": "Server time. A window like 22:00–06:00 runs past midnight."
+  },
+  "agentUpdates": {
+    "title": "Agent updates",
+    "subtitle": "New agent versions come from GitHub or an upload and reach the device groups ring by ring.",
+    "upload": "Upload package",
+    "uploaded": "{{name}} was added.",
+    "checkNow": "Check GitHub now",
+    "checked": "Checked GitHub for new agent releases.",
+    "checkFailed": "Checking GitHub failed: {{error}}",
+    "rollouts": "Rollouts",
+    "rolloutsHint": "A rollout starts with ring 0 (pilot). The next ring follows after the soak time; too many failed devices pause it.",
+    "noOpenRollout": "No rollout is running. Every agent runs the version its group should have.",
+    "history": "Earlier rollouts",
+    "automatic": "automatic",
+    "soakSummary": "{{hours}} h per ring, pause after {{failures}} failures",
+    "nextRing": "next ring {{date}}",
+    "noGroups": "No groups in this ring",
+    "updatedOf": "{{updated}} of {{total}} updated",
+    "inProgress": "{{count}} in progress",
+    "failed": "{{count}} failed",
+    "problems": "Devices that could not update",
+    "problemsHint": "The agent reinstalled its previous version where it could. Use Retry on the rollout after fixing the cause.",
+    "releases": "Available versions",
+    "releasesHint": "Groups without their own agent channel follow the server channel ({{channel}}). Production groups only receive releases.",
+    "noReleases": "No agent packages yet. Check GitHub or upload a package.",
+    "version": "Version",
+    "source": "Source",
+    "packages": "Packages",
+    "devices": "Devices",
+    "sources": {
+      "bundled": "Included with the server",
+      "github": "GitHub",
+      "upload": "Uploaded",
+      "release": "Downloaded"
+    },
+    "startRollout": "Start rollout",
+    "startTitle": "Roll out {{version}}",
+    "startHint": "Devices with an older agent receive this version, ring 0 first. A running rollout on the same channel is replaced.",
+    "started": "The rollout has started.",
+    "deleteTitle": "Delete version",
+    "deleteConfirm": "Delete the packages of version {{version}} from the server? Agents on this version can then no longer roll back to it.",
+    "settings": "Settings",
+    "autoDownload": "Download new releases from GitHub",
+    "autoDownloadHint": "Checks every hour for the channels your groups use.",
+    "autoRollout": "Start a rollout for each new release",
+    "autoRolloutHint": "Off: new versions are only downloaded, and you start rollouts yourself.",
+    "soakHours": "Soak time (hours)",
+    "soakHint": "How long each ring runs before the next ring.",
+    "maxFailures": "Pause after failures",
+    "maxFailuresHint": "Failed devices per ring before the rollout pauses.",
+    "keepReleases": "Versions to keep",
+    "keepReleasesHint": "Older downloads are removed unless devices still run them.",
+    "lastCheck": "Last check: {{date}}",
+    "never": "never",
+    "status": {
+      "active": "Running",
+      "paused": "Paused",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "superseded": "Replaced"
+    },
+    "state": {
+      "sent": "Sent",
+      "downloading": "Downloading",
+      "installing": "Installing",
+      "completed": "Updated",
+      "failed": "Failed",
+      "rolled-back": "Rolled back"
+    },
+    "actions": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "advance": "Next ring now",
+      "retry": "Retry failed",
+      "cancel": "Cancel"
+    }
   }
 }
