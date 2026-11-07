@@ -1,0 +1,20 @@
+# Build output
+/dist/
+/build/
+*.exe
+*.msi
+*.deb
+# Go
+/bin/
+coverage.out
+# Node
+node_modules/
+web/dist/
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# Local secrets
+.env
+*.local
