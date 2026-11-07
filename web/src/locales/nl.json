@@ -19,7 +19,7 @@
     "patches": "Patchbeheer",
     "software": "Software",
     "deployments": "Uitrollen",
-    "remote": "Remote control",
+    "remote": "Overnemen op afstand",
     "insights": "Inzicht",
     "reports": "Rapporten",
     "alerts": "Meldingen",
@@ -207,7 +207,11 @@
     "unknown_package": "Het pakket bestaat niet meer.",
     "unsupported_file": "Alleen .msi-, .exe- en .deb-bestanden kunnen worden geüpload.",
     "upload_failed": "Het uploaden is mislukt. Probeer het opnieuw.",
-    "no_browsers": "Kies minstens één browser."
+    "no_browsers": "Kies minstens één browser.",
+    "remote_unsupported": "Overnemen kan op Windows-apparaten.",
+    "remote_busy": "Op dit apparaat lopen al twee sessies op afstand.",
+    "remote_viewer_connected": "Deze sessie is al geopend in een ander tabblad.",
+    "invalid_consent": "Kies een geldige instelling voor overnemen."
   },
   "login": {
     "title": "Inloggen",
@@ -325,7 +329,8 @@
     "patches_manage": "Patchbeleid beheren",
     "patches_approve": "Updates goedkeuren of weigeren",
     "software_manage": "Softwarebibliotheek beheren",
-    "software_deploy": "Software uitrollen en verwijderen"
+    "software_deploy": "Software uitrollen en verwijderen",
+    "remote_control": "Apparaten op afstand overnemen"
   },
   "auth": {
     "title": "Authenticatie",
@@ -914,7 +919,20 @@
     "windowHint": "Servertijd. Een venster als 22:00–06:00 loopt over middernacht.",
     "patchPolicy": "Patchbeleid",
     "noPatchPolicy": "Niet gepatcht",
-    "patchPolicyHint": "Wanneer en hoe updates op de apparaten in deze groep worden geïnstalleerd."
+    "patchPolicyHint": "Wanneer en hoe updates op de apparaten in deze groep worden geïnstalleerd.",
+    "remoteConsent": "Overnemen op afstand",
+    "consent": {
+      "auto": "Automatisch (servers direct, werkplekken vragen)",
+      "ask": "Gebruiker vragen",
+      "notify": "Gebruiker melden",
+      "direct": "Direct overnemen"
+    },
+    "consentHint": {
+      "auto": "Servers en Proxmox-nodes worden direct overgenomen; op werkplekken wordt de ingelogde gebruiker eerst gevraagd.",
+      "ask": "De ingelogde gebruiker moet elke sessie binnen 30 seconden toestaan. Zonder ingelogde gebruiker start de sessie direct.",
+      "notify": "De sessie start direct; de gebruiker ziet een balk dat iemand is verbonden, met een knop om te stoppen.",
+      "direct": "De sessie start zonder melding, voor servers en onbemande computers."
+    }
   },
   "agentUpdates": {
     "title": "Agent-updates",
@@ -1430,5 +1448,135 @@
     "noOutput": "Geen uitvoer.",
     "browsers": "Browsers",
     "browsersLatest": "Nieuwste versie uit winget"
+  },
+  "remote": {
+    "title": "Overnemen op afstand",
+    "subtitle": "Bekijk en bedien het scherm van een Windows-computer of -server vanuit je browser, ook op het inlogscherm en bij UAC-vragen.",
+    "connect": "Overnemen",
+    "connectHint": "Opent het scherm op afstand in een nieuw tabblad.",
+    "windowsOnly": "Overnemen kan op Windows-apparaten. Een terminal voor Linux volgt.",
+    "connectTitle": "Verbinden",
+    "connectText": "Online Windows-apparaten. De sessie opent in een nieuw tabblad.",
+    "searchPlaceholder": "Zoek op naam, gebruiker of IP-adres",
+    "noDevices": "Geen online Windows-apparaat gevonden.",
+    "activeTitle": "Actieve sessies",
+    "historyTitle": "Sessielog",
+    "historyText": "Elke sessie met wie hem startte, hoe lang hij duurde en hoe hij eindigde. Wordt 400 dagen bewaard.",
+    "historyEmpty": "Nog geen sessies op afstand.",
+    "allDevices": "Alle apparaten",
+    "cols": {
+      "device": "Apparaat",
+      "operator": "Door",
+      "started": "Gestart",
+      "duration": "Duur",
+      "consent": "Toestemming",
+      "result": "Resultaat"
+    },
+    "states": {
+      "starting": "Starten",
+      "pending": "Agent wordt benaderd",
+      "consent": "Wacht op de gebruiker",
+      "connecting": "Verbinden",
+      "active": "Verbonden",
+      "ended": "Beëindigd",
+      "denied": "Geweigerd",
+      "failed": "Mislukt"
+    },
+    "waiting": {
+      "starting": "Sessie wordt gestart…",
+      "pending": "{{host}} wordt benaderd…",
+      "consent": "Wacht tot de gebruiker de sessie toestaat",
+      "connecting": "Verbinden met het scherm…",
+      "active": "Scherm wordt ontvangen…"
+    },
+    "waitingHint": "Dit duurt meestal een paar seconden.",
+    "consentWait": "De gebruiker ziet een verzoek op het scherm. Dat wordt over {{seconds}} seconden automatisch geweigerd.",
+    "finished": {
+      "ended": "Sessie beëindigd",
+      "denied": "De gebruiker heeft de sessie geweigerd",
+      "failed": "De sessie kon niet starten"
+    },
+    "reasons": {
+      "user_denied": "De gebruiker koos Weigeren.",
+      "no_answer": "De gebruiker heeft niet op tijd gereageerd.",
+      "consent_unavailable": "De gebruiker is ingelogd, maar het verzoek kon niet op het scherm worden getoond. Probeer het zo opnieuw, of zet de groep op 'melding'.",
+      "user_ended": "De gebruiker heeft de sessie beëindigd via de balk boven in het scherm.",
+      "operator_ended": "Je hebt de sessie beëindigd.",
+      "ended_by_admin": "Een andere beheerder heeft de sessie beëindigd.",
+      "viewer_closed": "De viewer is gesloten.",
+      "viewer_timeout": "De viewer werd niet op tijd geopend.",
+      "viewer_failed": "De viewer kon geen verbinding maken.",
+      "agent_timeout": "De agent maakte niet op tijd verbinding.",
+      "agent_closed": "De verbinding met de agent is verbroken.",
+      "agent_stopped": "De agent is gestopt.",
+      "closed": "De verbinding is gesloten.",
+      "connection_lost": "De verbinding met de server is verbroken.",
+      "device_offline": "Het apparaat is offline.",
+      "unsupported": "Dit apparaat ondersteunt overnemen niet.",
+      "busy": "Op dit apparaat lopen al het maximale aantal sessies.",
+      "connect_failed": "De agent kon de server niet bereiken voor de sessie. Controleer of de reverse proxy WebSockets doorgeeft.",
+      "helper_failed": "Het scherm van deze computer kon niet worden opgenomen.",
+      "bad_message": "Een bericht kwam niet door de integriteitscontrole; de sessie is gestopt.",
+      "bad_key": "De sessiesleutels kwamen niet overeen.",
+      "server_restart": "De server is opnieuw gestart.",
+      "server_stopping": "De server wordt gestopt.",
+      "internal": "Er ging iets mis op het apparaat.",
+      "unknown": "De sessie is beëindigd."
+    },
+    "closeWindow": "Tabblad sluiten",
+    "reconnect": "Opnieuw verbinden",
+    "end": "Sessie beëindigen",
+    "screen": "Scherm van {{host}}",
+    "secureDesktop": "Beveiligd bureaublad",
+    "secureDesktopHint": "Het inlogscherm, vergrendelscherm of een UAC-vraag wordt getoond.",
+    "consentShort": {
+      "direct": "Direct",
+      "notify": "Gebruiker gemeld",
+      "ask": "Gebruiker akkoord"
+    },
+    "consentHint": {
+      "direct": "Direct overgenomen.",
+      "notify": "De gebruiker ziet een balk dat je verbonden bent en kan de sessie beëindigen.",
+      "ask": "De gebruiker heeft deze sessie toegestaan en kan hem beëindigen via de balk op het scherm."
+    },
+    "monitor": "Monitor",
+    "monitorN": "Monitor {{n}}",
+    "primary": "hoofd",
+    "allMonitors": "Alle monitoren",
+    "quality": "Beeldkwaliteit",
+    "qualities": {
+      "low": "Snel (lage kwaliteit)",
+      "medium": "Gebalanceerd",
+      "high": "Scherp (meer data)"
+    },
+    "cad": "Ctrl+Alt+Del sturen",
+    "keys": "Speciale toetsen",
+    "combos": {
+      "altTab": "Alt+Tab",
+      "win": "Windows-toets",
+      "winR": "Win+R (Uitvoeren)",
+      "winL": "Win+L (vergrendelen)",
+      "ctrlEsc": "Ctrl+Esc (Start)",
+      "ctrlShiftEsc": "Taakbeheer",
+      "altF4": "Alt+F4",
+      "printScreen": "Print Screen"
+    },
+    "clipboard": "Klembord",
+    "fromRemote": "Gekopieerd op de computer op afstand",
+    "fromRemoteEmpty": "Kopieer iets op de computer op afstand en het verschijnt hier (en op je eigen klembord, als de browser dat toestaat).",
+    "toRemote": "Tekst voor de computer op afstand",
+    "toRemoteHint": "Ctrl+V in de viewer plakt ook je eigen klembord. 'Typen' voert de tekst in als toetsaanslagen, voor velden waar plakken niet werkt (zoals een inlogscherm).",
+    "typeIt": "Typen",
+    "sendClipboard": "Op klembord zetten",
+    "clipboardSent": "Op het klembord op afstand gezet.",
+    "refresh": "Scherm verversen",
+    "fit": "Passend in venster",
+    "actualSize": "Werkelijke grootte",
+    "fullscreen": "Volledig scherm",
+    "exitFullscreen": "Volledig scherm sluiten",
+    "notices": {
+      "cad_failed": "Ctrl+Alt+Del kon niet worden verstuurd.",
+      "helper_restarting": "Het scherm maakt opnieuw verbinding (de gebruiker logt misschien in of uit)…"
+    }
   }
 }

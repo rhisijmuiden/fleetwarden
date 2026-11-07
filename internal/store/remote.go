@@ -54,7 +54,7 @@ func (s *Store) RemoteSessionByID(ctx context.Context, id string) (RemoteSession
 func (s *Store) SetRemoteState(ctx context.Context, id, state string) error {
 	_, err := s.pool.Exec(ctx, `UPDATE remote_sessions SET state = $2,
 		connected_at = CASE WHEN $2 = 'active' AND connected_at IS NULL THEN now() ELSE connected_at END
-		WHERE id = $1 AND ended_at IS NULL`, id, state)
+		WHERE id = $1 AND ended_at IS NULL AND state <> 'active'`, id, state)
 	return mapErr(err)
 }
 

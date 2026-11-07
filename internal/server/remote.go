@@ -247,19 +247,23 @@ func (rs *remoteSession) status(state, reason, message string) {
 	}
 }
 
-// setState records progress and tells the viewer.
+var stateRank = map[string]int{"pending": 0, "consent": 1, "connecting": 2, "active": 3}
+
+// setRemoteState records progress and tells the viewer.
 func (s *Server) setRemoteState(rs *remoteSession, state, message string) {
 	rs.mu.Lock()
-	if rs.ended {
+	// The agent's status reports and its session socket arrive on different
+	// connections, so "connecting" can come after "active": never go back.
+	if rs.ended || stateRank[state] <= stateRank[rs.State] {
 		rs.mu.Unlock()
 		return
 	}
 	rs.State = state
+	rs.status(state, "", message) // under the lock, so the viewer gets the states in order
 	rs.mu.Unlock()
 	ctx, cancel := context.WithTimeout(s.bgCtx, 5*time.Second)
 	defer cancel()
 	_ = s.st.SetRemoteState(ctx, rs.ID, state)
-	rs.status(state, "", message)
 }
 
 // endRemote finishes a session once: log, audit, tell both sides.
@@ -386,7 +390,6 @@ func (s *Server) handleRemoteViewer(w http.ResponseWriter, r *http.Request) {
 	rs.mu.Lock()
 	taken := rs.viewer || rs.ended
 	rs.viewer = true
-	state := rs.State
 	rs.mu.Unlock()
 	if taken {
 		apiError(w, http.StatusConflict, "remote_viewer_connected")
@@ -401,7 +404,9 @@ func (s *Server) handleRemoteViewer(w http.ResponseWriter, r *http.Request) {
 	ws.SetReadLimit(remoteViewerLimit)
 	ctx, cancel := context.WithCancel(s.bgCtx)
 	defer cancel()
-	rs.status(state, "", "")
+	rs.mu.Lock()
+	rs.status(rs.State, "", "")
+	rs.mu.Unlock()
 
 	go func() { // reader: viewer -> agent
 		defer cancel()

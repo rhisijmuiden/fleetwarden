@@ -32,6 +32,7 @@ eerste login kies je je eigen wachtwoord. Kwijt? Voer
 - Agents, Add client en inschrijven: [docs/agents.nl.md](docs/agents.nl.md)
 - Patchmanagement: [docs/patching.nl.md](docs/patching.nl.md)
 - Software uitrollen: [docs/software.nl.md](docs/software.nl.md)
+- Overnemen op afstand: [docs/remote.nl.md](docs/remote.nl.md)
 
 ## Licentie
 

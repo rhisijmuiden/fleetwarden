@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Ban, FolderTree, KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
-import { del, get, post, put, type Channel, type DeviceGroup, type EnrollmentToken, type PatchPolicies } from "../../api";
+import { del, get, post, put, type Channel, type DeviceGroup, type EnrollmentToken, type PatchPolicies, type RemoteConsentSetting } from "../../api";
 import { useAuth } from "../../auth";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, formatDate, useErrorText } from "../../components/ui";
 import { AddClient } from "./AddClient";
@@ -60,6 +60,7 @@ export function Groups() {
                   <th className="px-3 py-3 font-medium">{t("groups.channel")}</th>
                   <th className="px-3 py-3 font-medium">{t("groups.window")}</th>
                   <th className="px-3 py-3 font-medium">{t("groups.patchPolicy")}</th>
+                  <th className="px-3 py-3 font-medium">{t("groups.remoteConsent")}</th>
                   <th className="px-5 py-3 text-right font-medium">
                     <span className="sr-only">{t("common.actions")}</span>
                   </th>
@@ -93,6 +94,7 @@ export function Groups() {
                         <span className="text-muted">{t("groups.noPatchPolicy")}</span>
                       )}
                     </td>
+                    <td className="px-3 py-3 text-muted">{t(`groups.consent.${g.remoteConsent ?? "auto"}`)}</td>
                     <td className="px-5 py-3">
                       <div className="flex justify-end gap-1">
                         {manageDevices && (
@@ -208,6 +210,7 @@ function GroupForm({
   const [start, setStart] = useState(22);
   const [end, setEnd] = useState(6);
   const [policy, setPolicy] = useState(0);
+  const [consent, setConsent] = useState<RemoteConsentSetting>("auto");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -220,6 +223,7 @@ function GroupForm({
     setStart(group?.windowStart ?? 22);
     setEnd(group?.windowEnd ?? 6);
     setPolicy(group?.patchPolicyId ?? 0);
+    setConsent(group?.remoteConsent ?? "auto");
     setError(null);
   }, [editing]);
 
@@ -235,6 +239,7 @@ function GroupForm({
       windowStart: windowOn ? start : null,
       windowEnd: windowOn ? end : null,
       patchPolicyId: policy || null,
+      remoteConsent: consent,
     };
     try {
       if (group) await put(`/groups/${group.id}`, body);
@@ -325,6 +330,17 @@ function GroupForm({
               {policies.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field label={t("groups.remoteConsent")} hint={t(`groups.consentHint.${consent}`)}>
+          {(id) => (
+            <Select id={id} value={consent} onChange={(e) => setConsent(e.target.value as RemoteConsentSetting)}>
+              {(["auto", "ask", "notify", "direct"] as RemoteConsentSetting[]).map((c) => (
+                <option key={c} value={c}>
+                  {t(`groups.consent.${c}`)}
                 </option>
               ))}
             </Select>

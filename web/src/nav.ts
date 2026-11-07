@@ -49,7 +49,7 @@ export const navigation: NavGroup[] = [
       { path: "/patches", label: "nav.patches", icon: ShieldCheck, perm: "devices.view" },
       { path: "/software", label: "nav.software", icon: Package, perm: "devices.view" },
       { path: "/deployments", label: "nav.deployments", icon: Rocket, perm: "devices.view" },
-      { path: "/remote", label: "nav.remote", icon: MonitorPlay, phase: 6 },
+      { path: "/remote", label: "nav.remote", icon: MonitorPlay, perm: "remote.control" },
     ],
   },
   {
