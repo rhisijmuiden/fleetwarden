@@ -163,12 +163,17 @@ func TestBrowserUpdateWindowsReal(t *testing.T) {
 		res, _, err := be.Uninstall(ctx, agentproto.Uninstall{Name: e.DisplayName})
 		t.Logf("removed %s: exit %d err %v", e.DisplayName, res.ExitCode, err)
 	}
+	logProcesses(t, "after the removal")
 	file := filepath.Join(t.TempDir(), installerFileName(oldC.Installer))
 	if err := a.downloadPublic(ctx, oldC.Installer, file); err != nil {
 		t.Fatal(err)
 	}
-	if res, err := be.Install(ctx, oldC.Installer, file); err != nil {
-		t.Fatalf("install %s: %v\n%s", vs[3].Version, err, tailString(res.Output, 1500))
+	ictx, icancel := context.WithTimeout(ctx, 8*time.Minute)
+	res, err := be.Install(ictx, oldC.Installer, file)
+	icancel()
+	if err != nil {
+		logProcesses(t, "after the failed install")
+		t.Fatalf("install %s (%s %s): %v\n%s", vs[3].Version, oldC.Installer.URL, oldC.Installer.Args, err, tailString(res.Output, 1500))
 	}
 	ok, before, _ := be.Find(ctx, det)
 	if !ok {
@@ -219,4 +224,13 @@ func TestBrowserUpdateWindowsReal(t *testing.T) {
 		t.Errorf("Firefox %s after the update, want %s", after, newM.PackageVersion)
 	}
 	t.Logf("result: %s (version %s)", last.Message, after)
+}
+
+// logProcesses lists the running processes with their command lines, to see
+// what an installer waits for.
+func logProcesses(t *testing.T, when string) {
+	t.Helper()
+	out, _ := exec.Command("powershell", "-NoProfile", "-Command",
+		"Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'firefox|setup|helper|maintenance|browser|crash' } | Format-Table ProcessId,ParentProcessId,Name,CommandLine -AutoSize -Wrap | Out-String -Width 300").CombinedOutput()
+	t.Logf("processes %s:\n%s", when, out)
 }
