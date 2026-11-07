@@ -13,7 +13,9 @@ export type Permission =
   | "groups.manage"
   | "agents.manage"
   | "patches.manage"
-  | "patches.approve";
+  | "patches.approve"
+  | "software.manage"
+  | "software.deploy";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -501,6 +503,141 @@ export type RestoreView = {
   last: RestoreStatus | null;
 };
 
+// ---- software deployment ----
+
+export type PackageSource = "winget" | "upload" | "apt";
+export type InstallerKind = "msi" | "exe" | "inno" | "nullsoft" | "burn" | "apt" | "deb";
+
+export type SoftwarePackage = {
+  id: number;
+  name: string;
+  publisher: string;
+  description: string;
+  platform: Platform;
+  source: PackageSource;
+  wingetId: string;
+  version: string;
+  fileSha256: string;
+  fileName: string;
+  fileSize: number;
+  installerKind: InstallerKind | "";
+  installArgs: string;
+  aptPackage: string;
+  detectName: string;
+  productCode: string;
+  anyHash: boolean;
+  timeoutMinutes: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  installed: number;
+};
+
+export type CatalogStatus = { packages: number; updatedAt: string | null; checkedAt: string | null; error: string };
+
+export type PackagesView = {
+  packages: SoftwarePackage[];
+  kinds: Record<Platform, InstallerKind[]>;
+  defaultArgs: Record<string, string>;
+  catalog: CatalogStatus;
+  maxUploadMiB: number;
+};
+
+export type CatalogHit = { id: string; name: string; moniker?: string; version: string };
+export type CatalogSearch = { status: CatalogStatus; results: CatalogHit[] };
+
+export type CatalogPackage = {
+  id: string;
+  name: string;
+  publisher: string;
+  description: string;
+  license: string;
+  homepage: string;
+  version: string;
+  versions: string[];
+  choice: {
+    installer: { kind: InstallerKind; url: string; sha256: string; args?: string; fileName?: string };
+    detect: { name: string; productCode?: string; version?: string };
+    type: string;
+    architecture: string;
+    scope: string;
+  } | null;
+  choiceError: string;
+  installers: { architecture: string; type: string; scope: string; locale: string }[];
+};
+
+export type UploadResult = { sha256: string; size: number; name: string; kind: InstallerKind };
+
+export type JobCounts = {
+  total: number;
+  pending: number;
+  running: number;
+  completed: number;
+  skipped: number;
+  failed: number;
+  cancelled: number;
+  reboot: number;
+};
+
+export type Deployment = {
+  id: number;
+  name: string;
+  action: "install" | "uninstall";
+  packageId: number | null;
+  platform: Platform;
+  uninstallName: string;
+  uninstallVersion: string;
+  uninstallArgs: string;
+  uninstallPurge: boolean;
+  groupIds: number[];
+  ongoing: boolean;
+  startAt: string;
+  expireDays: number;
+  requestedBy: string;
+  createdAt: string;
+  cancelledAt: string | null;
+  groups: { id: number; name: string }[];
+  counts: JobCounts;
+};
+
+export type JobState =
+  | "pending"
+  | "sent"
+  | "downloading"
+  | "installing"
+  | "uninstalling"
+  | "completed"
+  | "skipped"
+  | "failed"
+  | "cancelled"
+  | "expired";
+
+export type SoftwareJob = {
+  id: number;
+  deploymentId: number;
+  deploymentName: string;
+  action: "install" | "uninstall";
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  state: JobState;
+  message: string;
+  exitCode: number | null;
+  output: string;
+  rebootRequired: boolean;
+  version: string;
+  attempts: number;
+  createdAt: string;
+  sentAt: string | null;
+  updatedAt: string;
+  finishedAt: string | null;
+};
+
+export type DeploymentView = { deployment: Deployment; package: SoftwarePackage | null; jobs: SoftwareJob[] };
+
+export type InstalledSoftware = { name: string; publisher: string; platform: Platform; source: string; versions: string[]; devices: number };
+export type InstalledDevice = { deviceId: string; hostname: string; groupId: number; version: string };
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -548,4 +685,33 @@ export const del = <T>(path: string) => api<T>("DELETE", path);
 
 export async function fetchVersion(signal?: AbortSignal): Promise<VersionInfo> {
   return get<VersionInfo>("/version", signal);
+}
+
+// uploadFile sends a file as the raw request body (name in X-File-Name) and
+// reports the progress from 0 to 1.
+export function uploadFile<T>(path: string, file: File, onProgress?: (p: number) => void): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api/v1${path}`);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader("X-Requested-With", "fleetwarden");
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.setRequestHeader("X-File-Name", file.name);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+    };
+    xhr.onerror = () => reject(new ApiError(0, "network"));
+    xhr.onload = () => {
+      let data: { error?: string; detail?: string } = {};
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        /* empty body */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data as T);
+      else if (xhr.status === 413) reject(new ApiError(413, "installer_too_large"));
+      else reject(new ApiError(xhr.status, data.error ?? `http_${xhr.status}`, data.detail));
+    };
+    xhr.send(file);
+  });
 }

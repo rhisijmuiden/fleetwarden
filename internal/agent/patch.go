@@ -303,12 +303,14 @@ func (a *Agent) runPatchJob(ctx context.Context, job agentproto.PatchInstall) {
 		}
 		r.report(agentproto.PatchInstalling, "")
 		var lastProgress time.Time
+		a.installMu.Lock()
 		results, reboot, err := be.Install(ctx, job.Updates, func(msg string) {
 			if time.Since(lastProgress) > 5*time.Second {
 				lastProgress = time.Now()
 				r.report(agentproto.PatchInstalling, msg)
 			}
 		})
+		a.installMu.Unlock()
 		if ctx.Err() != nil && errors.Is(ctx.Err(), context.Canceled) {
 			return
 		}

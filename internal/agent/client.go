@@ -48,6 +48,8 @@ type Agent struct {
 	StartHelper func(exe, plan string) error
 	// Patches installs updates; defaults to the platform backend.
 	Patches PatchBackend
+	// Software installs and removes programs; defaults to the platform backend.
+	Software SoftwareBackend
 	// Notify asks the logged-on user before patching (the tray pop-up on
 	// Windows); nil installs without asking.
 	Notify Notifier
@@ -62,7 +64,13 @@ type Agent struct {
 	cfg      Config
 	updating atomic.Bool
 	patch    patchState
+	software softwareState   // guarded by mu
 	ctx      context.Context // of Run: jobs outlive a single session
+	// installMu keeps patch installs and software jobs apart: Windows
+	// Installer and dpkg run one installation at a time.
+	installMu sync.Mutex
+	// invNow asks the running session for a full inventory.
+	invNow chan struct{}
 }
 
 func (a *Agent) runCtx() context.Context {
@@ -87,6 +95,11 @@ func (a *Agent) init() {
 	if a.Collect == nil {
 		a.Collect = CollectInventory
 	}
+	a.mu.Lock()
+	if a.invNow == nil {
+		a.invNow = make(chan struct{}, 1)
+	}
+	a.mu.Unlock()
 }
 
 // Enroll registers the agent with its token and stores the device identity.
@@ -181,6 +194,7 @@ func (a *Agent) Run(ctx context.Context) error {
 			a.Notify = platformNotifier(ctx, a.Log)
 		}
 		a.resumePatchJob(ctx)
+		a.resumeSoftwareJob()
 	}
 	backoff = newBackoff()
 	for {
@@ -295,9 +309,9 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 			}
 		}
 	}()
-	inventoryNow := make(chan struct{}, 1)
+	inventoryNow := a.invNow
 	if w.InventoryRequired || a.Once {
-		inventoryNow <- struct{}{}
+		a.requestInventory()
 	}
 	sent := make(chan struct{}, 1)
 	go func() { // timers: heartbeat and inventory
@@ -308,6 +322,12 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 		a.reportUpdateResult(send)
 		gen := a.attachPatchSession(trySend)
 		defer a.detachPatchSession(gen)
+		a.mu.Lock()
+		swRunning, swLast := a.software.running, a.software.last
+		a.mu.Unlock()
+		if swRunning && swLast != nil {
+			trySend(agentproto.TypeSoftwareStatus, *swLast)
+		}
 		for {
 			select {
 			case <-ctx.Done():
@@ -339,10 +359,7 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 			}
 			switch e.Type {
 			case agentproto.TypeInventoryRequest:
-				select {
-				case inventoryNow <- struct{}{}:
-				default:
-				}
+				a.requestInventory()
 			case agentproto.TypeRemove:
 				errc <- ErrRemoved
 				return
@@ -354,6 +371,8 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 				a.handlePatchScan(a.runCtx())
 			case agentproto.TypePatchInstall:
 				a.handlePatchInstall(e)
+			case agentproto.TypeSoftwareJob:
+				a.handleSoftwareJob(e)
 			default:
 				a.Log.Debug("ignoring message", "type", e.Type)
 			}

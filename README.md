@@ -46,6 +46,7 @@ your own password at the first sign-in. Lost it? Run
 - Backup and restore: [docs/backup.md](docs/backup.md)
 - Agents, Add client and enrollment: [docs/agents.md](docs/agents.md)
 - Patch management: [docs/patching.md](docs/patching.md)
+- Software deployment: [docs/software.md](docs/software.md)
 
 ## Development
 

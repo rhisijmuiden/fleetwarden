@@ -142,12 +142,17 @@ func (a *Agent) update(ctx context.Context, u agentproto.Update, send func(strin
 
 // download fetches a package with a signed request and checks its hash.
 func (a *Agent) download(ctx context.Context, name, sum string, size int64, dst string) error {
+	return a.downloadSigned(ctx, agentproto.PathDownload+name, sum, size, dst)
+}
+
+// downloadSigned fetches a file from the server with a signed request and
+// checks its size and hash.
+func (a *Agent) downloadSigned(ctx context.Context, path, sum string, size int64, dst string) error {
 	a.mu.Lock()
 	cfg := a.cfg
 	a.mu.Unlock()
 	ctx, cancel := context.WithTimeout(ctx, downloadDeadline)
 	defer cancel()
-	path := agentproto.PathDownload + name
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cfg.Server+path, nil)
 	if err != nil {
 		return err
@@ -163,16 +168,20 @@ func (a *Agent) download(ctx context.Context, name, sum string, size int64, dst 
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("server answered %s", res.Status)
 	}
+	limit := int64(maxPackageSize)
+	if strings.HasPrefix(path, agentproto.PathSoftware) {
+		limit = maxInstallerSize
+	}
 	f, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
 	}
 	h := sha256.New()
-	n, err := io.Copy(io.MultiWriter(f, h), io.LimitReader(res.Body, maxPackageSize+1))
+	n, err := io.Copy(io.MultiWriter(f, h), io.LimitReader(res.Body, limit+1))
 	if cerr := f.Close(); err == nil {
 		err = cerr
 	}
-	if err == nil && n > maxPackageSize {
+	if err == nil && n > limit {
 		err = errors.New("package is too large")
 	}
 	if err == nil && size > 0 && n != size {
