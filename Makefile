@@ -28,7 +28,7 @@ agents:
 	GOOS=windows GOARCH=amd64 $(GOBUILD) -o dist/windows-amd64/fleetwarden-agent.exe ./cmd/fleetwarden-agent
 
 deb: web server
-	VERSION=$(VERSION) nfpm package -f packaging/nfpm-server.yaml -p deb -t dist/
+	VERSION=$(VERSION) nfpm package -f packaging/nfpm-server.yaml -p deb -t dist/fleetwarden-server_$(VERSION)_amd64.deb
 
 clean:
 	rm -rf dist web/dist

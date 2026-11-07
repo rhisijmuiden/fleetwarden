@@ -4,6 +4,8 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -13,7 +15,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rhisijmuiden/fleetwarden/internal/auth"
 	"github.com/rhisijmuiden/fleetwarden/internal/config"
+	"github.com/rhisijmuiden/fleetwarden/internal/mail"
+	"github.com/rhisijmuiden/fleetwarden/internal/secrets"
+	"github.com/rhisijmuiden/fleetwarden/internal/sso"
+	"github.com/rhisijmuiden/fleetwarden/internal/store"
+	"github.com/rhisijmuiden/fleetwarden/internal/updates"
 	"github.com/rhisijmuiden/fleetwarden/internal/version"
 )
 
@@ -22,16 +30,66 @@ type Pinger interface {
 	Ping(ctx context.Context) error
 }
 
-// Server is the HTTP server.
-type Server struct {
-	cfg config.Server
-	db  Pinger
-	log *slog.Logger
+// Deps are the server's dependencies. Store and Secrets may be nil when no
+// database is configured; the API then answers 503.
+type Deps struct {
+	DB      Pinger
+	Store   *store.Store
+	Secrets *secrets.Box
+	Log     *slog.Logger
+	// Mailer sends e-mail; defaults to SMTP. Tests replace it.
+	Mailer  Mailer
+	Updates *updates.Checker
+	SSO     *sso.Client
 }
 
-// New creates a server. db may be nil when no database is configured.
-func New(cfg config.Server, db Pinger, log *slog.Logger) *Server {
-	return &Server{cfg: cfg, db: db, log: log}
+// Mailer delivers one message with a mail configuration.
+type Mailer interface {
+	Send(ctx context.Context, cfg mail.Config, msg mail.Message) error
+}
+
+// Server is the HTTP server.
+type Server struct {
+	cfg      config.Server
+	db       Pinger
+	st       *store.Store
+	box      *secrets.Box
+	log      *slog.Logger
+	mailer   Mailer
+	sso      *sso.Client
+	updates  *updates.Checker
+	ipFails  *auth.Limiter
+	usrFails *auth.Limiter
+	now      func() time.Time
+}
+
+// Session lifetimes.
+const (
+	sessionAbsolute = 12 * time.Hour
+	sessionIdle     = 2 * time.Hour
+	mfaWindow       = 5 * time.Minute
+)
+
+// New creates a server.
+func New(cfg config.Server, d Deps) *Server {
+	if d.Log == nil {
+		d.Log = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+	if d.Mailer == nil {
+		d.Mailer = &mail.Sender{}
+	}
+	if d.Updates == nil {
+		d.Updates = updates.NewChecker("rhisijmuiden/fleetwarden")
+	}
+	if d.SSO == nil {
+		d.SSO = sso.NewClient()
+	}
+	return &Server{
+		cfg: cfg, db: d.DB, st: d.Store, box: d.Secrets, log: d.Log, mailer: d.Mailer, sso: d.SSO, updates: d.Updates,
+		ipFails:  auth.NewLimiter(20, 15*time.Minute),
+		usrFails: auth.NewLimiter(8, 15*time.Minute),
+		now:      time.Now,
+	}
 }
 
 // Handler returns the root HTTP handler.
@@ -39,8 +97,73 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.handleHealth)
 	mux.HandleFunc("GET /api/v1/version", s.handleVersion)
+	if s.st != nil {
+		s.routes(mux)
+	} else {
+		mux.HandleFunc("/api/v1/", func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/api/v1/version" {
+				http.NotFound(w, r)
+				return
+			}
+			apiError(w, http.StatusServiceUnavailable, "no_database")
+		})
+	}
 	mux.Handle("/", s.webHandler())
-	return s.withClientIP(securityHeaders(mux))
+	return s.withClientIP(securityHeaders(csrfGuard(mux)))
+}
+
+func (s *Server) routes(mux *http.ServeMux) {
+	// Public: login page needs these before anyone is signed in.
+	mux.HandleFunc("GET /api/v1/auth/config", s.handleAuthConfig)
+	mux.HandleFunc("POST /api/v1/auth/login", s.handleLogin)
+	mux.HandleFunc("POST /api/v1/auth/totp", s.handleLoginTOTP)
+	mux.HandleFunc("POST /api/v1/auth/logout", s.handleLogout)
+	mux.HandleFunc("GET /api/v1/auth/sso/start", s.handleSSOStart)
+	mux.HandleFunc("GET /api/v1/auth/sso/callback", s.handleSSOCallback)
+	mux.HandleFunc("GET /api/v1/branding", s.handleBranding)
+	mux.HandleFunc("GET /api/v1/branding/{asset}", s.handleBrandingAsset)
+
+	// Signed in. allowPending lets a user with a forced password change reach these.
+	mux.Handle("GET /api/v1/auth/me", s.authed("", allowPending, s.handleMe))
+	mux.Handle("POST /api/v1/me/password", s.authed("", allowPending, s.handleChangePassword))
+	mux.Handle("PUT /api/v1/me/language", s.authed("", allowPending, s.handleSetLanguage))
+	mux.Handle("POST /api/v1/me/totp/setup", s.authed("", 0, s.handleTOTPSetup))
+	mux.Handle("POST /api/v1/me/totp/enable", s.authed("", 0, s.handleTOTPEnable))
+	mux.Handle("POST /api/v1/me/totp/disable", s.authed("", 0, s.handleTOTPDisable))
+
+	mux.Handle("GET /api/v1/roles", s.authed(auth.PermUsersManage, 0, s.handleRoles))
+	mux.Handle("GET /api/v1/users", s.authed(auth.PermUsersManage, 0, s.handleListUsers))
+	mux.Handle("POST /api/v1/users", s.authed(auth.PermUsersManage, 0, s.handleCreateUser))
+	mux.Handle("PATCH /api/v1/users/{id}", s.authed(auth.PermUsersManage, 0, s.handleUpdateUser))
+	mux.Handle("DELETE /api/v1/users/{id}", s.authed(auth.PermUsersManage, 0, s.handleDeleteUser))
+	mux.Handle("POST /api/v1/users/{id}/reset-password", s.authed(auth.PermUsersManage, 0, s.handleResetPassword))
+
+	mux.Handle("GET /api/v1/settings/authentication", s.authed(auth.PermSettingsManage, 0, s.handleGetAuthSettings))
+	mux.Handle("PUT /api/v1/settings/authentication", s.authed(auth.PermSettingsManage, 0, s.handlePutAuthSettings))
+	mux.Handle("POST /api/v1/settings/authentication/test", s.authed(auth.PermSettingsManage, 0, s.handleTestSSO))
+	mux.Handle("GET /api/v1/settings/role-mappings", s.authed(auth.PermSettingsManage, 0, s.handleListMappings))
+	mux.Handle("POST /api/v1/settings/role-mappings", s.authed(auth.PermSettingsManage, 0, s.handleCreateMapping))
+	mux.Handle("DELETE /api/v1/settings/role-mappings/{id}", s.authed(auth.PermSettingsManage, 0, s.handleDeleteMapping))
+
+	mux.Handle("GET /api/v1/settings/mail", s.authed(auth.PermSettingsManage, 0, s.handleGetMail))
+	mux.Handle("PUT /api/v1/settings/mail", s.authed(auth.PermSettingsManage, 0, s.handlePutMail))
+	mux.Handle("POST /api/v1/settings/mail/test", s.authed(auth.PermSettingsManage, 0, s.handleTestMail))
+	mux.Handle("GET /api/v1/mail/log", s.authed(auth.PermSettingsManage, 0, s.handleMailLog))
+	mux.Handle("POST /api/v1/mail/log/{id}/retry", s.authed(auth.PermSettingsManage, 0, s.handleMailRetry))
+
+	mux.Handle("PUT /api/v1/settings/branding", s.authed(auth.PermSettingsManage, 0, s.handlePutBranding))
+	mux.Handle("PUT /api/v1/settings/branding/{asset}", s.authed(auth.PermSettingsManage, 0, s.handleUploadAsset))
+	mux.Handle("DELETE /api/v1/settings/branding/{asset}", s.authed(auth.PermSettingsManage, 0, s.handleDeleteAsset))
+
+	mux.Handle("GET /api/v1/settings/general", s.authed(auth.PermSettingsManage, 0, s.handleGetGeneral))
+	mux.Handle("PUT /api/v1/settings/general", s.authed(auth.PermSettingsManage, 0, s.handlePutGeneral))
+
+	mux.Handle("GET /api/v1/audit", s.authed(auth.PermAuditView, 0, s.handleAudit))
+
+	mux.Handle("GET /api/v1/system/update", s.authed(auth.PermSystemUpdate, 0, s.handleUpdateStatus))
+	mux.Handle("POST /api/v1/system/update/check", s.authed(auth.PermSystemUpdate, 0, s.handleUpdateCheck))
+	mux.Handle("PUT /api/v1/system/channel", s.authed(auth.PermSystemUpdate, 0, s.handleSetChannel))
+	mux.Handle("POST /api/v1/system/update/apply", s.authed(auth.PermSystemUpdate, 0, s.handleApplyUpdate))
 }
 
 type health struct {
@@ -79,9 +202,13 @@ func (s *Server) webHandler() http.Handler {
 			return
 		}
 		clean := filepath.Clean("/" + r.URL.Path)
-		if _, err := os.Stat(filepath.Join(s.cfg.WebDir, clean)); err != nil {
+		if _, err := os.Stat(filepath.Join(s.cfg.WebDir, clean)); err != nil || clean == "/" || clean == "/index.html" {
 			r = r.Clone(r.Context())
 			r.URL.Path = "/"
+			// The SPA shell must never be cached, so a server update loads the new UI.
+			w.Header().Set("Cache-Control", "no-cache")
+		} else if strings.HasPrefix(clean, "/assets/") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		}
 		files.ServeHTTP(w, r)
 	})
@@ -89,7 +216,13 @@ func (s *Server) webHandler() http.Handler {
 
 type ctxKey int
 
-const clientIPKey ctxKey = 0
+const (
+	clientIPKey ctxKey = iota
+	schemeKey
+	hostKey
+	userKey
+	tokenKey
+)
 
 // ClientIP returns the client address, taking trusted reverse proxies into account.
 func ClientIP(r *http.Request) string {
@@ -99,13 +232,42 @@ func ClientIP(r *http.Request) string {
 	return ""
 }
 
-// withClientIP resolves the real client IP. X-Forwarded-For is only honoured
-// when the direct peer is a configured trusted proxy.
+// withClientIP resolves the real client IP, scheme and host. X-Forwarded-*
+// headers are only honoured when the direct peer is a configured trusted proxy.
 func (s *Server) withClientIP(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := resolveClientIP(r, s.cfg.TrustedProxies)
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), clientIPKey, ip)))
+		scheme, host := "http", r.Host
+		if r.TLS != nil {
+			scheme = "https"
+		}
+		if peerTrusted(r, s.cfg.TrustedProxies) {
+			if p := strings.ToLower(firstHeaderValue(r.Header.Get("X-Forwarded-Proto"))); p == "https" || p == "http" {
+				scheme = p
+			}
+			if h := firstHeaderValue(r.Header.Get("X-Forwarded-Host")); h != "" {
+				host = h
+			}
+		}
+		ctx := context.WithValue(r.Context(), clientIPKey, ip)
+		ctx = context.WithValue(ctx, schemeKey, scheme)
+		ctx = context.WithValue(ctx, hostKey, host)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func firstHeaderValue(v string) string {
+	first, _, _ := strings.Cut(v, ",")
+	return strings.TrimSpace(first)
+}
+
+func peerTrusted(r *http.Request, trusted []netip.Prefix) bool {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	peer, err := netip.ParseAddr(host)
+	return err == nil && isTrusted(peer, trusted)
 }
 
 func resolveClientIP(r *http.Request, trusted []netip.Prefix) string {
@@ -149,6 +311,25 @@ func securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "+
+			"img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			h.Set("Cache-Control", "no-store")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// csrfGuard rejects state-changing API requests without the custom header the
+// web interface sends. Browsers cannot add it cross-site without a CORS
+// preflight, which the server never allows.
+func csrfGuard(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") && r.Method != http.MethodGet && r.Method != http.MethodHead &&
+			r.Header.Get("X-Requested-With") != "fleetwarden" {
+			apiError(w, http.StatusForbidden, "csrf")
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -158,3 +339,77 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(v)
 }
+
+type apiErr struct {
+	Error  string `json:"error"`
+	Detail string `json:"detail,omitempty"`
+}
+
+// apiError answers with a stable error code; the web interface translates it.
+func apiError(w http.ResponseWriter, code int, errCode string) {
+	writeJSON(w, code, apiErr{Error: errCode})
+}
+
+func apiErrorDetail(w http.ResponseWriter, code int, errCode, detail string) {
+	writeJSON(w, code, apiErr{Error: errCode, Detail: detail})
+}
+
+func (s *Server) internalError(w http.ResponseWriter, r *http.Request, err error) {
+	s.log.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
+	apiError(w, http.StatusInternalServerError, "internal")
+}
+
+// decode reads a JSON body of at most 1 MiB.
+func decode(w http.ResponseWriter, r *http.Request, v any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		apiError(w, http.StatusBadRequest, "bad_request")
+		return false
+	}
+	return true
+}
+
+// baseURL is the public URL of the server: the configured one, or the one the
+// browser used (through a trusted proxy).
+func (s *Server) baseURL(r *http.Request) string {
+	var g generalSettings
+	if err := s.st.GetSetting(r.Context(), keyGeneral, &g); err == nil && g.PublicURL != "" {
+		return strings.TrimRight(g.PublicURL, "/")
+	}
+	scheme, _ := r.Context().Value(schemeKey).(string)
+	host, _ := r.Context().Value(hostKey).(string)
+	if scheme == "" {
+		scheme = "http"
+	}
+	return scheme + "://" + host
+}
+
+func isHTTPS(r *http.Request) bool {
+	scheme, _ := r.Context().Value(schemeKey).(string)
+	return scheme == "https"
+}
+
+// audit records an action by the signed-in user.
+func (s *Server) audit(r *http.Request, action, target string, success bool, details map[string]any) {
+	var actor *store.User
+	if u, ok := currentUser(r); ok {
+		actor = &u
+	}
+	s.auditAs(r, actor, "", action, target, success, details)
+}
+
+// auditAs records an action for an explicit actor (or only a name, for failed
+// logins). Failures to write the audit log are logged, not fatal.
+func (s *Server) auditAs(r *http.Request, actor *store.User, name, action, target string, success bool, details map[string]any) {
+	e := store.AuditEntry{IP: ClientIP(r), Action: action, Target: target, Success: success, Details: details, Actor: name}
+	if actor != nil {
+		e.ActorID, e.Actor = &actor.ID, actor.Username
+	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
+	defer cancel()
+	if err := s.st.Audit(ctx, e); err != nil {
+		s.log.Error("audit log write failed", "action", action, "err", err)
+	}
+}
+
+var errNoSecrets = errors.New("secret key not loaded")

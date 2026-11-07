@@ -1,5 +1,8 @@
 # nfpm configuration for the fleetwarden-server Debian package.
-# Build with: VERSION=0.1.0 nfpm package -f packaging/nfpm-server.yaml -p deb -t dist/
+# Build with: VERSION=0.1.0 nfpm package -f packaging/nfpm-server.yaml -p deb -t dist/fleetwarden-server_0.1.0_amd64.deb
+# A semver pre-release (0.1.0-test.5) becomes the Debian version 0.1.0~test.5,
+# which sorts below 0.1.0 as it should. Name the file with the semver version:
+# GitHub rewrites "~" in release asset names.
 name: fleetwarden-server
 arch: amd64
 platform: linux
@@ -17,14 +20,24 @@ depends:
   - postgresql (>= 15)
   - adduser
   - ca-certificates
+  - curl
+  - jq
 contents:
   - src: dist/linux-amd64/fleetwarden-server
     dst: /usr/bin/fleetwarden-server
     file_info: { mode: 0755 }
   - src: web/dist/
     dst: /usr/share/fleetwarden/web/
+    type: tree # keep web/dist/assets/ (a plain directory entry is flattened)
   - src: packaging/systemd/fleetwarden-server.service
     dst: /lib/systemd/system/fleetwarden-server.service
+  - src: packaging/systemd/fleetwarden-update.service
+    dst: /lib/systemd/system/fleetwarden-update.service
+  - src: packaging/systemd/fleetwarden-update.path
+    dst: /lib/systemd/system/fleetwarden-update.path
+  - src: packaging/updater/fleetwarden-update
+    dst: /usr/lib/fleetwarden/fleetwarden-update
+    file_info: { mode: 0755 }
   - src: LICENSE
     dst: /usr/share/doc/fleetwarden-server/copyright
 scripts:

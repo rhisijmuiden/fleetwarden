@@ -18,7 +18,9 @@
 
 ```sh
 make test                        # Go vet + tests, i18n check, typecheck
-go run ./cmd/fleetwarden-server  # API on 127.0.0.1:8080
+# API integration tests need an empty PostgreSQL database (CI provides one):
+export FW_TEST_DATABASE_URL=postgres://fwtest:fwtest@127.0.0.1:5432/fwtest?sslmode=disable
+FW_DATABASE_URL=... FW_DATA_DIR=./tmp go run ./cmd/fleetwarden-server  # API on 127.0.0.1:8080
 cd web && npm ci && npm run dev  # UI with hot reload, proxies /api to the server
 make all deb                     # binaries and the .deb in dist/ (needs nfpm)
 ```
@@ -28,4 +30,7 @@ make all deb                     # binaries and the .deb in dist/ (needs nfpm)
 - Every user-facing string goes through i18n with both `en.json` and `nl.json`
   (English is the default). `npm run test:i18n` enforces matching keys.
 - Colours come from `branding/` tokens, never hard-coded, so white-label works.
+- Database changes are new files in `internal/db/migrations/` (`NNNN_name.sql`),
+  applied in order at start-up. Migrations are forward-only.
+- Every change by a user goes into the audit log.
 - Contributions require agreeing to the [CLA](CLA.md).

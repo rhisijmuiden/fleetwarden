@@ -5,9 +5,11 @@
 package config
 
 import (
+	"bufio"
 	"fmt"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -23,7 +25,24 @@ type Server struct {
 	// TrustedProxies are the reverse proxy addresses whose X-Forwarded-* headers
 	// are trusted.
 	TrustedProxies []netip.Prefix
+	// DataDir holds server state such as the secret key (FW_DATA_DIR).
+	DataDir string
+	// UpdateStatusDir is where the privileged updater reports progress
+	// (FW_UPDATE_STATUS_DIR). The server only reads it.
+	UpdateStatusDir string
 }
+
+// SecretKeyPath is the AES key that encrypts stored secrets.
+func (c Server) SecretKeyPath() string { return filepath.Join(c.DataDir, "secret.key") }
+
+// InitialPasswordPath holds the installer-generated admin password until the
+// first password change.
+func (c Server) InitialPasswordPath() string {
+	return filepath.Join(c.DataDir, "initial-admin-password")
+}
+
+// UpdateRequestDir is where the server asks the updater to install a version.
+func (c Server) UpdateRequestDir() string { return filepath.Join(c.DataDir, "update") }
 
 // FromEnv reads the configuration from the environment.
 func FromEnv() (Server, error) {
@@ -31,6 +50,9 @@ func FromEnv() (Server, error) {
 		Listen:      getenv("FW_LISTEN", "127.0.0.1:8080"),
 		WebDir:      getenv("FW_WEB_DIR", "/usr/share/fleetwarden/web"),
 		DatabaseURL: os.Getenv("FW_DATABASE_URL"),
+		DataDir:     getenv("FW_DATA_DIR", "/var/lib/fleetwarden"),
+
+		UpdateStatusDir: getenv("FW_UPDATE_STATUS_DIR", "/var/lib/fleetwarden-update"),
 	}
 	proxies, err := ParsePrefixes(getenv("FW_TRUSTED_PROXIES", "127.0.0.1/32,::1/128"))
 	if err != nil {
@@ -70,4 +92,36 @@ func getenv(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// LoadEnvFile sets variables from a KEY=VALUE file (the systemd
+// EnvironmentFile format) that are not already set. Missing files are ignored.
+// Command-line tools use it so that `sudo fleetwarden-server reset-admin`
+// works without loading the file by hand.
+func LoadEnvFile(path string) error {
+	f, err := os.Open(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		k, v, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		k = strings.TrimSpace(k)
+		v = strings.Trim(strings.TrimSpace(v), `"'`)
+		if _, set := os.LookupEnv(k); !set {
+			os.Setenv(k, v)
+		}
+	}
+	return sc.Err()
 }

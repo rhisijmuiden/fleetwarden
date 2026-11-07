@@ -12,8 +12,10 @@ DB_USER=fleetwarden
 if ! getent passwd fleetwarden >/dev/null; then
     adduser --system --group --home /var/lib/fleetwarden --no-create-home --quiet fleetwarden
 fi
-install -d -o fleetwarden -g fleetwarden -m 0750 /var/lib/fleetwarden /var/log/fleetwarden
+install -d -o fleetwarden -g fleetwarden -m 0750 /var/lib/fleetwarden /var/log/fleetwarden /var/lib/fleetwarden/update
 install -d -o root -g fleetwarden -m 0750 "$CONF_DIR"
+# Written by the privileged updater, read by the server.
+install -d -o root -g root -m 0755 /var/lib/fleetwarden-update /var/cache/fleetwarden
 
 has_systemd() { [ -d /run/systemd/system ]; }
 
@@ -68,9 +70,16 @@ CONF
     chmod 0640 "$ENV_FILE"
 fi
 
+# Apply database migrations and create the first administrator (only when it
+# does not exist yet). The one-time password is printed once and kept in
+# /var/lib/fleetwarden/initial-admin-password until the first login.
+ensure_postgres
+runuser -u fleetwarden -- /usr/bin/fleetwarden-server bootstrap
+
 if has_systemd; then
     systemctl daemon-reload
     systemctl enable fleetwarden-server.service >/dev/null 2>&1 || true
+    systemctl enable --now fleetwarden-update.path >/dev/null 2>&1 || true
     systemctl restart fleetwarden-server.service
 fi
 exit 0

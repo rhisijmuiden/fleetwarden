@@ -1,21 +1,51 @@
 import { useState } from "react";
-import { Route, Routes } from "react-router";
+import { Navigate, Route, Routes, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "./auth";
 import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { InfoDialog } from "./components/InfoDialog";
+import { Spinner } from "./components/ui";
 import { Dashboard } from "./pages/Dashboard";
 import { Placeholder } from "./pages/Placeholder";
+import { Login } from "./pages/Login";
+import { ForcePasswordChange } from "./pages/ForcePasswordChange";
+import { Profile } from "./pages/Profile";
+import { Users } from "./pages/admin/Users";
+import { Authentication } from "./pages/admin/Authentication";
+import { Mail } from "./pages/admin/Mail";
+import { Branding } from "./pages/admin/Branding";
+import { Settings } from "./pages/admin/Settings";
+import { Audit } from "./pages/admin/Audit";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
+import type { Permission } from "./api";
+
+const adminPages: { path: string; perm: Permission; element: React.ReactNode }[] = [
+  { path: "/admin/users", perm: "users.manage", element: <Users /> },
+  { path: "/admin/authentication", perm: "settings.manage", element: <Authentication /> },
+  { path: "/admin/mail", perm: "settings.manage", element: <Mail /> },
+  { path: "/admin/branding", perm: "settings.manage", element: <Branding /> },
+  { path: "/admin/audit", perm: "audit.view", element: <Audit /> },
+  { path: "/admin/settings", perm: "settings.manage", element: <Settings /> },
+];
 
 export function App() {
+  const { me, loading, can } = useAuth();
+  const location = useLocation();
   const { t } = useTranslation();
   const { theme, toggle } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  const planned = navigation.flatMap((g) => g.items).filter((i) => i.phase !== undefined);
 
+  if (loading) return <Spinner />;
+  if (!me) {
+    return location.pathname === "/login" ? <Login /> : <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+  if (me.mustChangePassword) return <ForcePasswordChange />;
+  if (location.pathname === "/login") return <Navigate to="/" replace />;
+
+  const planned = navigation.flatMap((g) => g.items).filter((i) => i.phase !== undefined && (!i.perm || can(i.perm)));
   return (
     <div className="flex h-full">
       <a
@@ -31,6 +61,12 @@ export function App() {
           <div className="mx-auto max-w-6xl">
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
+              {adminPages
+                .filter((p) => can(p.perm))
+                .map((p) => (
+                  <Route key={p.path} path={p.path} element={p.element} />
+                ))}
               {planned.map((i) => (
                 <Route key={i.path} path={i.path} element={<Placeholder title={i.label} phase={i.phase!} />} />
               ))}
