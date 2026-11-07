@@ -46,10 +46,32 @@ type Agent struct {
 	StateDir string
 	// StartHelper starts the update helper; defaults to a detached process.
 	StartHelper func(exe, plan string) error
+	// Patches installs updates; defaults to the platform backend.
+	Patches PatchBackend
+	// Notify asks the logged-on user before patching (the tray pop-up on
+	// Windows); nil installs without asking.
+	Notify Notifier
+	// Minute is the length of a postpone minute; tests shorten it.
+	Minute time.Duration
+	// MachineID overrides the platform machine ID (tests).
+	MachineID string
+	// BootTime returns when the system started; tests replace it.
+	BootTime func() time.Time
 
 	mu       sync.Mutex
 	cfg      Config
 	updating atomic.Bool
+	patch    patchState
+	ctx      context.Context // of Run: jobs outlive a single session
+}
+
+func (a *Agent) runCtx() context.Context {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.ctx == nil {
+		return context.Background()
+	}
+	return a.ctx
 }
 
 func (a *Agent) init() {
@@ -85,8 +107,12 @@ func (a *Agent) Enroll(ctx context.Context) error {
 		return err
 	}
 	host, _ := os.Hostname()
+	mid := a.MachineID
+	if mid == "" {
+		mid = machineID()
+	}
 	req := agentproto.EnrollRequest{
-		Token: cfg.Token, PublicKey: pub, MachineID: machineID(), Hostname: host, Platform: runtime.GOOS,
+		Token: cfg.Token, PublicKey: pub, MachineID: mid, Hostname: host, Platform: runtime.GOOS,
 		Arch: runtime.GOARCH, AgentVersion: version.Version, Group: cfg.Group,
 		Proof: ed25519.Sign(key, agentproto.EnrollProof(cfg.Token, pub)),
 	}
@@ -146,6 +172,12 @@ func (a *Agent) Run(ctx context.Context) error {
 		if !sleep(ctx, backoff.next(errors.Is(err, ErrInvalidToken))) {
 			return ctx.Err()
 		}
+	}
+	a.mu.Lock()
+	a.ctx = ctx
+	a.mu.Unlock()
+	if !a.Once {
+		a.resumePatchJob(ctx)
 	}
 	backoff = newBackoff()
 	for {
@@ -233,16 +265,19 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 	a.markConnected()
 
 	out := make(chan *agentproto.Envelope, 16)
-	send := func(typ string, v any) {
+	trySend := func(typ string, v any) bool {
 		e, err := sess.Seal(typ, "", v)
 		if err != nil {
-			return
+			return false
 		}
 		select {
 		case out <- e:
+			return true
 		case <-ctx.Done():
+			return false
 		}
 	}
+	send := func(typ string, v any) { trySend(typ, v) }
 	errc := make(chan error, 2)
 	go func() { // writer
 		for {
@@ -268,6 +303,8 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 		defer hb.Stop()
 		defer inv.Stop()
 		a.reportUpdateResult(send)
+		gen := a.attachPatchSession(trySend)
+		defer a.detachPatchSession(gen)
 		for {
 			select {
 			case <-ctx.Done():
@@ -308,6 +345,12 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 				return
 			case agentproto.TypeUpdate:
 				a.handleUpdate(ctx, e, send)
+			case agentproto.TypePatchConfig:
+				a.handlePatchConfig(e)
+			case agentproto.TypePatchScan:
+				a.handlePatchScan(a.runCtx())
+			case agentproto.TypePatchInstall:
+				a.handlePatchInstall(e)
 			default:
 				a.Log.Debug("ignoring message", "type", e.Type)
 			}

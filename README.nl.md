@@ -30,6 +30,7 @@ eerste login kies je je eigen wachtwoord. Kwijt? Voer
 - Updates en kanalen: [docs/updates.md](docs/updates.md)
 - Back-up en herstel: [docs/backup.nl.md](docs/backup.nl.md)
 - Agents, Add client en inschrijven: [docs/agents.nl.md](docs/agents.nl.md)
+- Patchmanagement: [docs/patching.nl.md](docs/patching.nl.md)
 
 ## Licentie
 

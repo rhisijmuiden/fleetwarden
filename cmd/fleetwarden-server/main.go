@@ -28,6 +28,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	_ "time/tzdata" // patch windows in any time zone, also without system zoneinfo
 
 	"github.com/rhisijmuiden/fleetwarden/internal/config"
 	"github.com/rhisijmuiden/fleetwarden/internal/db"

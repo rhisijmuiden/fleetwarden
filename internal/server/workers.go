@@ -47,6 +47,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.reportUpdateOutcome(ctx)
 			s.backupTick(ctx)
 			s.agentUpdateTick(ctx)
+			s.patchTick(ctx)
 		case <-houseTick.C:
 			if err := s.st.PurgeSessions(ctx, sessionIdle); err != nil {
 				s.log.Warn("purge sessions", "err", err)
@@ -56,6 +57,9 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			}
 			if err := s.st.PurgeBackupRuns(ctx, 400*24*time.Hour); err != nil {
 				s.log.Warn("purge backup history", "err", err)
+			}
+			if err := s.st.PurgePatchRuns(ctx, 400*24*time.Hour); err != nil {
+				s.log.Warn("purge patch history", "err", err)
 			}
 		}
 	}

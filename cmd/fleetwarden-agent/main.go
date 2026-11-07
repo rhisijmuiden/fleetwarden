@@ -80,6 +80,14 @@ func main() {
 		enc.SetIndent("", "  ")
 		_ = enc.Encode(inv)
 		err = ierr
+	case "patch-scan":
+		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Minute)
+		defer cancel()
+		res, serr := agent.ScanPatches(ctx)
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(res)
+		err = serr
 	case "test-connection":
 		err = testConnection(args)
 	case "forget":

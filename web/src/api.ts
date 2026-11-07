@@ -11,7 +11,9 @@ export type Permission =
   | "system.update"
   | "backup.manage"
   | "groups.manage"
-  | "agents.manage";
+  | "agents.manage"
+  | "patches.manage"
+  | "patches.approve";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -79,6 +81,7 @@ export type DeviceGroup = {
   agentChannel: Channel | null;
   windowStart: number | null;
   windowEnd: number | null;
+  patchPolicyId: number | null;
   createdAt: string;
   deviceCount: number;
   onlineCount: number;
@@ -140,6 +143,12 @@ export type Device = {
   updateState: UpdateState | "";
   updateMessage: string;
   updateAt: string | null;
+  patchScanAt: string | null;
+  patchScanError: string;
+  patchSource: string;
+  patchCluster: string;
+  patchRebootPending: boolean;
+  patchMissing: number;
 };
 
 export type DeviceList = { items: Device[]; total: number };
@@ -237,6 +246,118 @@ export type InstallInfo = {
   msiexecCommand: string;
   downloads: InstallPackage[];
 };
+
+export type PatchCategory = "security" | "critical" | "cumulative" | "definition" | "driver" | "feature" | "other";
+export type ApprovalMode = "auto" | "manual" | "never";
+export type Approval = { mode: ApprovalMode; delayDays: number };
+export type RebootPolicy = "never" | "automatic" | "prompt";
+
+export type PatchPolicy = {
+  id: number;
+  name: string;
+  description: string;
+  enabled: boolean;
+  windowDays: number; // bit 0 = Sunday
+  windowStart: number; // minutes after midnight
+  windowMinutes: number;
+  timeZone: string;
+  approvals: Record<PatchCategory, Approval>;
+  reboot: RebootPolicy;
+  notifyUsers: boolean;
+  maxPostpones: number;
+  postponeMinutes: number;
+  countdownSeconds: number;
+  takeOver: boolean;
+  scanHours: number;
+  createdAt: string;
+  updatedAt: string;
+  groups: { id: number; name: string }[];
+  nextWindow: string | null;
+  windowOpen: boolean;
+};
+
+export type PatchPolicies = { policies: PatchPolicy[]; defaults: PatchPolicy; categories: PatchCategory[]; serverTimeZone: string };
+
+export type PatchRow = {
+  updateId: string;
+  title: string;
+  kb: string;
+  category: PatchCategory;
+  severity: string;
+  sizeBytes: number;
+  releasedAt: string | null;
+  currentVersion: string;
+  newVersion: string;
+  reboot: boolean;
+  firstSeenAt: string;
+  decision: "" | "approved" | "declined";
+  approved: boolean;
+  approvedFrom: string | null;
+};
+
+export type PatchState = "sent" | "waiting-user" | "postponed" | "installing" | "rebooting" | "completed" | "failed";
+
+export type PatchRun = {
+  id: number;
+  deviceId: string;
+  hostname: string;
+  policyId: number | null;
+  trigger: "window" | "manual";
+  state: PatchState;
+  message: string;
+  updates: string[];
+  results: { id: string; ok: boolean; error?: string }[];
+  installed: number;
+  failed: number;
+  rebootRequired: boolean;
+  postpones: number;
+  postponedUntil: string | null;
+  requestedBy: string;
+  startedAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
+};
+
+export type DevicePatches = {
+  policy: PatchPolicy | null;
+  serverTimeZone: string;
+  scanAt: string | null;
+  scanError: string;
+  source: string;
+  cluster: string;
+  rebootPending: boolean;
+  updates: PatchRow[];
+  runs: PatchRun[];
+};
+
+export type UpdateSummary = {
+  updateId: string;
+  title: string;
+  kb: string;
+  category: PatchCategory;
+  severity: string;
+  platform: Platform;
+  releasedAt: string | null;
+  firstSeenAt: string;
+  devices: number;
+  decision: "" | "approved" | "declined";
+  decidedBy: string;
+};
+
+export type PatchStats = {
+  devices: number;
+  managed: number;
+  scanned: number;
+  upToDate: number;
+  missing: number;
+  security: number;
+  rebootPending: number;
+  scanErrors: number;
+  runsOpen: number;
+  runsFailed: number;
+};
+
+export type PatchSummary = { stats: PatchStats; runs: PatchRun[]; policies: number };
 
 export type MailConfig = {
   enabled: boolean;

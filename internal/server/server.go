@@ -152,6 +152,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/branding/{asset}", s.handleBrandingAsset)
 	s.agentRoutes(mux)
 	s.deviceRoutes(mux)
+	s.patchRoutes(mux)
 	s.agentUpdateRoutes(mux)
 
 	// Signed in. allowPending lets a user with a forced password change reach these.
