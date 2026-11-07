@@ -26,6 +26,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/rhisijmuiden/fleetwarden/internal/auth"
+	"github.com/rhisijmuiden/fleetwarden/internal/catalog"
 	"github.com/rhisijmuiden/fleetwarden/internal/config"
 	"github.com/rhisijmuiden/fleetwarden/internal/db"
 	"github.com/rhisijmuiden/fleetwarden/internal/mail"
@@ -105,7 +106,9 @@ func newEnv(t *testing.T) *env {
 		t.Fatalf("EnsureAdmin: %q %v", pw, err)
 	}
 	m := &fakeMailer{}
-	srv := New(cfg, Deps{Store: st, DB: st, Secrets: box, Mailer: m, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	// The catalog points at a closed port, so no test reaches the internet.
+	wg := &catalog.Winget{Dir: t.TempDir(), BaseURL: "http://127.0.0.1:1"}
+	srv := New(cfg, Deps{Store: st, DB: st, Secrets: box, Mailer: m, Log: slog.New(slog.NewTextHandler(io.Discard, nil)), Winget: wg})
 	ts := httptest.NewServer(srv.Handler())
 	t.Cleanup(ts.Close)
 	return &env{t: t, srv: srv, ts: ts, st: st, cfg: cfg, mailer: m, adminPW: pw}

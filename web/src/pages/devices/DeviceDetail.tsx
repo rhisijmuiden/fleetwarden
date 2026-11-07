@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, FolderInput, RefreshCw, Search, Trash2 } from "lucide-react";
-import { del, get, patch, post, type Device, type SoftwareRow } from "../../api";
+import { ArrowLeft, FolderInput, PackagePlus, RefreshCw, Search, Trash2 } from "lucide-react";
+import { del, get, patch, post, type Device, type PackagesView, type SoftwareJob, type SoftwareRow } from "../../api";
 import { useAuth } from "../../auth";
 import { Alert, Badge, Button, Card, Input, Modal, Spinner, formatDate, useErrorText } from "../../components/ui";
 import { MoveDialog } from "./Devices";
 import { DevicePatchesTab } from "../patches/DevicePatches";
+import { DeployDialog, type DeployTarget } from "../software/DeployDialog";
+import { JobDialog, JobsTable } from "../software/Deployments";
+import { SourceBadge } from "../software/util";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
 type Tab = "overview" | "software" | "updates" | "notes";
@@ -212,7 +215,7 @@ export function DeviceDetail() {
           </Card>
         </div>
       )}
-      {tab === "software" && <SoftwareTab id={device.id} />}
+      {tab === "software" && <SoftwareTab device={device} />}
       {tab === "updates" && <DevicePatchesTab device={device} />}
       {tab === "notes" && <NotesTab device={device} editable={manage} onSaved={load} />}
 
@@ -269,68 +272,166 @@ function Facts({ rows }: { rows: [string, ReactNode][] }) {
   );
 }
 
-function SoftwareTab({ id }: { id: string }) {
+function SoftwareTab({ device }: { device: Device }) {
   const { t, i18n } = useTranslation();
+  const { can } = useAuth();
+  const deploy = can("software.deploy");
+  const id = device.id;
   const [list, setList] = useState<SoftwareRow[] | null>(null);
+  const [jobs, setJobs] = useState<SoftwareJob[]>([]);
   const [filter, setFilter] = useState("");
+  const [target, setTarget] = useState<DeployTarget | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [job, setJob] = useState<SoftwareJob | null>(null);
   useEffect(() => {
     get<SoftwareRow[]>(`/devices/${id}/software`)
       .then(setList)
       .catch(() => setList([]));
   }, [id]);
+  useEffect(() => {
+    const load = () =>
+      get<SoftwareJob[]>(`/devices/${id}/software-jobs`)
+        .then(setJobs)
+        .catch(() => setJobs([]));
+    load();
+    const tm = setInterval(load, 10000);
+    return () => clearInterval(tm);
+  }, [id]);
   const shown = useMemo(() => {
     const f = filter.trim().toLowerCase();
     return (list ?? []).filter((s) => !f || s.name.toLowerCase().includes(f) || s.publisher.toLowerCase().includes(f));
   }, [list, filter]);
+  const agentRow = (name: string) => name.toLowerCase().startsWith("fleetwarden");
   return (
-    <Card
-      title={t("devices.softwareCount", { count: list?.length ?? 0 })}
-      actions={
-        <div className="relative w-64 max-w-full">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
-          <Input
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder={t("devices.filterSoftware")}
-            className="pl-9"
-            aria-label={t("devices.filterSoftware")}
-          />
-        </div>
-      }
-    >
-      {!list ? (
-        <Spinner />
-      ) : (
-        <div className="-mx-5 -my-5 max-h-[600px] overflow-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="sticky top-0 border-b border-line bg-surface text-left text-xs text-muted uppercase">
-              <tr>
-                <th className="px-5 py-3 font-medium">{t("devices.program")}</th>
-                <th className="px-3 py-3 font-medium">{t("devices.version")}</th>
-                <th className="px-3 py-3 font-medium">{t("devices.publisher")}</th>
-                <th className="px-3 py-3 font-medium">{t("devices.installedOn")}</th>
-                <th className="px-5 py-3 text-right font-medium">{t("devices.size")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {shown.map((s, i) => (
-                <tr key={`${s.name}-${s.version}-${i}`}>
-                  <td className="px-5 py-2">
-                    <Link to={`/devices?software=${encodeURIComponent(s.name)}`} className="hover:text-primary" title={t("devices.findOthers")}>
-                      {s.name}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">{s.version}</td>
-                  <td className="max-w-[220px] truncate px-3 py-2 text-muted">{s.publisher}</td>
-                  <td className="px-3 py-2 whitespace-nowrap text-muted">{s.installedOn ?? ""}</td>
-                  <td className="px-5 py-2 text-right whitespace-nowrap text-muted">{s.sizeBytes ? formatBytes(s.sizeBytes, i18n.language) : ""}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div className="space-y-6">
+      {(deploy || jobs.length > 0) && (
+        <Card
+          title={t("devices.softwareJobs")}
+          actions={
+            deploy && (
+              <Button size="sm" icon={<PackagePlus className="size-4" />} onClick={() => setPicking(true)}>
+                {t("devices.installSoftware")}
+              </Button>
+            )
+          }
+        >
+          <JobsTable jobs={jobs.slice(0, 20)} onOpen={setJob} showDeployment />
+        </Card>
       )}
-    </Card>
+      <Card
+        title={t("devices.softwareCount", { count: list?.length ?? 0 })}
+        actions={
+          <div className="relative w-64 max-w-full">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
+            <Input
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder={t("devices.filterSoftware")}
+              className="pl-9"
+              aria-label={t("devices.filterSoftware")}
+            />
+          </div>
+        }
+      >
+        {!list ? (
+          <Spinner />
+        ) : (
+          <div className="-mx-5 -my-5 max-h-[600px] overflow-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="sticky top-0 border-b border-line bg-surface text-left text-xs text-muted uppercase">
+                <tr>
+                  <th className="px-5 py-3 font-medium">{t("devices.program")}</th>
+                  <th className="px-3 py-3 font-medium">{t("devices.version")}</th>
+                  <th className="px-3 py-3 font-medium">{t("devices.publisher")}</th>
+                  <th className="px-3 py-3 font-medium">{t("devices.installedOn")}</th>
+                  <th className="px-3 py-3 text-right font-medium">{t("devices.size")}</th>
+                  {deploy && <th className="px-5 py-3" />}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {shown.map((s, i) => (
+                  <tr key={`${s.name}-${s.version}-${i}`} className="group">
+                    <td className="px-5 py-2">
+                      <Link to={`/devices?software=${encodeURIComponent(s.name)}`} className="hover:text-primary" title={t("devices.findOthers")}>
+                        {s.name}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">{s.version}</td>
+                    <td className="max-w-[220px] truncate px-3 py-2 text-muted">{s.publisher}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-muted">{s.installedOn ?? ""}</td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap text-muted">{s.sizeBytes ? formatBytes(s.sizeBytes, i18n.language) : ""}</td>
+                    {deploy && (
+                      <td className="px-5 py-1 text-right">
+                        {!agentRow(s.name) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="opacity-60 group-hover:opacity-100 focus-visible:opacity-100"
+                            title={t("software.uninstall")}
+                            aria-label={`${t("software.uninstall")}: ${s.name}`}
+                            onClick={() => setTarget({ action: "uninstall", name: s.name, platform: device.platform, versions: [s.version], deviceIds: [id] })}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+      <PackagePicker
+        open={picking}
+        device={device}
+        onClose={() => setPicking(false)}
+        onPick={(p) => {
+          setPicking(false);
+          setTarget({ action: "install", packageId: p.id, name: p.name, platform: p.platform, deviceIds: [id] });
+        }}
+      />
+      <DeployDialog target={target} onClose={() => setTarget(null)} />
+      <JobDialog job={job} onClose={() => setJob(null)} />
+    </div>
+  );
+}
+
+function PackagePicker({ open, device, onClose, onPick }: { open: boolean; device: Device; onClose: () => void; onPick: (p: PackagesView["packages"][number]) => void }) {
+  const { t } = useTranslation();
+  const [view, setView] = useState<PackagesView | null>(null);
+  useEffect(() => {
+    if (open) get<PackagesView>("/software/packages").then(setView).catch(() => setView(null));
+  }, [open]);
+  const pkgs = (view?.packages ?? []).filter((p) => p.platform === device.platform);
+  return (
+    <Modal open={open} onClose={onClose} title={t("devices.installSoftware")}>
+      {!view ? (
+        <Spinner />
+      ) : pkgs.length === 0 ? (
+        <p className="text-sm text-muted">
+          {t("devices.noPackages")}{" "}
+          <Link to="/software" className="font-medium text-primary hover:underline">
+            {t("nav.software")}
+          </Link>
+        </p>
+      ) : (
+        <ul className="max-h-96 divide-y divide-line overflow-auto">
+          {pkgs.map((p) => (
+            <li key={p.id}>
+              <button className="flex w-full items-center gap-3 px-2 py-2 text-left text-sm hover:bg-surface-muted" onClick={() => onPick(p)}>
+                <span className="flex-1">
+                  <span className="font-medium">{p.name}</span>
+                  {p.publisher && <span className="block text-xs text-muted">{p.publisher}</span>}
+                </span>
+                <SourceBadge source={p.source} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
   );
 }
 

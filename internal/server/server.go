@@ -20,6 +20,7 @@ import (
 
 	"github.com/rhisijmuiden/fleetwarden/internal/auth"
 	"github.com/rhisijmuiden/fleetwarden/internal/backup"
+	"github.com/rhisijmuiden/fleetwarden/internal/catalog"
 	"github.com/rhisijmuiden/fleetwarden/internal/config"
 	"github.com/rhisijmuiden/fleetwarden/internal/mail"
 	"github.com/rhisijmuiden/fleetwarden/internal/secrets"
@@ -49,6 +50,8 @@ type Deps struct {
 	Backup backup.Options
 	// AgentKey signs messages to agents; a fresh key is generated when nil (tests).
 	AgentKey ed25519.PrivateKey
+	// Winget is the software catalog; defaults to the winget community source.
+	Winget *catalog.Winget
 }
 
 // Mailer delivers one message with a mail configuration.
@@ -75,6 +78,7 @@ type Server struct {
 	pkgs       pkgCatalog
 	agentFails *auth.Limiter
 	fetcher    releaseFetcher
+	winget     *catalog.Winget
 
 	backupOpts backup.Options
 	backupMu   sync.Mutex // held while a backup runs or a restore is prepared
@@ -109,8 +113,14 @@ func New(cfg config.Server, d Deps) *Server {
 	if d.AgentKey == nil {
 		_, d.AgentKey, _ = ed25519.GenerateKey(rand.Reader)
 	}
+	if d.Winget == nil {
+		d.Winget = &catalog.Winget{Dir: filepath.Join(cfg.DataDir, "catalog")}
+	}
+	if err := d.Winget.Open(); err != nil {
+		d.Log.Warn("winget catalog", "err", err)
+	}
 	bgCtx, bgCancel := context.WithCancel(context.Background())
-	return &Server{
+	return &Server{winget: d.Winget,
 		agentKey: d.AgentKey, hub: newAgentHub(), agentFails: auth.NewLimiter(30, 15*time.Minute),
 		bgCtx: bgCtx, bgCancel: bgCancel,
 		cfg: cfg, db: d.DB, st: d.Store, box: d.Secrets, log: d.Log, mailer: d.Mailer, sso: d.SSO, updates: d.Updates, backupOpts: d.Backup,
@@ -154,6 +164,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.deviceRoutes(mux)
 	s.patchRoutes(mux)
 	s.agentUpdateRoutes(mux)
+	s.softwareRoutes(mux)
 
 	// Signed in. allowPending lets a user with a forced password change reach these.
 	mux.Handle("GET /api/v1/auth/me", s.authed("", allowPending, s.handleMe))
