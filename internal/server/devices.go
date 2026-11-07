@@ -275,11 +275,15 @@ type groupReq struct {
 	AgentChannel *string `json:"agentChannel"`
 	WindowStart  *int    `json:"windowStart"`
 	WindowEnd    *int    `json:"windowEnd"`
+	PatchPolicy  *int64  `json:"patchPolicyId"`
 }
 
 func (req groupReq) toGroup() (store.DeviceGroup, string) {
 	g := store.DeviceGroup{Name: cleanText(req.Name, 100), Description: cleanText(req.Description, 500), UpdateRing: req.UpdateRing,
 		WindowStart: req.WindowStart, WindowEnd: req.WindowEnd}
+	if req.PatchPolicy != nil && *req.PatchPolicy > 0 {
+		g.PatchPolicy = req.PatchPolicy
+	}
 	if g.Name == "" {
 		return g, "invalid_name"
 	}
@@ -305,6 +309,11 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	g, bad := req.toGroup()
+	if bad == "" && g.PatchPolicy != nil {
+		if _, err := s.st.PatchPolicyByID(r.Context(), *g.PatchPolicy); err != nil {
+			bad = "invalid_policy"
+		}
+	}
 	if bad != "" {
 		apiError(w, http.StatusBadRequest, bad)
 		return
@@ -333,6 +342,11 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	g, bad := req.toGroup()
+	if bad == "" && g.PatchPolicy != nil {
+		if _, err := s.st.PatchPolicyByID(r.Context(), *g.PatchPolicy); err != nil {
+			bad = "invalid_policy"
+		}
+	}
 	if bad != "" {
 		apiError(w, http.StatusBadRequest, bad)
 		return
@@ -350,7 +364,7 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request) {
 		s.internalError(w, r, err)
 		return
 	}
-	s.audit(r, "group.update", g.Name, true, map[string]any{"ring": g.UpdateRing, "channel": g.AgentChannel})
+	s.audit(r, "group.update", g.Name, true, map[string]any{"ring": g.UpdateRing, "channel": g.AgentChannel, "patchPolicy": g.PatchPolicy})
 	g, _ = s.st.GroupByID(r.Context(), id)
 	writeJSON(w, http.StatusOK, g)
 }

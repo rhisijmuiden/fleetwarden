@@ -6,9 +6,10 @@ import { del, get, patch, post, type Device, type SoftwareRow } from "../../api"
 import { useAuth } from "../../auth";
 import { Alert, Badge, Button, Card, Input, Modal, Spinner, formatDate, useErrorText } from "../../components/ui";
 import { MoveDialog } from "./Devices";
+import { DevicePatchesTab } from "../patches/DevicePatches";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
-type Tab = "overview" | "software" | "notes";
+type Tab = "overview" | "software" | "updates" | "notes";
 
 export function DeviceDetail() {
   const { id = "" } = useParams();
@@ -92,7 +93,7 @@ export function DeviceDetail() {
       {notice && <Alert tone="success">{notice}</Alert>}
 
       <div className="flex gap-1 border-b border-line" role="tablist">
-        {(["overview", "software", "notes"] as Tab[]).map((k) => (
+        {(["overview", "software", "updates", "notes"] as Tab[]).map((k) => (
           <button
             key={k}
             role="tab"
@@ -212,6 +213,7 @@ export function DeviceDetail() {
         </div>
       )}
       {tab === "software" && <SoftwareTab id={device.id} />}
+      {tab === "updates" && <DevicePatchesTab device={device} />}
       {tab === "notes" && <NotesTab device={device} editable={manage} onSaved={load} />}
 
       <MoveDialog

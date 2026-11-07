@@ -47,19 +47,20 @@ type DeviceGroup struct {
 	AgentChannel *string   `json:"agentChannel"`
 	WindowStart  *int      `json:"windowStart"`
 	WindowEnd    *int      `json:"windowEnd"`
+	PatchPolicy  *int64    `json:"patchPolicyId"`
 	CreatedAt    time.Time `json:"createdAt"`
 	DeviceCount  int       `json:"deviceCount"`
 	OnlineCount  int       `json:"onlineCount"` // filled in by the server
 }
 
-const groupCols = `g.id, g.name, g.description, g.update_ring, g.agent_channel, g.window_start, g.window_end, g.created_at,
+const groupCols = `g.id, g.name, g.description, g.update_ring, g.agent_channel, g.window_start, g.window_end, g.patch_policy_id, g.created_at,
 	(SELECT count(*) FROM devices d WHERE d.group_id = g.id)::int`
 
 func scanGroup(row pgx.Row) (DeviceGroup, error) {
 	var g DeviceGroup
 	var ring int16
 	var ws, we *int16
-	err := row.Scan(&g.ID, &g.Name, &g.Description, &ring, &g.AgentChannel, &ws, &we, &g.CreatedAt, &g.DeviceCount)
+	err := row.Scan(&g.ID, &g.Name, &g.Description, &ring, &g.AgentChannel, &ws, &we, &g.PatchPolicy, &g.CreatedAt, &g.DeviceCount)
 	g.UpdateRing = int(ring)
 	if ws != nil {
 		v := int(*ws)
@@ -111,9 +112,9 @@ func smallint(v *int) any {
 // CreateGroup inserts a group.
 func (s *Store) CreateGroup(ctx context.Context, g DeviceGroup) (DeviceGroup, error) {
 	var id int64
-	err := s.pool.QueryRow(ctx, `INSERT INTO device_groups (name, description, update_ring, agent_channel, window_start, window_end)
-		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, g.Name, g.Description, int16(g.UpdateRing), g.AgentChannel,
-		smallint(g.WindowStart), smallint(g.WindowEnd)).Scan(&id)
+	err := s.pool.QueryRow(ctx, `INSERT INTO device_groups (name, description, update_ring, agent_channel, window_start, window_end, patch_policy_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, g.Name, g.Description, int16(g.UpdateRing), g.AgentChannel,
+		smallint(g.WindowStart), smallint(g.WindowEnd), g.PatchPolicy).Scan(&id)
 	if err != nil {
 		return g, mapErr(err)
 	}
@@ -123,8 +124,8 @@ func (s *Store) CreateGroup(ctx context.Context, g DeviceGroup) (DeviceGroup, er
 // UpdateGroup changes a group.
 func (s *Store) UpdateGroup(ctx context.Context, g DeviceGroup) error {
 	tag, err := s.pool.Exec(ctx, `UPDATE device_groups SET name = $2, description = $3, update_ring = $4, agent_channel = $5,
-		window_start = $6, window_end = $7 WHERE id = $1`, g.ID, g.Name, g.Description, int16(g.UpdateRing), g.AgentChannel,
-		smallint(g.WindowStart), smallint(g.WindowEnd))
+		window_start = $6, window_end = $7, patch_policy_id = $8 WHERE id = $1`, g.ID, g.Name, g.Description, int16(g.UpdateRing), g.AgentChannel,
+		smallint(g.WindowStart), smallint(g.WindowEnd), g.PatchPolicy)
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}
@@ -272,19 +273,29 @@ type Device struct {
 	UpdateState   string     `json:"updateState"`
 	UpdateMessage string     `json:"updateMessage"`
 	UpdateAt      *time.Time `json:"updateAt"`
+
+	PatchScanAt        *time.Time `json:"patchScanAt"`
+	PatchScanError     string     `json:"patchScanError"`
+	PatchSource        string     `json:"patchSource"`
+	PatchCluster       string     `json:"patchCluster"`
+	PatchRebootPending bool       `json:"patchRebootPending"`
+	PatchMissing       int        `json:"patchMissing"`
 }
 
 const deviceCols = `d.id::text, d.group_id, g.name, d.token_id, d.public_key, d.machine_id, d.hostname, d.platform, d.arch,
 	d.agent_version, d.os_name, d.os_version, d.os_build, d.kind, d.domain, d.domain_joined, d.ou, d.manufacturer, d.model,
 	d.serial, d.cpu, d.cpu_cores, d.memory_bytes, d.logged_in_user, d.remote_ip, d.local_ips, d.boot_time, d.hardware,
-	d.enrolled_at, d.last_seen_at, d.inventory_at, d.notes, d.update_version, d.update_state, d.update_message, d.update_at`
+	d.enrolled_at, d.last_seen_at, d.inventory_at, d.notes, d.update_version, d.update_state, d.update_message, d.update_at,
+	d.patch_scan_at, d.patch_scan_error, d.patch_source, d.patch_cluster, d.patch_reboot_pending,
+	(SELECT count(*) FROM device_patches p WHERE p.device_id = d.id)::int`
 
 func scanDevice(row pgx.Row) (Device, error) {
 	var d Device
 	err := row.Scan(&d.ID, &d.GroupID, &d.GroupName, &d.TokenID, &d.PublicKey, &d.MachineID, &d.Hostname, &d.Platform, &d.Arch,
 		&d.AgentVersion, &d.OSName, &d.OSVersion, &d.OSBuild, &d.Kind, &d.Domain, &d.DomainJoined, &d.OU, &d.Manufacturer,
 		&d.Model, &d.Serial, &d.CPU, &d.CPUCores, &d.MemoryBytes, &d.LoggedInUser, &d.RemoteIP, &d.LocalIPs, &d.BootTime,
-		&d.Hardware, &d.EnrolledAt, &d.LastSeenAt, &d.InventoryAt, &d.Notes, &d.UpdateVersion, &d.UpdateState, &d.UpdateMessage, &d.UpdateAt)
+		&d.Hardware, &d.EnrolledAt, &d.LastSeenAt, &d.InventoryAt, &d.Notes, &d.UpdateVersion, &d.UpdateState, &d.UpdateMessage, &d.UpdateAt,
+		&d.PatchScanAt, &d.PatchScanError, &d.PatchSource, &d.PatchCluster, &d.PatchRebootPending, &d.PatchMissing)
 	return d, mapErr(err)
 }
 

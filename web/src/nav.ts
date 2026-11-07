@@ -46,7 +46,7 @@ export const navigation: NavGroup[] = [
   {
     label: "nav.management",
     items: [
-      { path: "/patches", label: "nav.patches", icon: ShieldCheck, phase: 4 },
+      { path: "/patches", label: "nav.patches", icon: ShieldCheck, perm: "devices.view" },
       { path: "/software", label: "nav.software", icon: Package, phase: 5 },
       { path: "/deployments", label: "nav.deployments", icon: Rocket, phase: 5 },
       { path: "/remote", label: "nav.remote", icon: MonitorPlay, phase: 6 },

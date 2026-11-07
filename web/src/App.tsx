@@ -22,6 +22,7 @@ import { Devices } from "./pages/devices/Devices";
 import { DeviceDetail } from "./pages/devices/DeviceDetail";
 import { Groups } from "./pages/devices/Groups";
 import { AgentUpdates } from "./pages/admin/AgentUpdates";
+import { Patches } from "./pages/patches/Patches";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
@@ -30,6 +31,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/devices", perm: "devices.view", element: <Devices /> },
   { path: "/devices/:id", perm: "devices.view", element: <DeviceDetail /> },
   { path: "/groups", perm: "devices.view", element: <Groups /> },
+  { path: "/patches", perm: "devices.view", element: <Patches /> },
   { path: "/admin/users", perm: "users.manage", element: <Users /> },
   { path: "/admin/authentication", perm: "settings.manage", element: <Authentication /> },
   { path: "/admin/mail", perm: "settings.manage", element: <Mail /> },

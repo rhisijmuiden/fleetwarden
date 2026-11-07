@@ -73,6 +73,7 @@ type agentConn struct {
 	out      chan *agentproto.Envelope
 	cancel   context.CancelFunc
 	since    time.Time
+	sent     map[string]string // last value of settings messages, guarded by the hub
 }
 
 type agentHub struct {
@@ -137,6 +138,28 @@ func (h *agentHub) send(id, typ string, v any) bool {
 	default:
 		return false
 	}
+}
+
+// sendChanged sends a settings message unless the session already got the
+// same value.
+func (h *agentHub) sendChanged(id, key, typ string, v any) {
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return
+	}
+	h.mu.RLock()
+	c := h.conns[id]
+	same := c != nil && c.sent[key] == string(raw)
+	h.mu.RUnlock()
+	if c == nil || same || !h.send(id, typ, v) {
+		return
+	}
+	h.mu.Lock()
+	if c.sent == nil {
+		c.sent = map[string]string{}
+	}
+	c.sent[key] = string(raw)
+	h.mu.Unlock()
 }
 
 func (h *agentHub) closeAll() {
@@ -347,6 +370,7 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	defer s.log.Info("agent disconnected", "device", dev.ID, "host", dev.Hostname)
 
 	go s.agentWriter(ctx, c)
+	go s.patchOnConnect(ctx, dev)
 	for {
 		e, err := readEnvelope(ctx, ws)
 		if err != nil {
@@ -433,6 +457,10 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 			cleanList(inv.LocalIPs, 32, 64), validTime(inv.BootTime))
 	case agentproto.TypeUpdateStatus:
 		return s.handleUpdateStatusMsg(ctx, c, e)
+	case agentproto.TypePatchScanResult:
+		return s.handlePatchScanMsg(ctx, c, e)
+	case agentproto.TypePatchStatus:
+		return s.handlePatchStatusMsg(ctx, c, e)
 	default:
 		return fmt.Errorf("unknown message type %q", e.Type)
 	}

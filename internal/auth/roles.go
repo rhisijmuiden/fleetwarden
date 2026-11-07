@@ -25,15 +25,17 @@ const (
 	PermSystemUpdate   Permission = "system.update"
 	PermBackupManage   Permission = "backup.manage"
 	PermGroupsManage   Permission = "groups.manage"
-	PermAgentsManage   Permission = "agents.manage" // agent releases and update rings
+	PermAgentsManage   Permission = "agents.manage"   // agent releases and update rings
+	PermPatchesManage  Permission = "patches.manage"  // patch policies
+	PermPatchesApprove Permission = "patches.approve" // approve or decline updates
 )
 
 // Roles lists the roles in order of privilege.
 var Roles = []Role{RoleAdministrator, RoleTechnician, RoleReadOnly}
 
 var rolePermissions = map[Role][]Permission{
-	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage},
-	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage},
+	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove},
+	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage, PermPatchesApprove},
 	RoleReadOnly:      {PermDashboardView, PermDevicesView},
 }
 

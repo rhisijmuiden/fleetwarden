@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Ban, FolderTree, KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
-import { del, get, post, put, type Channel, type DeviceGroup, type EnrollmentToken } from "../../api";
+import { del, get, post, put, type Channel, type DeviceGroup, type EnrollmentToken, type PatchPolicies } from "../../api";
 import { useAuth } from "../../auth";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, formatDate, useErrorText } from "../../components/ui";
 import { AddClient } from "./AddClient";
@@ -12,6 +12,7 @@ export function Groups() {
   const { can } = useAuth();
   const errorText = useErrorText();
   const [groups, setGroups] = useState<DeviceGroup[] | null>(null);
+  const [policies, setPolicies] = useState<PatchPolicies["policies"]>([]);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<DeviceGroup | "new" | null>(null);
   const [deleting, setDeleting] = useState<DeviceGroup | null>(null);
@@ -24,8 +25,12 @@ export function Groups() {
     get<DeviceGroup[]>("/groups")
       .then(setGroups)
       .catch((e) => setError(errorText(e)));
+    get<PatchPolicies>("/patches/policies")
+      .then((p) => setPolicies(p.policies))
+      .catch(() => setPolicies([]));
   }, []);
   useEffect(load, [load, reload]);
+  const policyName = (id: number | null) => policies.find((p) => p.id === id)?.name;
 
   return (
     <div className="space-y-6">
@@ -54,6 +59,7 @@ export function Groups() {
                   <th className="px-3 py-3 font-medium">{t("groups.ring")}</th>
                   <th className="px-3 py-3 font-medium">{t("groups.channel")}</th>
                   <th className="px-3 py-3 font-medium">{t("groups.window")}</th>
+                  <th className="px-3 py-3 font-medium">{t("groups.patchPolicy")}</th>
                   <th className="px-5 py-3 text-right font-medium">
                     <span className="sr-only">{t("common.actions")}</span>
                   </th>
@@ -77,6 +83,15 @@ export function Groups() {
                     <td className="px-3 py-3">{g.agentChannel ? t(`info.channels.${g.agentChannel}`) : t("groups.followServer")}</td>
                     <td className="px-3 py-3 text-muted">
                       {g.windowStart != null && g.windowEnd != null ? `${pad(g.windowStart)}:00 – ${pad(g.windowEnd)}:00` : t("groups.anyTime")}
+                    </td>
+                    <td className="px-3 py-3">
+                      {policyName(g.patchPolicyId) ? (
+                        <Link to="/patches?tab=policies" className="hover:text-primary">
+                          {policyName(g.patchPolicyId)}
+                        </Link>
+                      ) : (
+                        <span className="text-muted">{t("groups.noPatchPolicy")}</span>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex justify-end gap-1">
@@ -119,6 +134,7 @@ export function Groups() {
 
       <GroupForm
         editing={editing}
+        policies={policies}
         onClose={() => setEditing(null)}
         onSaved={() => {
           setEditing(null);
@@ -170,7 +186,17 @@ export function Groups() {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-function GroupForm({ editing, onClose, onSaved }: { editing: DeviceGroup | "new" | null; onClose: () => void; onSaved: () => void }) {
+function GroupForm({
+  editing,
+  policies,
+  onClose,
+  onSaved,
+}: {
+  editing: DeviceGroup | "new" | null;
+  policies: PatchPolicies["policies"];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const { t } = useTranslation();
   const errorText = useErrorText();
   const group = editing && editing !== "new" ? editing : null;
@@ -181,6 +207,7 @@ function GroupForm({ editing, onClose, onSaved }: { editing: DeviceGroup | "new"
   const [windowOn, setWindowOn] = useState(false);
   const [start, setStart] = useState(22);
   const [end, setEnd] = useState(6);
+  const [policy, setPolicy] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -192,6 +219,7 @@ function GroupForm({ editing, onClose, onSaved }: { editing: DeviceGroup | "new"
     setWindowOn(group?.windowStart != null);
     setStart(group?.windowStart ?? 22);
     setEnd(group?.windowEnd ?? 6);
+    setPolicy(group?.patchPolicyId ?? 0);
     setError(null);
   }, [editing]);
 
@@ -206,6 +234,7 @@ function GroupForm({ editing, onClose, onSaved }: { editing: DeviceGroup | "new"
       agentChannel: channel || null,
       windowStart: windowOn ? start : null,
       windowEnd: windowOn ? end : null,
+      patchPolicyId: policy || null,
     };
     try {
       if (group) await put(`/groups/${group.id}`, body);
@@ -289,6 +318,18 @@ function GroupForm({ editing, onClose, onSaved }: { editing: DeviceGroup | "new"
           )}
           <p className="text-xs text-muted">{t("groups.windowHint")}</p>
         </div>
+        <Field label={t("groups.patchPolicy")} hint={t("groups.patchPolicyHint")}>
+          {(id) => (
+            <Select id={id} value={policy} onChange={(e) => setPolicy(Number(e.target.value))}>
+              <option value={0}>{t("groups.noPatchPolicy")}</option>
+              {policies.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
       </form>
     </Modal>
   );
