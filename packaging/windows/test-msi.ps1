@@ -1,6 +1,10 @@
 # Installs the agent MSI silently, checks the result and uninstalls it again.
 # CI runs it on windows-latest:  ./packaging/windows/test-msi.ps1 -Msi dist/agent/fleetwarden-agent_..._x64.msi
-param([Parameter(Mandatory)] [string] $Msi)
+param(
+    [Parameter(Mandatory)] [string] $Msi,
+    # A newer build of the same MSI, for the self-update test (a major upgrade).
+    [string] $NextMsi
+)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
@@ -40,12 +44,13 @@ if (-not $inv.hostname -or $inv.software.Count -lt 1) { throw "inventory looks e
 Invoke-Msi "/i `"$msi`" REINSTALL=ALL REINSTALLMODE=vomus" "$env:RUNNER_TEMP\repair.log"
 if ((& $exe status) -notmatch 'Waiting to enroll') { throw "repair lost the configuration" }
 
-# Self-update helper: install a package from an update plan, wait for the new
-# version to report a connection, and write the result for the agent.
+if ($NextMsi) {
+# Self-update helper: upgrade to the next MSI from an update plan, wait for the
+# new version to report a connection, and write the result for the agent.
 $state = Join-Path $env:ProgramData 'FleetWarden'
 $upd = Join-Path $state 'update'
 New-Item -ItemType Directory -Force $upd | Out-Null
-Copy-Item $msi (Join-Path $upd 'fleetwarden-agent_9.9.9_x64.msi')
+Copy-Item (Resolve-Path $NextMsi).Path (Join-Path $upd 'fleetwarden-agent_9.9.9_x64.msi')
 Copy-Item $exe (Join-Path $upd 'fleetwarden-agent-helper.exe')
 $started = (Get-Date).ToUniversalTime()
 @{ version = '9.9.9'; fromVersion = '0.0.1'; package = (Join-Path $upd 'fleetwarden-agent_9.9.9_x64.msi'); stateDir = $state; startedAt = $started.ToString('o') } |
@@ -58,11 +63,17 @@ if (-not $helper.WaitForExit(240000)) { throw "update helper did not finish" }
 $result = Get-Content (Join-Path $state 'update-result.json') -Raw | ConvertFrom-Json
 Write-Host "update helper: $($result.state) $($result.message)"
 Get-Content (Join-Path $upd 'helper.log') -ErrorAction SilentlyContinue
-if ($result.state -ne 'completed') { throw "update helper reported $($result.state): $($result.message)" }
+if ($result.state -ne 'completed') {
+    Get-Content (Join-Path $upd 'fleetwarden-agent_9.9.9_x64.msi.log') -Tail 60 -ErrorAction SilentlyContinue
+    throw "update helper reported $($result.state): $($result.message)"
+}
 if (-not (Get-Service FleetWardenAgent -ErrorAction SilentlyContinue)) { throw "service missing after the update helper ran" }
+if ((& $exe status) -notmatch 'Waiting to enroll') { throw "the upgrade lost the configuration" }
+}
 
 # Uninstall removes the service, the files and the local enrollment.
-Invoke-Msi "/x `"$msi`"" "$env:RUNNER_TEMP\uninstall.log"
+$installed = if ($NextMsi) { (Resolve-Path $NextMsi).Path } else { $msi }
+Invoke-Msi "/x `"$installed`"" "$env:RUNNER_TEMP\uninstall.log"
 if (Get-Service FleetWardenAgent -ErrorAction SilentlyContinue) { throw "service still present after uninstall" }
 if (Test-Path $exe) { throw "agent executable still present after uninstall" }
 if (Test-Path $config) { throw "agent configuration still present after uninstall" }
