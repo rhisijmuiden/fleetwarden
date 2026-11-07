@@ -1,0 +1,61 @@
+{
+  "app": {
+    "skipToContent": "Naar inhoud",
+    "collapseMenu": "Menu inklappen",
+    "expandMenu": "Menu uitklappen",
+    "language": "Taal",
+    "themeLight": "Licht thema",
+    "themeDark": "Donker thema"
+  },
+  "nav": {
+    "overview": "Overzicht",
+    "dashboard": "Dashboard",
+    "endpoints": "Endpoints",
+    "devices": "Apparaten",
+    "groups": "Groepen",
+    "management": "Beheer",
+    "patches": "Patchbeheer",
+    "software": "Software",
+    "deployments": "Uitrol",
+    "remote": "Remote control",
+    "insights": "Inzicht",
+    "reports": "Rapporten",
+    "alerts": "Meldingen",
+    "administration": "Administratie",
+    "users": "Gebruikers & rollen",
+    "authentication": "Authenticatie",
+    "mail": "Mailserver",
+    "backup": "Backup & herstel",
+    "branding": "Huisstijl",
+    "settings": "Instellingen",
+    "info": "Over"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Een overzicht van al je apparaten.",
+    "devices": "Beheerde apparaten",
+    "missingPatches": "Ontbrekende patches",
+    "outdatedSoftware": "Verouderde software",
+    "online": "Nu online",
+    "empty": "Nog geen apparaten. Agents aanmelden komt in fase 3."
+  },
+  "placeholder": {
+    "comingIn": "Komt in fase {{phase}}",
+    "body": "Dit onderdeel van FleetWarden staat gepland en wordt in een latere fase gebouwd."
+  },
+  "info": {
+    "title": "Over FleetWarden",
+    "version": "Versie",
+    "channel": "Updatekanaal",
+    "commit": "Commit",
+    "built": "Gebouwd",
+    "platform": "Platform",
+    "channels": { "production": "Productie", "test": "Test" },
+    "checkUpdates": "Controleer op updates",
+    "updatesSoon": "Updaten vanuit de interface komt in fase 1.",
+    "unavailable": "Versie-informatie is niet beschikbaar. Draait de server?",
+    "close": "Sluiten",
+    "license": "Gratis te gebruiken onder AGPLv3 met de Commons Clause."
+  },
+  "notFound": "Pagina niet gevonden"
+}
