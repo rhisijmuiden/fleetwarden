@@ -16,7 +16,7 @@ namespace FleetWarden.Tray
         public static string Title(Prompt p) => p.Kind == Prompt.Reboot
             ? T("Restart required", "Herstart nodig")
             : p.Kind == Prompt.Browser
-                ? T($"{Apps(p)} will be updated", $"{Apps(p)} wordt bijgewerkt")
+                ? T($"{Apps(p)} will be updated", $"{Apps(p)} {(Many(p) ? "worden" : "wordt")} bijgewerkt")
                 : T("Updates are ready to install", "Updates staan klaar");
 
         // Apps joins the browser names: "Google Chrome and Microsoft Edge".
@@ -27,11 +27,16 @@ namespace FleetWarden.Tray
             return string.Join(", ", a, 0, a.Length - 1) + T(" and ", " en ") + a[a.Length - 1];
         }
 
+        static bool Many(Prompt p) => p.Apps != null && p.Apps.Length > 1;
+
         public static string Body(Prompt p)
         {
             if (p.Kind == Prompt.Browser)
-                return T("The browser closes for a moment to install an update and opens again by itself. Your windows and tabs come back. Finish what you are typing first.",
-                         "De browser sluit even om een update te installeren en gaat daarna vanzelf weer open. Je vensters en tabbladen komen terug. Maak eerst af waar je mee bezig bent.");
+                return Many(p)
+                    ? T("The browsers close for a moment to install an update and open again by themselves. Your windows and tabs come back. Finish what you are typing first.",
+                        "De browsers sluiten even om een update te installeren en gaan daarna vanzelf weer open. Je vensters en tabbladen komen terug. Maak eerst af waar je mee bezig bent.")
+                    : T("The browser closes for a moment to install an update and opens again by itself. Your windows and tabs come back. Finish what you are typing first.",
+                        "De browser sluit even om een update te installeren en gaat daarna vanzelf weer open. Je vensters en tabbladen komen terug. Maak eerst af waar je mee bezig bent.");
             if (p.Kind == Prompt.Reboot)
                 return T("Updates have been installed. Your computer has to restart to finish them. Save your work and close your programs.",
                          "Er zijn updates geïnstalleerd. De computer moet opnieuw opstarten om ze af te ronden. Sla je werk op en sluit je programma's.");
