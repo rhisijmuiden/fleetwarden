@@ -169,7 +169,7 @@ func TestBrowserUpdateWindowsReal(t *testing.T) {
 		t.Fatal(err)
 	}
 	ictx, icancel := context.WithTimeout(ctx, 8*time.Minute)
-	res, err := be.Install(ictx, oldC.Installer, file)
+	res, err := installBrowser(ictx, be, winProcesses{}, agentproto.BrowserUpdate{Firefox: true, Installer: oldC.Installer}, file)
 	icancel()
 	if err != nil {
 		logProcesses(t, "after the failed install")

@@ -56,6 +56,43 @@ const (
 	browserHeartbeat = 10 * time.Minute
 )
 
+// The Firefox installer registers its default browser agent by running
+// "default-browser-agent.exe register-task", which starts Firefox as a
+// background task. Without a desktop that task can hang, and the installer
+// waits for it forever. After firefoxHelperGrace the agent ends these
+// helpers (the browser itself is already closed), so the installer finishes.
+var (
+	firefoxHelperGrace = 2 * time.Minute
+	firefoxHelperEvery = 15 * time.Second
+	firefoxHelpers     = []string{"default-browser-agent.exe", "firefox.exe"}
+)
+
+// installBrowser runs one browser installer; for Firefox it ends hanging
+// helper processes the installer started.
+func installBrowser(ctx context.Context, be SoftwareBackend, procs ProcessControl, b agentproto.BrowserUpdate, file string) (RunResult, error) {
+	if !b.Firefox || procs == nil {
+		return be.Install(ctx, b.Installer, file)
+	}
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		t := time.NewTimer(firefoxHelperGrace)
+		defer t.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				procs.Kill(firefoxHelpers)
+				t.Reset(firefoxHelperEvery)
+			}
+		}
+	}()
+	return be.Install(ctx, b.Installer, file)
+}
+
 var (
 	processNameRE = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}\.exe$`)
 	browserKeyRE  = regexp.MustCompile(`^[a-z]{2,20}$`)
@@ -185,7 +222,7 @@ func (a *Agent) doBrowserJob(ctx context.Context, r *softwareRun, dir string) (s
 	a.installMu.Lock()
 	for _, it := range todo {
 		cctx, cancel := context.WithTimeout(ctx, browserInstallTime)
-		res, err := be.Install(cctx, it.b.Installer, it.file)
+		res, err := installBrowser(cctx, be, procs, it.b, it.file)
 		cancel()
 		r.st.RebootRequired = r.st.RebootRequired || res.Reboot
 		if res.Ran {

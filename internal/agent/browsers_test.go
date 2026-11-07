@@ -247,3 +247,44 @@ func TestCheckBrowserJob(t *testing.T) {
 		t.Error("http accepted")
 	}
 }
+
+// hangingInstall waits, like the Firefox installer, until its helper
+// process is gone.
+type hangingInstall struct{ fakeBrowserHost }
+
+func (h *hangingInstall) Install(ctx context.Context, _ agentproto.Installer, _ string) (RunResult, error) {
+	for {
+		if len(h.Running([]string{"default-browser-agent.exe"})) == 0 {
+			return RunResult{Ran: true}, nil
+		}
+		select {
+		case <-ctx.Done():
+			return RunResult{}, errors.New("the installer did not finish in time")
+		case <-time.After(5 * time.Millisecond):
+		}
+	}
+}
+
+func TestInstallBrowserEndsFirefoxHelpers(t *testing.T) {
+	grace, every := firefoxHelperGrace, firefoxHelperEvery
+	firefoxHelperGrace, firefoxHelperEvery = 20*time.Millisecond, 10*time.Millisecond
+	defer func() { firefoxHelperGrace, firefoxHelperEvery = grace, every }()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	h := &hangingInstall{fakeBrowserHost{running: map[string]bool{"default-browser-agent.exe": true, "firefox.exe": true}}}
+	if _, err := installBrowser(ctx, h, h, agentproto.BrowserUpdate{Firefox: true}, "x"); err != nil {
+		t.Fatal(err)
+	}
+	if h.killed != 2 {
+		t.Errorf("killed %d", h.killed)
+	}
+
+	// Chrome's installer is left alone.
+	h = &hangingInstall{fakeBrowserHost{running: map[string]bool{"default-browser-agent.exe": true}}}
+	sctx, scancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer scancel()
+	if _, err := installBrowser(sctx, h, h, agentproto.BrowserUpdate{}, "x"); err == nil || h.killed != 0 {
+		t.Errorf("chrome: %v, killed %d", err, h.killed)
+	}
+}
