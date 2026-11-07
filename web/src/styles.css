@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@import "../../branding/theme.css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-bg: var(--fw-background);
+  --color-surface: var(--fw-surface);
+  --color-surface-muted: var(--fw-surface-muted);
+  --color-line: var(--fw-border);
+  --color-fg: var(--fw-text);
+  --color-muted: var(--fw-text-muted);
+  --color-primary: var(--fw-primary);
+  --color-primary-hover: var(--fw-primary-hover);
+  --color-primary-contrast: var(--fw-primary-contrast);
+  --color-sidebar: var(--fw-sidebar);
+  --color-sidebar-fg: var(--fw-sidebar-text);
+  --color-sidebar-active: var(--fw-sidebar-active);
+  --color-success: var(--fw-success);
+  --color-warning: var(--fw-warning);
+  --color-danger: var(--fw-danger);
+  --radius-sm: var(--fw-radius-sm);
+  --radius-md: var(--fw-radius-md);
+  --radius-lg: var(--fw-radius-lg);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--fw-background);
+  color: var(--fw-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

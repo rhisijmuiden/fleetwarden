@@ -1,0 +1,31 @@
+# Contributing to FleetWarden
+
+## Branches and releases
+
+| Branch | Channel | What happens on merge |
+| --- | --- | --- |
+| `test` | Test | CI publishes a pre-release `vX.Y.Z-test.N` |
+| `main` | Production | CI publishes the release `vX.Y.Z` from the `VERSION` file |
+
+1. Work on a feature branch and open a pull request against `test`.
+2. CI must pass: Go vet/tests, web i18n check and build, shellcheck, Debian package
+   build and an install test on a clean Debian 13 container. Pull requests
+   into `test` are merged automatically when CI is green.
+3. A phase is promoted with a release pull request from `test` to `main`,
+   which a maintainer merges by hand. Bump `VERSION` before promoting.
+
+## Local development
+
+```sh
+make test                        # Go vet + tests, i18n check, typecheck
+go run ./cmd/fleetwarden-server  # API on 127.0.0.1:8080
+cd web && npm ci && npm run dev  # UI with hot reload, proxies /api to the server
+make all deb                     # binaries and the .deb in dist/ (needs nfpm)
+```
+
+## Rules
+
+- Every user-facing string goes through i18n with both `en.json` and `nl.json`
+  (English is the default). `npm run test:i18n` enforces matching keys.
+- Colours come from `branding/` tokens, never hard-coded, so white-label works.
+- Contributions require agreeing to the [CLA](CLA.md).

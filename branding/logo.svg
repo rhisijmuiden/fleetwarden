@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="FleetWarden">
+  <path d="M32 4 8 13v17c0 15.5 10.2 26.6 24 30 13.8-3.4 24-14.5 24-30V13L32 4Z" fill="#2F5BEA"/>
+  <path d="M32 10.5 14 17.3V30c0 12 7.6 20.9 18 23.9 10.4-3 18-11.9 18-23.9V17.3L32 10.5Z" fill="#0E1525"/>
+  <circle cx="32" cy="24" r="4.5" fill="#FFFFFF"/>
+  <circle cx="22" cy="38" r="4" fill="#9DB2FF"/>
+  <circle cx="42" cy="38" r="4" fill="#9DB2FF"/>
+  <path d="M32 28.5v5M29 27l-5 7.5M35 27l5 7.5" stroke="#9DB2FF" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

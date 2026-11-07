@@ -1,0 +1,32 @@
+# nfpm configuration for the fleetwarden-server Debian package.
+# Build with: VERSION=0.1.0 nfpm package -f packaging/nfpm-server.yaml -p deb -t dist/
+name: fleetwarden-server
+arch: amd64
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: FleetWarden <https://github.com/rhisijmuiden/fleetwarden>
+description: |
+  FleetWarden management server.
+  Self-hosted, agent-based endpoint management for Windows and Linux.
+vendor: FleetWarden
+homepage: https://github.com/rhisijmuiden/fleetwarden
+license: AGPL-3.0-only WITH Commons-Clause
+depends:
+  - postgresql (>= 15)
+  - adduser
+  - ca-certificates
+contents:
+  - src: dist/linux-amd64/fleetwarden-server
+    dst: /usr/bin/fleetwarden-server
+    file_info: { mode: 0755 }
+  - src: web/dist/
+    dst: /usr/share/fleetwarden/web/
+  - src: packaging/systemd/fleetwarden-server.service
+    dst: /lib/systemd/system/fleetwarden-server.service
+  - src: LICENSE
+    dst: /usr/share/doc/fleetwarden-server/copyright
+scripts:
+  postinstall: packaging/scripts/postinstall.sh
+  preremove: packaging/scripts/preremove.sh

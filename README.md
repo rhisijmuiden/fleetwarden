@@ -26,6 +26,22 @@ Proxmox VE nodes through a lightweight agent.
 - Update the server and agents from the UI, with a production and a test channel
 - English and Dutch user interface, fully white-label (logo, colours)
 
+## Installation
+
+On a clean Debian 13 (amd64) server:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rhisijmuiden/fleetwarden/main/installer/install.sh | sudo bash
+```
+
+Add `-s -- --channel test` to install the latest test build. Then put the server
+behind your reverse proxy, see [docs/reverse-proxy.md](docs/reverse-proxy.md).
+
+## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch model (`test` and `main`),
+CI and local development.
+
 ## License
 
 FleetWarden is licensed under the **GNU AGPL v3.0 with the Commons Clause**.

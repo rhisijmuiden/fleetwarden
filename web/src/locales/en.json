@@ -1,0 +1,61 @@
+{
+  "app": {
+    "skipToContent": "Skip to content",
+    "collapseMenu": "Collapse menu",
+    "expandMenu": "Expand menu",
+    "language": "Language",
+    "themeLight": "Switch to light theme",
+    "themeDark": "Switch to dark theme"
+  },
+  "nav": {
+    "overview": "Overview",
+    "dashboard": "Dashboard",
+    "endpoints": "Endpoints",
+    "devices": "Devices",
+    "groups": "Groups",
+    "management": "Management",
+    "patches": "Patch management",
+    "software": "Software",
+    "deployments": "Deployments",
+    "remote": "Remote control",
+    "insights": "Insights",
+    "reports": "Reports",
+    "alerts": "Alerts",
+    "administration": "Administration",
+    "users": "Users & roles",
+    "authentication": "Authentication",
+    "mail": "Mail server",
+    "backup": "Backup & restore",
+    "branding": "Branding",
+    "settings": "Settings",
+    "info": "About"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "A summary of your fleet.",
+    "devices": "Managed devices",
+    "missingPatches": "Missing patches",
+    "outdatedSoftware": "Outdated software",
+    "online": "Online now",
+    "empty": "No devices yet. Agent enrollment arrives in phase 3."
+  },
+  "placeholder": {
+    "comingIn": "Coming in phase {{phase}}",
+    "body": "This part of FleetWarden is planned and will be built in a later phase."
+  },
+  "info": {
+    "title": "About FleetWarden",
+    "version": "Version",
+    "channel": "Update channel",
+    "commit": "Commit",
+    "built": "Built",
+    "platform": "Platform",
+    "channels": { "production": "Production", "test": "Test" },
+    "checkUpdates": "Check for updates",
+    "updatesSoon": "Updating from the interface arrives in phase 1.",
+    "unavailable": "Version information is unavailable. Is the server running?",
+    "close": "Close",
+    "license": "Free to use under AGPLv3 with the Commons Clause."
+  },
+  "notFound": "Page not found"
+}

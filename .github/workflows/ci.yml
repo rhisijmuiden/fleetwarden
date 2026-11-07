@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, test]
+  push:
+    branches: [main, test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  meta:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      channel: ${{ steps.v.outputs.channel }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          base=$(cat VERSION)
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "main" ]]; then
+            echo "version=$base" >> "$GITHUB_OUTPUT"; echo "channel=production" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "test" ]]; then
+            echo "version=$base-test.$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"; echo "channel=test" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"; echo "channel=test" >> "$GITHUB_OUTPUT"
+          fi
+
+  go:
+    name: Go (vet, test, build)
+    needs: meta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; echo "Run gofmt -w ."; exit 1; }
+      - run: go vet ./...
+      - run: go test -race ./...
+      - name: Build server and agents
+        run: make server agents VERSION=${{ needs.meta.outputs.version }} CHANNEL=${{ needs.meta.outputs.channel }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+          retention-days: 7
+
+  web:
+    name: Web (i18n, typecheck, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:i18n
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: web/dist/
+          retention-days: 7
+
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck installer/*.sh packaging/scripts/*.sh tests/*.sh
+
+  package:
+    name: Debian package
+    needs: [meta, go, web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: web/dist/
+      - run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
+      - run: VERSION=${{ needs.meta.outputs.version }} nfpm package -f packaging/nfpm-server.yaml -p deb -t dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb
+          path: dist/*.deb
+          retention-days: 7
+
+  install-test:
+    name: Install on Debian 13
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: deb
+          path: dist/
+      - name: Install in a clean debian:trixie container
+        run: docker run --rm -v "$PWD:/src" -w /src debian:trixie bash -c 'tests/install-test.sh dist/fleetwarden-server_*_amd64.deb'
+
+  release:
+    name: Publish release
+    if: github.event_name == 'push'
+    needs: [meta, install-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+      - name: Collect release assets
+        run: |
+          mkdir -p release
+          cp artifacts/deb/*.deb release/
+          v=${{ needs.meta.outputs.version }}
+          for p in linux-amd64 linux-arm64; do
+            cp "artifacts/binaries/$p/fleetwarden-agent" "release/fleetwarden-agent_${v}_${p}"
+          done
+          cp artifacts/binaries/windows-amd64/fleetwarden-agent.exe "release/fleetwarden-agent_${v}_windows-amd64.exe"
+          cp installer/install.sh release/install.sh
+          (cd release && sha256sum * > SHA256SUMS)
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          CHANNEL: ${{ needs.meta.outputs.channel }}
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::notice::Release $tag already exists; bump VERSION to publish a new production release."
+            exit 0
+          fi
+          flags=(--target "$GITHUB_SHA" --title "FleetWarden $VERSION" --generate-notes)
+          [[ "$CHANNEL" == "test" ]] && flags+=(--prerelease)
+          gh release create "$tag" "${flags[@]}" release/*
