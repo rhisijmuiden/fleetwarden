@@ -61,11 +61,12 @@ Start-Sleep -Seconds 3
 @{ version = '9.9.9'; at = (Get-Date).ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $state 'connected.json')
 if (-not $helper.WaitForExit(240000)) { throw "update helper did not finish" }
 $result = Get-Content (Join-Path $state 'update-result.json') -Raw | ConvertFrom-Json
-Write-Host "update helper: $($result.state) $($result.message)"
+$resultMsg = if ($result.PSObject.Properties.Name -contains 'message') { $result.message } else { '' } # omitted when empty
+Write-Host "update helper: $($result.state) $resultMsg"
 Get-Content (Join-Path $upd 'helper.log') -ErrorAction SilentlyContinue
 if ($result.state -ne 'completed') {
     Get-Content (Join-Path $upd 'fleetwarden-agent_9.9.9_x64.msi.log') -Tail 60 -ErrorAction SilentlyContinue
-    throw "update helper reported $($result.state): $($result.message)"
+    throw "update helper reported $($result.state): $resultMsg"
 }
 if (-not (Get-Service FleetWardenAgent -ErrorAction SilentlyContinue)) { throw "service missing after the update helper ran" }
 if ((& $exe status) -notmatch 'Waiting to enroll') { throw "the upgrade lost the configuration" }
