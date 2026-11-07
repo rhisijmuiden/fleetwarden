@@ -218,14 +218,14 @@ func matchEntries(entries []arpEntry, d agentproto.Detect) []arpEntry {
 			exact = append([]arpEntry{e}, exact...)
 			continue
 		}
-		if name == "" {
+		if name == "" || (d.MachineOnly && e.PerUser) {
 			continue
 		}
-		n := strings.ToLower(e.DisplayName)
+		n := strings.ToLower(strings.TrimSpace(e.DisplayName))
 		switch {
 		case n == name:
 			exact = append(exact, e)
-		case strings.HasPrefix(n, name):
+		case !d.Exact && strings.HasPrefix(n, name):
 			prefix = append(prefix, e)
 		}
 	}

@@ -206,7 +206,8 @@
     "unknown_group": "Een van de groepen bestaat niet meer.",
     "unknown_package": "Het pakket bestaat niet meer.",
     "unsupported_file": "Alleen .msi-, .exe- en .deb-bestanden kunnen worden geüpload.",
-    "upload_failed": "Het uploaden is mislukt. Probeer het opnieuw."
+    "upload_failed": "Het uploaden is mislukt. Probeer het opnieuw.",
+    "no_browsers": "Kies minstens één browser."
   },
   "login": {
     "title": "Inloggen",
@@ -1181,7 +1182,8 @@
     "subtitle": "Je softwarebibliotheek, en alles wat op je apparaten is geïnstalleerd.",
     "tabs": {
       "library": "Bibliotheek",
-      "installed": "Geïnstalleerde software"
+      "installed": "Geïnstalleerde software",
+      "browsers": "Browsers"
     },
     "library_one": "{{count}} pakket",
     "library_other": "{{count}} pakketten",
@@ -1222,7 +1224,8 @@
     "holdersTitle": "Apparaten met {{name}}",
     "actions": {
       "install": "Installeren",
-      "uninstall": "Verwijderen"
+      "uninstall": "Verwijderen",
+      "browsers": "Browserupdate"
     },
     "sources": {
       "winget": "winget",
@@ -1239,7 +1242,8 @@
       "skipped": "Overgeslagen",
       "failed": "Mislukt",
       "cancelled": "Geannuleerd",
-      "expired": "Verlopen"
+      "expired": "Verlopen",
+      "waiting": "Wacht op gebruiker"
     },
     "counts": {
       "completed_one": "{{count}} voltooid",
@@ -1300,7 +1304,9 @@
       "laterHint": "Kies wanneer de apparaten mogen beginnen.",
       "startAt": "Starttijd",
       "expire": "Vervalt na (dagen)",
-      "expireHint": "Apparaten die dan nog niet begonnen zijn, worden als verlopen gemarkeerd."
+      "expireHint": "Apparaten die dan nog niet begonnen zijn, worden als verlopen gemarkeerd.",
+      "titleBrowsers": "Browsers bijwerken",
+      "browsersHint": "Apparaten krijgen de nieuwste versie uit de winget-catalogus, in hun eigen taal en editie (Firefox ESR blijft ESR). Staat een browser open, dan krijgt de gebruiker een pop-up met 60 seconden aftellen en kan die zo vaak uitstellen als het patchbeleid toestaat. Daarna sluit de browser, wordt bijgewerkt en gaat weer open met zijn vensters en tabbladen."
     },
     "form": {
       "addTitle": "Pakket toevoegen",
@@ -1346,6 +1352,23 @@
       "timeout": "Time-out (minuten)",
       "anyHash": "Gewijzigd installatiebestand toestaan",
       "anyHashHint": "Sommige leveranciers vervangen het bestand achter dezelfde link (zoals Chrome). Zet dit alleen aan voor leveranciers die je vertrouwt."
+    },
+    "browsers": {
+      "noCatalog": "De winget-catalogus is nog niet geladen. Vernieuw hem onder Bibliotheek om de nieuwste versies te zien en browsers bij te werken.",
+      "latest": "Nieuwste: {{version}}",
+      "unknownLatest": "Nieuwste versie onbekend",
+      "upToDate_one": "{{count}} van {{total}} bijgewerkt",
+      "upToDate_other": "{{count}} van {{total}} bijgewerkt",
+      "devices_one": "{{count}} Windows-apparaat",
+      "devices_other": "{{count}} Windows-apparaten",
+      "outdatedCount_one": "{{count}} apparaat heeft een verouderde browser.",
+      "outdatedCount_other": "{{count}} apparaten hebben een verouderde browser.",
+      "allUpToDate": "Alle browsers zijn bijgewerkt.",
+      "update": "Browsers bijwerken",
+      "onlyOutdated": "Alleen apparaten met een verouderde browser",
+      "none": "Geen apparaten.",
+      "current": "Bijgewerkt",
+      "outdated": "Er is een nieuwere versie"
     }
   },
   "deployments": {
@@ -1404,6 +1427,8 @@
     "finishedAt": "Klaar",
     "rebootText": "Het installatieprogramma vroeg om een herstart. Het apparaat herstart in het volgende onderhoudsvenster, of je herstart het zelf.",
     "output": "Installatielog",
-    "noOutput": "Geen uitvoer."
+    "noOutput": "Geen uitvoer.",
+    "browsers": "Browsers",
+    "browsersLatest": "Nieuwste versie uit winget"
   }
 }

@@ -19,7 +19,7 @@ namespace FleetWarden.Tray
     public static class Program
     {
         // FleetWardenTray.exe                 runs in the tray (started at logon and by the agent)
-        // FleetWardenTray.exe --demo [install|reboot] [--lang en|nl] [--dark] [--screenshot file.png]
+        // FleetWardenTray.exe --demo [install|reboot|browser] [--lang en|nl] [--dark] [--screenshot file.png]
         //                                     shows an example pop-up, or saves it as an image
         // FleetWardenTray.exe --pipe name     uses another pipe (tests); its server need not be a service
         [STAThread]
@@ -59,8 +59,9 @@ namespace FleetWarden.Tray
         {
             var p = new Prompt
             {
-                Id = "demo", Kind = kind == Prompt.Reboot ? Prompt.Reboot : Prompt.Install, Updates = 4,
-                CanPostpone = true, PostponesLeft = 2, PostponeMinutes = 60, CountdownSeconds = 300, ProductName = "FleetWarden",
+                Id = "demo", Kind = kind == Prompt.Reboot || kind == Prompt.Browser ? kind : Prompt.Install, Updates = 4,
+                CanPostpone = true, PostponesLeft = 2, PostponeMinutes = 60, CountdownSeconds = kind == Prompt.Browser ? 60 : 300, ProductName = "FleetWarden",
+                Apps = kind == Prompt.Browser ? new[] { "Google Chrome", "Microsoft Edge" } : null,
             };
             var w = new PromptWindow(p, postpone => Console.WriteLine(postpone ? "postpone" : "now"), animate: screenshot == null);
             w.Closed += (s, e) => app.Shutdown();
@@ -102,6 +103,7 @@ namespace FleetWarden.Tray
         readonly Forms.NotifyIcon icon;
         readonly Forms.ToolStripMenuItem status, show;
         readonly object writeLock = new object();
+        readonly AppCloser closer = new AppCloser();
         StreamWriter writer;
         PromptWindow window;
         string product = "FleetWarden", accent;
@@ -181,6 +183,16 @@ namespace FleetWarden.Tray
             {
                 case "prompt" when m.Prompt != null && !string.IsNullOrEmpty(m.Prompt.Id):
                     ui.BeginInvoke(new Action(() => ShowPrompt(m.Prompt)));
+                    break;
+                case "close-apps":
+                    Task.Run(() =>
+                    {
+                        var keys = closer.Close(m.Id, m.Apps, m.TimeoutSeconds);
+                        Send(new TrayMessage { Type = "apps-closed", Id = m.Id, Closed = keys });
+                    });
+                    break;
+                case "launch-apps":
+                    Task.Run(() => closer.Launch(m.Id));
                     break;
                 case "close":
                     ui.BeginInvoke(new Action(() =>

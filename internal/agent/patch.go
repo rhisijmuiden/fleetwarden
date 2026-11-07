@@ -36,6 +36,7 @@ type PatchBackend interface {
 const (
 	PromptInstall = "install"
 	PromptReboot  = "reboot"
+	PromptBrowser = "browser" // the browsers in Apps close to update
 )
 
 // Prompt is a question for the logged-on user (the pop-up on Windows).
@@ -49,6 +50,8 @@ type Prompt struct {
 	CountdownSeconds int    `json:"countdownSeconds"`
 	ProductName      string `json:"productName"`
 	AccentColor      string `json:"accentColor"`
+	// Apps names the programs a browser prompt is about.
+	Apps []string `json:"apps,omitempty"`
 }
 
 // Answer is the user's choice. Without a choice before the countdown ends

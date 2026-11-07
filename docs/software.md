@@ -83,6 +83,36 @@ the vendor's silent arguments under *Uninstall arguments*. On Linux it runs
 `apt-get remove` (or `purge` with *Remove configuration files too*). The
 FleetWarden agent itself can't be removed this way.
 
+## Browser updates
+
+**Software > Browsers** shows the version of Google Chrome, Microsoft Edge
+and Mozilla Firefox on every Windows device, next to the newest version in
+the winget catalog. **Update browsers** starts a deployment for the outdated
+devices; you can also start one from **Deploy** for groups (with *Keep groups
+up to date*) or schedule it with *Start later*.
+
+For each device the agent:
+
+1. checks which browsers are installed for the whole computer and older than
+   the catalog. Up-to-date or missing browsers are skipped. Firefox keeps its
+   edition (ESR) and language (for example `Mozilla.Firefox.nl`).
+2. downloads the installers and checks their SHA-256 hash.
+3. if a browser is open, shows a pop-up: *Google Chrome will be updated. The
+   browser closes in 60 seconds and your tabs come back afterwards.* The user
+   can postpone with the same settings as the patch policy of the device's
+   group (default 3 times, 60 minutes). The deployment shows *Waiting for the user* while
+   it is postponed.
+4. closes the browsers: Chrome and Edge get a normal close for all windows at
+   once and start again with `--restore-last-session`; Firefox is ended and
+   restores its session on the next start
+   (`browser.sessionstore.resume_session_once`).
+5. installs silently, opens the browsers again for the user and reports the
+   versions before and after.
+
+Browser updates need the FleetWarden tray app (installed with the agent) for
+the pop-up and to reopen the browsers. Without a signed-in user the update
+runs at once.
+
 ## Permissions
 
 - **Manage the software library** (`software.manage`, administrators): add,

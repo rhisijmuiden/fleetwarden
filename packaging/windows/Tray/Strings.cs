@@ -15,10 +15,28 @@ namespace FleetWarden.Tray
 
         public static string Title(Prompt p) => p.Kind == Prompt.Reboot
             ? T("Restart required", "Herstart nodig")
-            : T("Updates are ready to install", "Updates staan klaar");
+            : p.Kind == Prompt.Browser
+                ? T($"{Apps(p)} will be updated", $"{Apps(p)} {(Many(p) ? "worden" : "wordt")} bijgewerkt")
+                : T("Updates are ready to install", "Updates staan klaar");
+
+        // Apps joins the browser names: "Google Chrome and Microsoft Edge".
+        public static string Apps(Prompt p)
+        {
+            var a = p.Apps != null && p.Apps.Length > 0 ? p.Apps : new[] { T("Your browser", "Je browser") };
+            if (a.Length == 1) return a[0];
+            return string.Join(", ", a, 0, a.Length - 1) + T(" and ", " en ") + a[a.Length - 1];
+        }
+
+        static bool Many(Prompt p) => p.Apps != null && p.Apps.Length > 1;
 
         public static string Body(Prompt p)
         {
+            if (p.Kind == Prompt.Browser)
+                return Many(p)
+                    ? T("The browsers close for a moment to install an update and open again by themselves. Your windows and tabs come back. Finish what you are typing first.",
+                        "De browsers sluiten even om een update te installeren en gaan daarna vanzelf weer open. Je vensters en tabbladen komen terug. Maak eerst af waar je mee bezig bent.")
+                    : T("The browser closes for a moment to install an update and opens again by itself. Your windows and tabs come back. Finish what you are typing first.",
+                        "De browser sluit even om een update te installeren en gaat daarna vanzelf weer open. Je vensters en tabbladen komen terug. Maak eerst af waar je mee bezig bent.");
             if (p.Kind == Prompt.Reboot)
                 return T("Updates have been installed. Your computer has to restart to finish them. Save your work and close your programs.",
                          "Er zijn updates geïnstalleerd. De computer moet opnieuw opstarten om ze af te ronden. Sla je werk op en sluit je programma's.");
@@ -31,10 +49,12 @@ namespace FleetWarden.Tray
         public static string Countdown(Prompt p, TimeSpan left)
         {
             var time = left.TotalHours >= 1 ? left.ToString(@"h\:mm\:ss") : left.ToString(@"m\:ss");
+            if (p.Kind == Prompt.Browser) return T($"Closing in {time}", $"Sluit over {time}");
             return p.Kind == Prompt.Reboot ? T($"Restarting in {time}", $"Herstart over {time}") : T($"Installing in {time}", $"Installatie start over {time}");
         }
 
-        public static string Now(Prompt p) => p.Kind == Prompt.Reboot ? T("Restart now", "Nu herstarten") : T("Install now", "Nu installeren");
+        public static string Now(Prompt p) => p.Kind == Prompt.Reboot ? T("Restart now", "Nu herstarten")
+            : p.Kind == Prompt.Browser ? T("Update now", "Nu bijwerken") : T("Install now", "Nu installeren");
 
         public static string Postpone(Prompt p) => T($"Postpone {Duration(p.PostponeMinutes)}", $"{Duration(p.PostponeMinutes)} uitstellen");
 

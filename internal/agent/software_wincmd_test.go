@@ -129,6 +129,13 @@ func TestMatchEntries(t *testing.T) {
 	if got := uninstallTargets(entries, agentproto.Uninstall{Name: "Google Chrome", Version: "1.0"}); len(got) != 0 {
 		t.Errorf("other version: %+v", got)
 	}
+	if ok, v := findInstalled(entries, agentproto.Detect{Name: "Google Chrome", Exact: true}); !ok || v != "157.0.8103.39" {
+		t.Errorf("exact: %v %s (the beta is newer but another program)", ok, v)
+	}
+	user := append(entries, arpEntry{Key: "u", DisplayName: "Microsoft Edge", DisplayVersion: "150.0", PerUser: true})
+	if ok, _ := findInstalled(user, agentproto.Detect{Name: "Microsoft Edge", MachineOnly: true}); ok {
+		t.Error("a per-user install counts as installed for the machine")
+	}
 }
 
 func TestDecodeLog(t *testing.T) {

@@ -8,10 +8,11 @@ import { Alert, Button, Card, Input, Modal, PageHeader, Select, Spinner, formatD
 import { PlatformBadge } from "../devices/util";
 import { DeployDialog, type DeployTarget } from "./DeployDialog";
 import { PackageForm } from "./PackageForm";
+import { Browsers } from "./Browsers";
 import { SourceBadge, formatSize } from "./util";
 
-type Tab = "library" | "installed";
-const tabs: Tab[] = ["library", "installed"];
+type Tab = "library" | "installed" | "browsers";
+const tabs: Tab[] = ["library", "installed", "browsers"];
 
 export function Software() {
   const { t } = useTranslation();
@@ -35,6 +36,7 @@ export function Software() {
       </div>
       {tab === "library" && <Library />}
       {tab === "installed" && <Installed />}
+      {tab === "browsers" && <Browsers />}
     </div>
   );
 }

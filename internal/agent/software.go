@@ -142,6 +142,8 @@ func checkSoftwareJob(job agentproto.SoftwareJob) string {
 		if job.Uninstall == nil || strings.TrimSpace(job.Uninstall.Name) == "" {
 			return "the job does not name a program"
 		}
+	case agentproto.ActionBrowsers:
+		return checkBrowserJob(job)
 	default:
 		return "unknown action " + job.Action
 	}
@@ -194,6 +196,9 @@ func (a *Agent) runSoftwareJob(ctx context.Context, job agentproto.SoftwareJob) 
 }
 
 func (a *Agent) doSoftwareJob(ctx context.Context, r *softwareRun, dir string, minutes int) (string, string) {
+	if r.job.Action == agentproto.ActionBrowsers {
+		return a.doBrowserJob(ctx, r, dir)
+	}
 	be := a.softwareBackend()
 	job := r.job
 	runCtx := func() (context.Context, context.CancelFunc) {

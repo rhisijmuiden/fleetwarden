@@ -100,6 +100,9 @@ func (s *Server) buildSoftwareJob(ctx context.Context, d store.DueJob) (agentpro
 		job.Uninstall = &agentproto.Uninstall{Name: dep.UninstallName, Version: dep.UninstallVersion, Args: dep.UninstallArgs, Purge: dep.UninstallPurge}
 		return job, nil
 	}
+	if dep.Action == agentproto.ActionBrowsers {
+		return s.buildBrowserJob(ctx, d, job)
+	}
 	p := d.Package
 	if p == nil {
 		return job, errors.New("the package was deleted")
@@ -155,7 +158,7 @@ func (s *Server) handleSoftwareStatusMsg(ctx context.Context, c *agentConn, e *a
 		return err
 	}
 	switch st.State {
-	case agentproto.SoftwareDownloading, agentproto.SoftwareInstalling, agentproto.SoftwareUninstalling,
+	case agentproto.SoftwareDownloading, agentproto.SoftwareInstalling, agentproto.SoftwareUninstalling, agentproto.SoftwareWaiting,
 		agentproto.SoftwareCompleted, agentproto.SoftwareSkipped, agentproto.SoftwareFailed:
 	default:
 		return errors.New("unknown software job state " + strconv.Quote(st.State))
@@ -363,6 +366,7 @@ func (s *Server) softwareRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/v1/software/catalog/refresh", manage(s.handleCatalogRefresh))
 	mux.Handle("GET /api/v1/software/installed", view(s.handleInstalledSoftware))
 	mux.Handle("GET /api/v1/software/installed/devices", view(s.handleInstalledDevices))
+	mux.Handle("GET /api/v1/software/browsers", view(s.handleBrowserReport))
 
 	mux.Handle("GET /api/v1/deployments", view(s.handleListDeployments))
 	mux.Handle("POST /api/v1/deployments", deploy(s.handleCreateDeployment))
@@ -694,6 +698,7 @@ type deploymentReq struct {
 	Ongoing    bool     `json:"ongoing"`
 	StartAt    string   `json:"startAt"` // RFC 3339; empty: now
 	ExpireDays int      `json:"expireDays"`
+	Browsers   []string `json:"browsers"`
 	Uninstall  struct {
 		Name     string `json:"name"`
 		Version  string `json:"version"`
@@ -766,6 +771,23 @@ func (s *Server) handleCreateDeployment(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		d.Name = d.UninstallName
+	case agentproto.ActionBrowsers:
+		d.Browsers = validBrowsers(req.Browsers)
+		if len(d.Browsers) == 0 {
+			apiError(w, http.StatusBadRequest, "no_browsers")
+			return
+		}
+		if s.winget.Status().Packages == 0 {
+			apiError(w, http.StatusBadRequest, "catalog_not_loaded")
+			return
+		}
+		d.Platform = "windows"
+		var names []string
+		for _, k := range d.Browsers {
+			def, _ := browserDefByKey(k)
+			names = append(names, def.Name)
+		}
+		d.Name = "Browser updates: " + strings.Join(names, ", ")
 	default:
 		apiError(w, http.StatusBadRequest, "bad_request")
 		return

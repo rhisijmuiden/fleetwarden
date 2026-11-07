@@ -206,7 +206,8 @@
     "unknown_group": "One of the groups no longer exists.",
     "unknown_package": "The package no longer exists.",
     "unsupported_file": "Only .msi, .exe and .deb files can be uploaded.",
-    "upload_failed": "The upload failed. Try again."
+    "upload_failed": "The upload failed. Try again.",
+    "no_browsers": "Pick at least one browser."
   },
   "login": {
     "title": "Sign in",
@@ -1181,7 +1182,8 @@
     "subtitle": "Your software library, and everything installed across your devices.",
     "tabs": {
       "library": "Library",
-      "installed": "Installed software"
+      "installed": "Installed software",
+      "browsers": "Browsers"
     },
     "library_one": "{{count}} package",
     "library_other": "{{count}} packages",
@@ -1222,7 +1224,8 @@
     "holdersTitle": "Devices with {{name}}",
     "actions": {
       "install": "Install",
-      "uninstall": "Uninstall"
+      "uninstall": "Uninstall",
+      "browsers": "Browser update"
     },
     "sources": {
       "winget": "winget",
@@ -1239,7 +1242,8 @@
       "skipped": "Skipped",
       "failed": "Failed",
       "cancelled": "Cancelled",
-      "expired": "Expired"
+      "expired": "Expired",
+      "waiting": "Waiting for the user"
     },
     "counts": {
       "completed_one": "{{count}} completed",
@@ -1300,7 +1304,9 @@
       "laterHint": "Pick when the devices may start.",
       "startAt": "Start time",
       "expire": "Expires after (days)",
-      "expireHint": "Devices that haven't started by then are marked as expired."
+      "expireHint": "Devices that haven't started by then are marked as expired.",
+      "titleBrowsers": "Update browsers",
+      "browsersHint": "Devices update to the newest version from the winget catalog, in their own language and edition (Firefox ESR stays ESR). If a browser is open, the user gets a pop-up with a 60-second countdown and can postpone it as often as their patch policy allows. The browser then closes, updates and opens again with its windows and tabs."
     },
     "form": {
       "addTitle": "Add package",
@@ -1346,6 +1352,23 @@
       "timeout": "Timeout (minutes)",
       "anyHash": "Allow a changed installer",
       "anyHashHint": "Some vendors replace the installer behind the same link (such as Chrome). Turn this on only for vendors you trust."
+    },
+    "browsers": {
+      "noCatalog": "The winget catalog hasn't been loaded yet. Refresh it under Library to see the newest versions and update browsers.",
+      "latest": "Newest: {{version}}",
+      "unknownLatest": "Newest version unknown",
+      "upToDate_one": "{{count}} of {{total}} up to date",
+      "upToDate_other": "{{count}} of {{total}} up to date",
+      "devices_one": "{{count}} Windows device",
+      "devices_other": "{{count}} Windows devices",
+      "outdatedCount_one": "{{count}} device has an outdated browser.",
+      "outdatedCount_other": "{{count}} devices have an outdated browser.",
+      "allUpToDate": "All browsers are up to date.",
+      "update": "Update browsers",
+      "onlyOutdated": "Only devices with an outdated browser",
+      "none": "No devices.",
+      "current": "Up to date",
+      "outdated": "A newer version is available"
     }
   },
   "deployments": {
@@ -1404,6 +1427,8 @@
     "finishedAt": "Finished",
     "rebootText": "The installer asked for a restart. The device restarts in the next maintenance window, or you can restart it yourself.",
     "output": "Installer log",
-    "noOutput": "No output."
+    "noOutput": "No output.",
+    "browsers": "Browsers",
+    "browsersLatest": "Newest version from winget"
   }
 }

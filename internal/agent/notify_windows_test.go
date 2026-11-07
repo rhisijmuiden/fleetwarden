@@ -9,15 +9,19 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/Microsoft/go-winio"
 )
 
+var testPipes atomic.Int32
+
 func testPipe(t *testing.T) (*trayHub, string) {
 	t.Helper()
-	name := fmt.Sprintf(`FleetWardenAgent.Tray.test-%d`, os.Getpid())
+	// A pipe per test: the previous test's listener may still be closing.
+	name := fmt.Sprintf(`FleetWardenAgent.Tray.test-%d-%d`, os.Getpid(), testPipes.Add(1))
 	l, err := listenTray(`\\.\pipe\` + name)
 	if err != nil {
 		t.Fatal(err)

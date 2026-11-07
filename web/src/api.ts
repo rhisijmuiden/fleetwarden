@@ -582,13 +582,14 @@ export type JobCounts = {
 export type Deployment = {
   id: number;
   name: string;
-  action: "install" | "uninstall";
+  action: "install" | "uninstall" | "browsers";
   packageId: number | null;
   platform: Platform;
   uninstallName: string;
   uninstallVersion: string;
   uninstallArgs: string;
   uninstallPurge: boolean;
+  browsers: BrowserKey[];
   groupIds: number[];
   ongoing: boolean;
   startAt: string;
@@ -606,6 +607,7 @@ export type JobState =
   | "downloading"
   | "installing"
   | "uninstalling"
+  | "waiting"
   | "completed"
   | "skipped"
   | "failed"
@@ -616,7 +618,7 @@ export type SoftwareJob = {
   id: number;
   deploymentId: number;
   deploymentName: string;
-  action: "install" | "uninstall";
+  action: "install" | "uninstall" | "browsers";
   deviceId: string;
   hostname: string;
   groupId: number;
@@ -634,6 +636,22 @@ export type SoftwareJob = {
 };
 
 export type DeploymentView = { deployment: Deployment; package: SoftwarePackage | null; jobs: SoftwareJob[] };
+
+export type BrowserKey = "chrome" | "edge" | "firefox";
+export type BrowserReport = {
+  catalog: CatalogStatus;
+  browsers: { key: BrowserKey; name: string; latest: string; esr?: string; devices: number; upToDate: number }[];
+  devices: {
+    deviceId: string;
+    hostname: string;
+    groupId: number;
+    groupName: string;
+    lastSeen: string | null;
+    online: boolean;
+    outdated: boolean;
+    browsers: Partial<Record<BrowserKey, { version: string; edition?: string; upToDate: boolean }>>;
+  }[];
+};
 
 export type InstalledSoftware = { name: string; publisher: string; platform: Platform; source: string; versions: string[]; devices: number };
 export type InstalledDevice = { deviceId: string; hostname: string; groupId: number; version: string };

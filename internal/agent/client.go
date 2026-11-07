@@ -53,6 +53,9 @@ type Agent struct {
 	// Notify asks the logged-on user before patching (the tray pop-up on
 	// Windows); nil installs without asking.
 	Notify Notifier
+	// Processes finds and stops running programs (browser updates);
+	// defaults to the platform implementation.
+	Processes ProcessControl
 	// Minute is the length of a postpone minute; tests shorten it.
 	Minute time.Duration
 	// MachineID overrides the platform machine ID (tests).

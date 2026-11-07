@@ -24,6 +24,9 @@ const PathSoftware = "/agent/v1/software/"
 const (
 	ActionInstall   = "install"
 	ActionUninstall = "uninstall"
+	// ActionBrowsers updates web browsers: the agent asks the user, closes
+	// the browsers, installs and opens them again with their tabs.
+	ActionBrowsers = "browsers"
 )
 
 // Installer kinds. Windows: msi (also WiX), exe (needs its own silent
@@ -100,6 +103,10 @@ type Detect struct {
 	// Version is the version the job installs; an equal or newer installed
 	// version skips the install. Empty: install when the program is missing.
 	Version string `json:"version,omitempty"`
+	// Exact matches the whole display name instead of its start.
+	Exact bool `json:"exact,omitempty"`
+	// MachineOnly ignores installs for a single user.
+	MachineOnly bool `json:"machineOnly,omitempty"`
 }
 
 // Uninstall names a program from the inventory.
@@ -122,6 +129,32 @@ type SoftwareJob struct {
 	Uninstall *Uninstall `json:"uninstall,omitempty"`
 	// TimeoutMinutes bounds the installer or uninstaller run.
 	TimeoutMinutes int `json:"timeoutMinutes"`
+	// Browsers and Prompt are set for ActionBrowsers.
+	Browsers []BrowserUpdate `json:"browsers,omitempty"`
+	Prompt   *UserPrompt     `json:"prompt,omitempty"`
+}
+
+// BrowserUpdate is one browser to bring to Version.
+type BrowserUpdate struct {
+	Key       string    `json:"key"` // chrome, edge, firefox
+	Name      string    `json:"name"`
+	Version   string    `json:"version"` // the version the installer brings
+	Installer Installer `json:"installer"`
+	Detect    Detect    `json:"detect"`
+	// Process is the executable that runs while the browser is open
+	// (chrome.exe); RestoreArgs reopen the last session when it starts.
+	Process     string `json:"process"`
+	RestoreArgs string `json:"restoreArgs,omitempty"`
+	// Firefox restores its session through a preference instead.
+	Firefox bool `json:"firefox,omitempty"`
+}
+
+// UserPrompt is how the agent asks the logged-on user, with the postpone
+// settings of the device's patch policy.
+type UserPrompt struct {
+	MaxPostpones     int `json:"maxPostpones"`
+	PostponeMinutes  int `json:"postponeMinutes"`
+	CountdownSeconds int `json:"countdownSeconds"`
 }
 
 // Software job states.
@@ -131,6 +164,7 @@ const (
 	SoftwareDownloading  = "downloading"
 	SoftwareInstalling   = "installing"
 	SoftwareUninstalling = "uninstalling"
+	SoftwareWaiting      = "waiting" // asked the user, or postponed by the user
 	SoftwareCompleted    = "completed"
 	SoftwareSkipped      = "skipped" // nothing to do: already installed, or not installed
 	SoftwareFailed       = "failed"

@@ -14,6 +14,9 @@ namespace FleetWarden.Tray
         [DataMember(Name = "id", EmitDefaultValue = false)] public string Id;
         [DataMember(Name = "postpone", EmitDefaultValue = false)] public bool Postpone;
         [DataMember(Name = "lang", EmitDefaultValue = false)] public string Lang;
+        [DataMember(Name = "apps", EmitDefaultValue = false)] public CloseApp[] Apps;
+        [DataMember(Name = "closed", EmitDefaultValue = false)] public string[] Closed;
+        [DataMember(Name = "timeoutSeconds", EmitDefaultValue = false)] public int TimeoutSeconds;
 
         static readonly DataContractJsonSerializer Serializer = new DataContractJsonSerializer(typeof(TrayMessage));
 
@@ -38,6 +41,7 @@ namespace FleetWarden.Tray
     {
         public const string Install = "install";
         public const string Reboot = "reboot";
+        public const string Browser = "browser";
 
         [DataMember(Name = "id")] public string Id;
         [DataMember(Name = "kind")] public string Kind;
@@ -48,5 +52,17 @@ namespace FleetWarden.Tray
         [DataMember(Name = "countdownSeconds")] public int CountdownSeconds;
         [DataMember(Name = "productName")] public string ProductName;
         [DataMember(Name = "accentColor")] public string AccentColor;
+        [DataMember(Name = "apps", EmitDefaultValue = false)] public string[] Apps;
+    }
+
+    // A program to close before an update and open again afterwards.
+    [DataContract]
+    public sealed class CloseApp
+    {
+        [DataMember(Name = "key")] public string Key;
+        [DataMember(Name = "name")] public string Name;
+        [DataMember(Name = "process")] public string Process;
+        [DataMember(Name = "restoreArgs", EmitDefaultValue = false)] public string RestoreArgs;
+        [DataMember(Name = "firefox", EmitDefaultValue = false)] public bool Firefox;
     }
 }
