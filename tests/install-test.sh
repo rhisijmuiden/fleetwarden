@@ -107,6 +107,20 @@ jq -e '.total == 1 and .items[0].platform == "linux" and .items[0].inventoryAt !
 dev_id=$(jq -r '.items[0].id' <<<"$devices")
 api "$base/devices/$dev_id/software" | jq -e 'length > 10 and any(.[]; .name == "fleetwarden-agent")' >/dev/null || { echo "software inventory missing" >&2; exit 1; }
 
+# The Windows MSI is bundled when CI built it; a download must carry the token
+# in its Property table (msitools comes in through the package's Recommends).
+if ls /usr/share/fleetwarden/agent/fleetwarden-agent_*_x64.msi >/dev/null 2>&1; then
+    command -v msiinfo >/dev/null || { echo "msitools was not installed with the server" >&2; exit 1; }
+    curl -fsS -o /tmp/agent.msi "http://127.0.0.1:8080/agent/download/windows-x64.msi?t=$token"
+    props=$(msiinfo export /tmp/agent.msi Property | tr -d '\r')
+    grep -qxF "$(printf 'TOKEN\t%s' "$token")" <<<"$props" || { echo "downloaded MSI has no baked token" >&2; exit 1; }
+    grep -qE '^SERVER\s+http' <<<"$props" || { echo "downloaded MSI has no baked server" >&2; exit 1; }
+    msiinfo export /tmp/agent.msi ServiceInstall | grep -q FleetWardenAgent || { echo "MSI does not install the service" >&2; exit 1; }
+    echo "MSI download with baked token: ok"
+else
+    echo "no bundled MSI (built only in CI); skipping the MSI download check"
+fi
+
 # Re-installing (upgrade path) must keep the configuration, the secret key and the accounts.
 before=$(sha256sum /etc/fleetwarden/server.env /var/lib/fleetwarden/secret.key)
 apt-get install -y -qq --reinstall "$(realpath "$deb")" >/dev/null

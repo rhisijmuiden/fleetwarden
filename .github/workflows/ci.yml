@@ -117,9 +117,35 @@ jobs:
       - uses: actions/checkout@v4
       - run: shellcheck installer/*.sh packaging/scripts/*.sh packaging/updater/fleetwarden-update tests/*.sh packaging/agent/*.sh packaging/agent/config
 
+  msi:
+    name: Windows installer (MSI)
+    needs: [meta, go]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build the MSI
+        run: ./packaging/windows/build-msi.ps1 -Version '${{ needs.meta.outputs.version }}' -AgentExe dist/windows-amd64/fleetwarden-agent.exe -OutDir dist/msi
+      - name: Install, check and uninstall
+        run: ./packaging/windows/test-msi.ps1 -Msi (Get-ChildItem dist/msi/*.msi | Select-Object -First 1).FullName
+      - uses: actions/upload-artifact@v4
+        with:
+          name: msi
+          path: dist/msi/*.msi
+          retention-days: 7
+
   package:
     name: Debian package
-    needs: [meta, go, web]
+    needs: [meta, go, web, msi]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -134,6 +160,10 @@ jobs:
         with:
           name: web
           path: web/dist/
+      - uses: actions/download-artifact@v4
+        with:
+          name: msi
+          path: dist/agent/
       - run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
       - name: Agent packages (bundled with the server package)
         run: VERSION=${{ needs.meta.outputs.version }} packaging/agent/build-debs.sh
@@ -182,7 +212,7 @@ jobs:
         run: |
           mkdir -p release
           cp artifacts/deb/*.deb release/
-          cp artifacts/deb/agent/*.deb release/
+          cp artifacts/deb/agent/*.deb artifacts/deb/agent/*.msi release/
           v=${{ needs.meta.outputs.version }}
           for p in linux-amd64 linux-arm64; do
             cp "artifacts/binaries/$p/fleetwarden-agent" "release/fleetwarden-agent_${v}_${p}"

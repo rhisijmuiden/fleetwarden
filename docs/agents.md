@@ -31,6 +31,28 @@ through debconf. Unattended on Linux:
 `sudo FW_SERVER=https://em.example.com FW_TOKEN=TOKEN apt install ./fleetwarden-agent_X_amd64.deb`,
 or afterwards `sudo fleetwarden-agent configure --server ... --token ...`.
 
+## Windows installer (MSI)
+
+The MSI installs `C:\Program Files\FleetWarden Agent\fleetwarden-agent.exe`
+and the `FleetWardenAgent` service (automatic start, restarts after a crash).
+Started without settings, its wizard asks for the server address, the
+enrollment token and optionally a device group; **Test connection** checks
+that a FleetWarden server answers and shows its TLS certificate. A download
+from **Add client** already holds the server and token (the server sets them
+with `msitools`, which the server package recommends).
+
+| Property | Meaning |
+| --- | --- |
+| `SERVER` | Server address, e.g. `https://em.example.com` |
+| `TOKEN` | Enrollment token; kept out of the install log |
+| `GROUP` | Device group name (optional, overrides the token's group) |
+| `FORCEENROLL=1` | Replace an existing enrollment on this machine |
+
+Without `SERVER` and `TOKEN` an existing configuration is kept, so an update
+is just `msiexec /i fleetwarden-agent_X_x64.msi /qn`. Uninstalling removes the
+local enrollment; the device stays in FleetWarden until you delete it. The
+wizard is in English for now.
+
 ## Enrollment tokens
 
 A token belongs to one device group. It can expire and can be revoked under

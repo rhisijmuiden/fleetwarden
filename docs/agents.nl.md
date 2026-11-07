@@ -31,6 +31,28 @@ hetzelfde via debconf. Unattended op Linux:
 `sudo FW_SERVER=https://em.voorbeeld.nl FW_TOKEN=TOKEN apt install ./fleetwarden-agent_X_amd64.deb`,
 of achteraf `sudo fleetwarden-agent configure --server ... --token ...`.
 
+## Windows-installer (MSI)
+
+De MSI installeert `C:\Program Files\FleetWarden Agent\fleetwarden-agent.exe`
+en de service `FleetWardenAgent` (start automatisch, herstart na een crash).
+Start je hem zonder instellingen, dan vraagt de wizard om het serveradres, het
+enrollment-token en eventueel een apparaatgroep; **Test connection** controleert
+of er een FleetWarden-server antwoordt en toont het TLS-certificaat. Een
+download via **Add client** bevat het serveradres en het token al (de server
+zet ze erin met `msitools`, dat het serverpakket aanbeveelt).
+
+| Property | Betekenis |
+| --- | --- |
+| `SERVER` | Serveradres, bijvoorbeeld `https://em.voorbeeld.nl` |
+| `TOKEN` | Enrollment-token; komt niet in het installatielog |
+| `GROUP` | Naam van de apparaatgroep (optioneel, gaat voor de groep van het token) |
+| `FORCEENROLL=1` | Een bestaande inschrijving op deze machine vervangen |
+
+Zonder `SERVER` en `TOKEN` blijft een bestaande configuratie staan, dus
+bijwerken is gewoon `msiexec /i fleetwarden-agent_X_x64.msi /qn`. Verwijderen
+wist de lokale inschrijving; het apparaat blijft in FleetWarden staan tot je het
+verwijdert. De wizard is voorlopig alleen in het Engels.
+
 ## Enrollment-tokens
 
 Een token hoort bij één apparaatgroep. Het kan verlopen en is in te trekken
