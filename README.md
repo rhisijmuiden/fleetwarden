@@ -9,7 +9,7 @@ and ManageEngine Endpoint Central. It runs entirely on your own Debian 13
 server and manages Windows workstations, Windows servers, Debian machines and
 Proxmox VE nodes through a lightweight agent.
 
-> **Status:** early development (phase 1: sign-in, roles, mail, updates from the UI). Not ready for production use.
+> **Status:** early development (phase 2: sign-in, roles, mail, updates from the UI, backup and restore). Not ready for production use.
 
 ## Planned features
 
@@ -43,6 +43,7 @@ your own password at the first sign-in. Lost it? Run
 
 - Optional Microsoft Entra ID sign-in: [docs/entra-sso.md](docs/entra-sso.md)
 - Updates and channels: [docs/updates.md](docs/updates.md)
+- Backup and restore: [docs/backup.md](docs/backup.md)
 
 ## Development
 

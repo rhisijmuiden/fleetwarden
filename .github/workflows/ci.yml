@@ -58,6 +58,27 @@ jobs:
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; echo "Run gofmt -w ."; exit 1; }
       - run: go vet ./...
+      - name: PostgreSQL 17 client tools (pg_dump must match the server)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
+      - name: FTP and FTPS test servers
+        run: |
+          pip install --quiet pyftpdlib pyopenssl
+          openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj /CN=localhost -keyout "$RUNNER_TEMP/ftp.key" -out "$RUNNER_TEMP/ftp.crt"
+          cat "$RUNNER_TEMP/ftp.key" "$RUNNER_TEMP/ftp.crt" > "$RUNNER_TEMP/ftp.pem"
+          mkdir -p "$RUNNER_TEMP/ftp" "$RUNNER_TEMP/ftps"
+          setsid nohup python3 tests/ftpserver.py "$RUNNER_TEMP/ftp" 2121 > "$RUNNER_TEMP/ftp.log" 2>&1 < /dev/null &
+          setsid nohup python3 tests/ftpserver.py "$RUNNER_TEMP/ftps" 2990 "$RUNNER_TEMP/ftp.pem" > "$RUNNER_TEMP/ftps.log" 2>&1 < /dev/null &
+          for p in 2121 2990; do
+            for _ in $(seq 30); do (exec 3<>/dev/tcp/127.0.0.1/$p) 2>/dev/null && break; sleep 1; done
+          done
+          echo "FW_TEST_FTP_ADDR=127.0.0.1:2121" >> "$GITHUB_ENV"
+          echo "FW_TEST_FTPS_ADDR=127.0.0.1:2990" >> "$GITHUB_ENV"
       - run: go test -race ./...
       - name: Build server and agents
         run: make server agents VERSION=${{ needs.meta.outputs.version }} CHANNEL=${{ needs.meta.outputs.channel }}

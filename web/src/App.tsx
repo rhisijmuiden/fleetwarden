@@ -17,6 +17,7 @@ import { Mail } from "./pages/admin/Mail";
 import { Branding } from "./pages/admin/Branding";
 import { Settings } from "./pages/admin/Settings";
 import { Audit } from "./pages/admin/Audit";
+import { Backup } from "./pages/admin/backup/Backup";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
@@ -25,6 +26,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/admin/users", perm: "users.manage", element: <Users /> },
   { path: "/admin/authentication", perm: "settings.manage", element: <Authentication /> },
   { path: "/admin/mail", perm: "settings.manage", element: <Mail /> },
+  { path: "/admin/backup", perm: "backup.manage", element: <Backup /> },
   { path: "/admin/branding", perm: "settings.manage", element: <Branding /> },
   { path: "/admin/audit", perm: "audit.view", element: <Audit /> },
   { path: "/admin/settings", perm: "settings.manage", element: <Settings /> },
@@ -35,7 +37,8 @@ export function App() {
   const location = useLocation();
   const { t } = useTranslation();
   const { theme, toggle } = useTheme();
-  const [collapsed, setCollapsed] = useState(false);
+  // Start with the narrow menu on phones so the page keeps its width.
+  const [collapsed, setCollapsed] = useState(() => window.matchMedia("(max-width: 767px)").matches);
   const [infoOpen, setInfoOpen] = useState(false);
 
   if (loading) return <Spinner />;

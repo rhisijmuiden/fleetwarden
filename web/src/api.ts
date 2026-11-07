@@ -8,7 +8,8 @@ export type Permission =
   | "users.manage"
   | "settings.manage"
   | "audit.view"
-  | "system.update";
+  | "system.update"
+  | "backup.manage";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -128,6 +129,82 @@ export type UpdateView = {
   status: UpdateStatus;
   pending: boolean;
   checkedAt: string;
+};
+
+export type LocationType = "local" | "ftp" | "ftps" | "sftp" | "onedrive";
+
+export type BackupRun = {
+  id: number;
+  locationId: number | null;
+  locationName: string;
+  trigger: "schedule" | "manual";
+  actor: string;
+  kind: "" | "auto" | "full" | "incremental";
+  chain: string;
+  snapshot: string;
+  status: "running" | "succeeded" | "failed";
+  startedAt: string;
+  finishedAt: string | null;
+  sizeBytes: number;
+  uploadedBytes: number;
+  error: string;
+};
+
+// A location as the server returns it: secrets are never sent back.
+export type BackupLocation = {
+  id: number;
+  name: string;
+  enabled: boolean;
+  type: LocationType;
+  host: string;
+  port: number;
+  username: string;
+  implicitTls: boolean;
+  tlsFingerprint: string;
+  hostKey: string;
+  hostKeyFingerprint: string;
+  sshAuth: "password" | "key";
+  publicKey: string;
+  tenantId: string;
+  clientId: string;
+  driveUser: string;
+  path: string;
+  passwordSet: boolean;
+  clientSecretSet: boolean;
+  lastRun: BackupRun | null;
+  createdAt: string;
+};
+
+export type LocationTest = {
+  ok: boolean;
+  error?: string;
+  trust?: { kind: "ssh" | "tls"; fingerprint: string; value: string; mismatch: boolean };
+  repository: "none" | "ok" | "wrong_passphrase" | "unknown";
+  snapshots: number;
+};
+
+export type BackupSchedule = { enabled: boolean; intervalHours: number; startTime: string; fullEveryDays: number; keepFull: number };
+
+export type BackupConfig = { passphraseSet: boolean; schedule: BackupSchedule; nextRun: string | null; timeZone: string; instanceId: string };
+
+export type LocationProgress = { name: string; state: "waiting" | "running" | "succeeded" | "failed"; done: number; total: number; kind: string; error?: string };
+
+export type BackupProgress = { running: boolean; trigger: string; startedAt: string; phase: "dump" | "upload" | "done" | ""; locations: Record<string, LocationProgress> | null };
+
+export type Snapshot = { chain: string; id: string; kind: "full" | "incremental"; time: string; instance: string };
+
+export type SnapshotDetails = Snapshot & { host: string; version: string; size: number; chunks: number; newChunks: number; restorable: boolean };
+
+export type RestoreStatus = { id: string; state: "applying" | "completed" | "failed"; message: string; snapshot: string; requestedBy: string; startedAt: string; updatedAt: string };
+
+export type RestoreView = {
+  state: "" | "preparing" | "requested" | "failed";
+  message: string;
+  snapshot: string;
+  done: number;
+  total: number;
+  pending: boolean;
+  last: RestoreStatus | null;
 };
 
 export class ApiError extends Error {

@@ -35,6 +35,10 @@ contents:
     dst: /lib/systemd/system/fleetwarden-update.service
   - src: packaging/systemd/fleetwarden-update.path
     dst: /lib/systemd/system/fleetwarden-update.path
+  - src: packaging/systemd/fleetwarden-restore.service
+    dst: /lib/systemd/system/fleetwarden-restore.service
+  - src: packaging/systemd/fleetwarden-restore.path
+    dst: /lib/systemd/system/fleetwarden-restore.path
   - src: packaging/updater/fleetwarden-update
     dst: /usr/lib/fleetwarden/fleetwarden-update
     file_info: { mode: 0755 }
