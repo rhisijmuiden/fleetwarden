@@ -47,6 +47,7 @@ your own password at the first sign-in. Lost it? Run
 - Agents, Add client and enrollment: [docs/agents.md](docs/agents.md)
 - Patch management: [docs/patching.md](docs/patching.md)
 - Software deployment: [docs/software.md](docs/software.md)
+- Remote control: [docs/remote.md](docs/remote.md)
 
 ## Development
 

@@ -25,6 +25,13 @@ import (
 //	tray  -> agent  {"type":"apps-closed","id":"browsers-7","closed":["chrome"]}
 //	agent -> tray   {"type":"launch-apps","id":"browsers-7"}
 //
+// Remote control: a "remote" prompt is answered with allow true or false;
+// while a session runs every tray shows a banner whose button ends it.
+//
+//	agent -> tray   {"type":"remote-active","id":"<session>","prompt":{...Prompt}}
+//	tray  -> agent  {"type":"remote-stop","id":"<session>"}
+//	agent -> tray   {"type":"remote-ended","id":"<session>"}
+//
 // Every connected tray shows the prompt; the first answer counts. A tray
 // that connects while a prompt is open gets it too.
 type trayMsg struct {
@@ -32,6 +39,7 @@ type trayMsg struct {
 	Prompt   *Prompt `json:"prompt,omitempty"`
 	ID       string  `json:"id,omitempty"`
 	Postpone bool    `json:"postpone,omitempty"`
+	Allow    bool    `json:"allow,omitempty"`
 	Lang     string  `json:"lang,omitempty"`
 	// close-apps, apps-closed
 	Apps           []CloseApp `json:"apps,omitempty"`
@@ -60,6 +68,13 @@ type trayHub struct {
 	answers  chan trayMsg
 	closed   chan trayMsg
 	launched map[uint32]time.Time
+	// remote holds the running remote sessions with a banner.
+	remote map[string]remoteBanner
+}
+
+type remoteBanner struct {
+	prompt Prompt
+	stop   func()
 }
 
 type trayClient struct {
@@ -72,7 +87,7 @@ func newTrayHub(log *slog.Logger) *trayHub {
 	return &trayHub{
 		log: log, joinWait: 30 * time.Second, grace: 15 * time.Second,
 		clients: map[*trayClient]struct{}{}, joined: make(chan struct{}),
-		answers: make(chan trayMsg, 16), closed: make(chan trayMsg, 16), launched: map[uint32]time.Time{},
+		answers: make(chan trayMsg, 16), closed: make(chan trayMsg, 16), launched: map[uint32]time.Time{}, remote: map[string]remoteBanner{},
 	}
 }
 
@@ -139,15 +154,31 @@ func (h *trayHub) handle(conn net.Conn) {
 			cur := h.current
 			close(h.joined)
 			h.joined = make(chan struct{})
+			banners := make([]trayMsg, 0, len(h.remote))
+			for id, b := range h.remote {
+				banners = append(banners, trayMsg{Type: "remote-active", ID: id, Prompt: &b.prompt})
+			}
 			h.mu.Unlock()
 			if cur != nil {
 				_ = c.send(trayMsg{Type: "prompt", Prompt: cur})
+			}
+			for _, b := range banners {
+				_ = c.send(b)
 			}
 		case "answer":
 			if registered {
 				select {
 				case h.answers <- m:
 				default:
+				}
+			}
+		case "remote-stop":
+			if registered {
+				h.mu.Lock()
+				b, ok := h.remote[m.ID]
+				h.mu.Unlock()
+				if ok && b.stop != nil {
+					b.stop()
 				}
 			}
 		case "apps-closed":
@@ -218,7 +249,7 @@ func (h *trayHub) Ask(ctx context.Context, p Prompt) (Answer, error) {
 		case <-joined:
 			t.Stop()
 		case <-t.C:
-			return Answer{}, ErrNoUser
+			return Answer{}, ErrNoTray
 		case <-ctx.Done():
 			t.Stop()
 			return Answer{}, ctx.Err()
@@ -250,7 +281,7 @@ drain: // stale answers of an earlier prompt
 		select {
 		case m := <-h.answers:
 			if m.ID == p.ID {
-				return Answer{Postpone: m.Postpone && p.CanPostpone}, nil
+				return Answer{Postpone: m.Postpone && p.CanPostpone, Answered: true, Allow: m.Allow}, nil
 			}
 		case <-t.C:
 			return Answer{}, nil
@@ -317,5 +348,33 @@ func (h *trayHub) LaunchApps(_ context.Context, id string) {
 	clients, _ := h.snapshot()
 	for _, c := range clients {
 		_ = c.send(trayMsg{Type: "launch-apps", ID: id})
+	}
+}
+
+// RemoteActive shows a banner about a running remote session on every tray;
+// its button calls stop.
+func (h *trayHub) RemoteActive(id string, p Prompt, stop func()) {
+	h.launchMissing()
+	h.mu.Lock()
+	h.remote[id] = remoteBanner{prompt: p, stop: stop}
+	h.mu.Unlock()
+	clients, _ := h.snapshot()
+	for _, c := range clients {
+		_ = c.send(trayMsg{Type: "remote-active", ID: id, Prompt: &p})
+	}
+}
+
+// RemoteEnded removes the banner of a session.
+func (h *trayHub) RemoteEnded(id string) {
+	h.mu.Lock()
+	_, ok := h.remote[id]
+	delete(h.remote, id)
+	h.mu.Unlock()
+	if !ok {
+		return
+	}
+	clients, _ := h.snapshot()
+	for _, c := range clients {
+		_ = c.send(trayMsg{Type: "remote-ended", ID: id})
 	}
 }

@@ -12,6 +12,9 @@
 //	                                           check a server address (installer wizard)
 //	fleetwarden-agent forget                   remove the enrollment (uninstall)
 //	fleetwarden-agent update-helper --plan F   install a self-update (started by the agent)
+//	fleetwarden-agent remote-helper --pipe P   the remote desktop helper (started by the agent)
+//	fleetwarden-agent remote-test --screenshot F.png
+//	                                           capture the screen as a remote session would
 //	fleetwarden-agent -version
 package main
 
@@ -44,6 +47,13 @@ func main() {
 	// The update helper is started by the service but is not one itself.
 	if flag.Arg(0) == "update-helper" {
 		if err := updateHelper(flag.Args()[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "fleetwarden-agent:", err)
+			os.Exit(1)
+		}
+		return
+	}
+	if flag.Arg(0) == "remote-helper" {
+		if err := remoteHelper(flag.Args()[1:]); err != nil {
 			fmt.Fprintln(os.Stderr, "fleetwarden-agent:", err)
 			os.Exit(1)
 		}
@@ -92,6 +102,8 @@ func main() {
 		err = testConnection(args)
 	case "forget":
 		err = forget()
+	case "remote-test":
+		err = remoteTest(args)
 	default:
 		err = fmt.Errorf("unknown command %q", cmd)
 	}
@@ -238,4 +250,19 @@ func updateHelper(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 	return agent.RunUpdateHelper(ctx, *plan, slog.New(slog.NewTextHandler(logf, nil)))
+}
+
+func remoteTest(args []string) error {
+	fs := flag.NewFlagSet("remote-test", flag.ContinueOnError)
+	shot := fs.String("screenshot", "remote-test.png", "where to save the captured screen")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	info, err := agent.RemoteSnapshot(ctx, slog.New(slog.NewTextHandler(os.Stderr, nil)), *shot)
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(info)
+	return err
 }

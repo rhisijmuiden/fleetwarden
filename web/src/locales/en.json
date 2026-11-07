@@ -207,7 +207,11 @@
     "unknown_package": "The package no longer exists.",
     "unsupported_file": "Only .msi, .exe and .deb files can be uploaded.",
     "upload_failed": "The upload failed. Try again.",
-    "no_browsers": "Pick at least one browser."
+    "no_browsers": "Pick at least one browser.",
+    "remote_unsupported": "Remote control is available for Windows devices.",
+    "remote_busy": "This device already has two remote sessions.",
+    "remote_viewer_connected": "This session is already open in another tab.",
+    "invalid_consent": "Choose a valid remote control setting."
   },
   "login": {
     "title": "Sign in",
@@ -325,7 +329,8 @@
     "patches_manage": "Manage patch policies",
     "patches_approve": "Approve or decline updates",
     "software_manage": "Manage the software library",
-    "software_deploy": "Deploy and uninstall software"
+    "software_deploy": "Deploy and uninstall software",
+    "remote_control": "Control devices remotely"
   },
   "auth": {
     "title": "Authentication",
@@ -914,7 +919,20 @@
     "windowHint": "Server time. A window like 22:00–06:00 runs past midnight.",
     "patchPolicy": "Patch policy",
     "noPatchPolicy": "Not patched",
-    "patchPolicyHint": "When and how updates are installed on the devices in this group."
+    "patchPolicyHint": "When and how updates are installed on the devices in this group.",
+    "remoteConsent": "Remote control",
+    "consent": {
+      "auto": "Automatic (servers direct, workstations ask)",
+      "ask": "Ask the user",
+      "notify": "Notify the user",
+      "direct": "Take over directly"
+    },
+    "consentHint": {
+      "auto": "Servers and Proxmox nodes are taken over directly; on workstations the logged-on user is asked first.",
+      "ask": "The logged-on user must allow each session within 30 seconds. Without a logged-on user the session starts directly.",
+      "notify": "The session starts directly; the user sees a bar that someone is connected, with a button to end it.",
+      "direct": "The session starts without a notice, for servers and unattended computers."
+    }
   },
   "agentUpdates": {
     "title": "Agent updates",
@@ -1430,5 +1448,135 @@
     "noOutput": "No output.",
     "browsers": "Browsers",
     "browsersLatest": "Newest version from winget"
+  },
+  "remote": {
+    "title": "Remote control",
+    "subtitle": "See and control the screen of a Windows computer or server from your browser, also on the sign-in screen and UAC prompts.",
+    "connect": "Remote control",
+    "connectHint": "Opens the remote screen in a new tab.",
+    "windowsOnly": "Remote control is available for Windows devices. A terminal for Linux follows.",
+    "connectTitle": "Connect",
+    "connectText": "Online Windows devices. The session opens in a new tab.",
+    "searchPlaceholder": "Search by name, user or IP address",
+    "noDevices": "No online Windows device matches.",
+    "activeTitle": "Active sessions",
+    "historyTitle": "Session log",
+    "historyText": "Every session with who started it, how long it lasted and how it ended. Kept for 400 days.",
+    "historyEmpty": "No remote sessions yet.",
+    "allDevices": "All devices",
+    "cols": {
+      "device": "Device",
+      "operator": "By",
+      "started": "Started",
+      "duration": "Duration",
+      "consent": "Consent",
+      "result": "Result"
+    },
+    "states": {
+      "starting": "Starting",
+      "pending": "Contacting the agent",
+      "consent": "Waiting for the user",
+      "connecting": "Connecting",
+      "active": "Connected",
+      "ended": "Ended",
+      "denied": "Declined",
+      "failed": "Failed"
+    },
+    "waiting": {
+      "starting": "Starting the session…",
+      "pending": "Contacting {{host}}…",
+      "consent": "Waiting for the user to allow the session",
+      "connecting": "Connecting to the screen…",
+      "active": "Receiving the screen…"
+    },
+    "waitingHint": "This usually takes a few seconds.",
+    "consentWait": "The user sees a request on their screen. It is declined automatically in {{seconds}} seconds.",
+    "finished": {
+      "ended": "Session ended",
+      "denied": "The user declined the session",
+      "failed": "The session could not start"
+    },
+    "reasons": {
+      "user_denied": "The user chose Deny.",
+      "no_answer": "The user did not answer in time.",
+      "consent_unavailable": "The user is signed in, but the request could not be shown on their screen. Try again in a moment, or change the group to 'notify'.",
+      "user_ended": "The user ended the session from the bar at the top of their screen.",
+      "operator_ended": "You ended the session.",
+      "ended_by_admin": "Another administrator ended the session.",
+      "viewer_closed": "The viewer was closed.",
+      "viewer_timeout": "The viewer did not open in time.",
+      "viewer_failed": "The viewer could not connect.",
+      "agent_timeout": "The agent did not connect in time.",
+      "agent_closed": "The connection to the agent was lost.",
+      "agent_stopped": "The agent stopped.",
+      "closed": "The connection was closed.",
+      "connection_lost": "The connection to the server was lost.",
+      "device_offline": "The device is offline.",
+      "unsupported": "This device does not support remote control.",
+      "busy": "The device already has the maximum number of sessions.",
+      "connect_failed": "The agent could not reach the server for the session. Check that the reverse proxy passes WebSockets.",
+      "helper_failed": "The screen of this computer could not be captured.",
+      "bad_message": "A message failed its integrity check; the session was stopped.",
+      "bad_key": "The session keys did not match.",
+      "server_restart": "The server restarted.",
+      "server_stopping": "The server is stopping.",
+      "internal": "Something went wrong on the device.",
+      "unknown": "The session ended."
+    },
+    "closeWindow": "Close tab",
+    "reconnect": "Reconnect",
+    "end": "End session",
+    "screen": "Screen of {{host}}",
+    "secureDesktop": "Secure desktop",
+    "secureDesktopHint": "The sign-in screen, the lock screen or a UAC prompt is shown.",
+    "consentShort": {
+      "direct": "Direct",
+      "notify": "User notified",
+      "ask": "User allowed"
+    },
+    "consentHint": {
+      "direct": "Taken over directly.",
+      "notify": "The user sees a bar that you are connected and can end the session.",
+      "ask": "The user allowed this session and can end it from the bar on their screen."
+    },
+    "monitor": "Monitor",
+    "monitorN": "Monitor {{n}}",
+    "primary": "main",
+    "allMonitors": "All monitors",
+    "quality": "Image quality",
+    "qualities": {
+      "low": "Fast (low quality)",
+      "medium": "Balanced",
+      "high": "Sharp (more data)"
+    },
+    "cad": "Send Ctrl+Alt+Del",
+    "keys": "Special keys",
+    "combos": {
+      "altTab": "Alt+Tab",
+      "win": "Windows key",
+      "winR": "Win+R (Run)",
+      "winL": "Win+L (lock)",
+      "ctrlEsc": "Ctrl+Esc (Start)",
+      "ctrlShiftEsc": "Task Manager",
+      "altF4": "Alt+F4",
+      "printScreen": "Print Screen"
+    },
+    "clipboard": "Clipboard",
+    "fromRemote": "Copied on the remote computer",
+    "fromRemoteEmpty": "Copy something on the remote computer and it appears here (and on your own clipboard, when the browser allows it).",
+    "toRemote": "Text for the remote computer",
+    "toRemoteHint": "Ctrl+V in the viewer also pastes your own clipboard. 'Type it' enters the text as keystrokes, for fields that do not accept pasting (such as a sign-in screen).",
+    "typeIt": "Type it",
+    "sendClipboard": "Put on clipboard",
+    "clipboardSent": "Placed on the remote clipboard.",
+    "refresh": "Refresh the screen",
+    "fit": "Fit to window",
+    "actualSize": "Actual size",
+    "fullscreen": "Full screen",
+    "exitFullscreen": "Exit full screen",
+    "notices": {
+      "cad_failed": "Ctrl+Alt+Del could not be sent.",
+      "helper_restarting": "The screen is reconnecting (the user may be signing in or out)…"
+    }
   }
 }

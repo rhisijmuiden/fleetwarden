@@ -29,6 +29,9 @@ func (s *Server) RunWorkers(ctx context.Context) {
 	if err := s.st.FailInterruptedBackupRuns(ctx); err != nil {
 		s.log.Warn("backup history", "err", err)
 	}
+	if err := s.st.EndInterruptedRemoteSessions(ctx); err != nil {
+		s.log.Warn("remote session log", "err", err)
+	}
 	s.bgWG.Add(1)
 	go s.agentReleaseLoop(s.bgCtx)
 	mailTick := time.NewTicker(15 * time.Second)
@@ -52,6 +55,9 @@ func (s *Server) RunWorkers(ctx context.Context) {
 		case <-houseTick.C:
 			if err := s.st.PurgeSessions(ctx, sessionIdle); err != nil {
 				s.log.Warn("purge sessions", "err", err)
+			}
+			if err := s.st.PurgeRemoteSessions(ctx, remoteLogDays*24*time.Hour); err != nil {
+				s.log.Warn("purge remote session log", "err", err)
 			}
 			if err := s.st.PurgeMail(ctx, 90*24*time.Hour); err != nil {
 				s.log.Warn("purge mail log", "err", err)

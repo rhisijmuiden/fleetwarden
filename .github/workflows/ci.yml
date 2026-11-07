@@ -143,6 +143,10 @@ jobs:
           FW_TRAY_EXE: ${{ github.workspace }}\packaging\windows\Tray\bin\Release\net472\FleetWardenTray.exe
           FW_TEST_SOFTWARE: "1"
         run: go test ./internal/agent/ -run 'Tray|WUA|Software|Browser' -count=1 -v -timeout 45m
+      - name: Remote desktop on Windows (screen capture, mouse, keyboard, clipboard)
+        env:
+          FW_REMOTE_SHOT: ${{ runner.temp }}\tray
+        run: go test ./internal/remote/ -count=1 -v -timeout 5m
       - name: Build a newer MSI for the self-update test
         run: ./packaging/windows/build-msi.ps1 -Version 9.9.9 -AgentExe dist/windows-amd64/fleetwarden-agent.exe -OutDir dist/msi-next
       - name: Install, check, self-update and uninstall

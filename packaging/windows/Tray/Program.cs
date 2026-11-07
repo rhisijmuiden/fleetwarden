@@ -19,7 +19,7 @@ namespace FleetWarden.Tray
     public static class Program
     {
         // FleetWardenTray.exe                 runs in the tray (started at logon and by the agent)
-        // FleetWardenTray.exe --demo [install|reboot|browser] [--lang en|nl] [--dark] [--screenshot file.png]
+        // FleetWardenTray.exe --demo [install|reboot|browser|remote|banner] [--lang en|nl] [--dark] [--screenshot file.png]
         //                                     shows an example pop-up, or saves it as an image
         // FleetWardenTray.exe --pipe name     uses another pipe (tests); its server need not be a service
         [STAThread]
@@ -57,13 +57,23 @@ namespace FleetWarden.Tray
 
         static int Demo(Application app, string kind, string screenshot)
         {
+            var remote = kind == Prompt.Remote || kind == "banner";
             var p = new Prompt
             {
-                Id = "demo", Kind = kind == Prompt.Reboot || kind == Prompt.Browser ? kind : Prompt.Install, Updates = 4,
-                CanPostpone = true, PostponesLeft = 2, PostponeMinutes = 60, CountdownSeconds = kind == Prompt.Browser ? 60 : 300, ProductName = "FleetWarden",
+                Id = "demo", Kind = kind == Prompt.Reboot || kind == Prompt.Browser || remote ? (remote ? Prompt.Remote : kind) : Prompt.Install, Updates = 4,
+                CanPostpone = !remote, PostponesLeft = 2, PostponeMinutes = 60, CountdownSeconds = kind == Prompt.Browser ? 60 : remote ? 30 : 300, ProductName = "FleetWarden",
                 Apps = kind == Prompt.Browser ? new[] { "Google Chrome", "Microsoft Edge" } : null,
+                Operator = remote ? "Reinder" : null,
             };
-            var w = new PromptWindow(p, postpone => Console.WriteLine(postpone ? "postpone" : "now"), animate: screenshot == null);
+            Window w;
+            if (kind == "banner")
+            {
+                RemoteBanner b = null;
+                b = new RemoteBanner("demo", p, () => { Console.WriteLine("end"); b.CloseQuietly(); });
+                w = b;
+            }
+            else
+                w = new PromptWindow(p, postpone => Console.WriteLine(postpone ? "postpone" : "now"), animate: screenshot == null);
             w.Closed += (s, e) => app.Shutdown();
             var code = 0;
             if (screenshot != null)
@@ -72,7 +82,8 @@ namespace FleetWarden.Tray
                 {
                     try { Save(w, screenshot); }
                     catch (Exception ex) { Console.Error.WriteLine(ex); code = 1; }
-                    w.CloseQuietly();
+                    if (w is PromptWindow pw) pw.CloseQuietly();
+                    else ((RemoteBanner)w).CloseQuietly();
                 }));
             }
             w.Show();
@@ -106,6 +117,7 @@ namespace FleetWarden.Tray
         readonly AppCloser closer = new AppCloser();
         StreamWriter writer;
         PromptWindow window;
+        readonly System.Collections.Generic.Dictionary<string, RemoteBanner> banners = new System.Collections.Generic.Dictionary<string, RemoteBanner>();
         string product = "FleetWarden", accent;
         bool connected;
 
@@ -158,6 +170,8 @@ namespace FleetWarden.Tray
                     connected = false;
                     window?.CloseQuietly();
                     window = null;
+                    foreach (var b in banners.Values) b.CloseQuietly();
+                    banners.Clear();
                     UpdateStatus();
                 }));
                 Thread.Sleep(TimeSpan.FromSeconds(5));
@@ -191,6 +205,20 @@ namespace FleetWarden.Tray
                         Send(new TrayMessage { Type = "apps-closed", Id = m.Id, Closed = keys });
                     });
                     break;
+                case "remote-active" when m.Prompt != null && !string.IsNullOrEmpty(m.Id):
+                    ui.BeginInvoke(new Action(() => ShowBanner(m.Id, m.Prompt)));
+                    break;
+                case "remote-ended":
+                    ui.BeginInvoke(new Action(() =>
+                    {
+                        if (banners.TryGetValue(m.Id ?? "", out var b))
+                        {
+                            banners.Remove(m.Id);
+                            b.CloseQuietly();
+                            UpdateStatus();
+                        }
+                    }));
+                    break;
                 case "launch-apps":
                     Task.Run(() => closer.Launch(m.Id));
                     break;
@@ -223,12 +251,31 @@ namespace FleetWarden.Tray
             PromptWindow w = null;
             w = new PromptWindow(p, postpone =>
             {
-                Task.Run(() => Send(new TrayMessage { Type = "answer", Id = p.Id, Postpone = postpone }));
+                // A remote prompt: "postpone" is the Deny button.
+                var answer = p.Kind == Prompt.Remote
+                    ? new TrayMessage { Type = "answer", Id = p.Id, Allow = !postpone }
+                    : new TrayMessage { Type = "answer", Id = p.Id, Postpone = postpone };
+                Task.Run(() => Send(answer));
                 if (window == w) window = null;
                 UpdateStatus();
             });
+            w.Closed += (s, e) =>
+            {
+                if (window != w) return;
+                window = null;
+                UpdateStatus();
+            };
             window = w;
             w.Show();
+            UpdateStatus();
+        }
+
+        void ShowBanner(string id, Prompt p)
+        {
+            if (banners.ContainsKey(id)) return;
+            var b = new RemoteBanner(id, p, () => Task.Run(() => Send(new TrayMessage { Type = "remote-stop", Id = id })));
+            banners[id] = b;
+            b.Show();
             UpdateStatus();
         }
 
@@ -244,7 +291,10 @@ namespace FleetWarden.Tray
 
         void UpdateStatus()
         {
-            var text = !connected ? Strings.TrayDisconnected : window != null ? Strings.TrayWaiting(window.Prompt) : Strings.TrayConnected;
+            RemoteBanner banner = null;
+            foreach (var b in banners.Values) { banner = b; break; }
+            var text = !connected ? Strings.TrayDisconnected : window != null ? Strings.TrayWaiting(window.Prompt)
+                : banner != null ? Strings.TrayRemote(banner.Prompt) : Strings.TrayConnected;
             status.Text = text;
             show.Visible = window != null;
             var tip = product + " – " + text;

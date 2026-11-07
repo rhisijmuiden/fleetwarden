@@ -10,6 +10,7 @@ import { DevicePatchesTab } from "../patches/DevicePatches";
 import { DeployDialog, type DeployTarget } from "../software/DeployDialog";
 import { JobDialog, JobsTable } from "../software/Deployments";
 import { SourceBadge } from "../software/util";
+import { RemoteButton } from "../remote/Remote";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
 type Tab = "overview" | "software" | "updates" | "notes";
@@ -65,30 +66,35 @@ export function DeviceDetail() {
             </div>
           </div>
         </div>
-        {manage && (
+        {(manage || can("remote.control")) && (
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              icon={<RefreshCw className="size-4" />}
-              disabled={!device.online}
-              title={!device.online ? t("devices.offlineHint") : undefined}
-              onClick={() =>
-                post(`/devices/${device.id}/inventory`)
-                  .then(() => {
-                    setNotice(t("devices.inventoryRequested"));
-                    setTimeout(load, 5000);
-                  })
-                  .catch((e) => setError(errorText(e)))
-              }
-            >
-              {t("devices.refreshInventory")}
-            </Button>
-            <Button variant="secondary" icon={<FolderInput className="size-4" />} onClick={() => setMoving(true)}>
-              {t("devices.moveTo")}
-            </Button>
-            <Button variant="ghost" icon={<Trash2 className="size-4" />} onClick={() => setDeleting(true)}>
-              {t("common.delete")}
-            </Button>
+            {can("remote.control") && <RemoteButton device={device} />}
+            {manage && (
+              <>
+                <Button
+                  variant="secondary"
+                  icon={<RefreshCw className="size-4" />}
+                  disabled={!device.online}
+                  title={!device.online ? t("devices.offlineHint") : undefined}
+                  onClick={() =>
+                    post(`/devices/${device.id}/inventory`)
+                      .then(() => {
+                        setNotice(t("devices.inventoryRequested"));
+                        setTimeout(load, 5000);
+                      })
+                      .catch((e) => setError(errorText(e)))
+                  }
+                >
+                  {t("devices.refreshInventory")}
+                </Button>
+                <Button variant="secondary" icon={<FolderInput className="size-4" />} onClick={() => setMoving(true)}>
+                  {t("devices.moveTo")}
+                </Button>
+                <Button variant="ghost" icon={<Trash2 className="size-4" />} onClick={() => setDeleting(true)}>
+                  {t("common.delete")}
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -398,11 +404,24 @@ function SoftwareTab({ device }: { device: Device }) {
   );
 }
 
-function PackagePicker({ open, device, onClose, onPick }: { open: boolean; device: Device; onClose: () => void; onPick: (p: PackagesView["packages"][number]) => void }) {
+function PackagePicker({
+  open,
+  device,
+  onClose,
+  onPick,
+}: {
+  open: boolean;
+  device: Device;
+  onClose: () => void;
+  onPick: (p: PackagesView["packages"][number]) => void;
+}) {
   const { t } = useTranslation();
   const [view, setView] = useState<PackagesView | null>(null);
   useEffect(() => {
-    if (open) get<PackagesView>("/software/packages").then(setView).catch(() => setView(null));
+    if (open)
+      get<PackagesView>("/software/packages")
+        .then(setView)
+        .catch(() => setView(null));
   }, [open]);
   const pkgs = (view?.packages ?? []).filter((p) => p.platform === device.platform);
   return (

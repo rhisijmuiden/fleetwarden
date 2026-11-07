@@ -25,6 +25,8 @@ import { AgentUpdates } from "./pages/admin/AgentUpdates";
 import { Patches } from "./pages/patches/Patches";
 import { Software } from "./pages/software/Software";
 import { DeploymentDetail, Deployments } from "./pages/software/Deployments";
+import { Remote } from "./pages/remote/Remote";
+import { RemoteViewer } from "./pages/remote/Viewer";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
@@ -37,6 +39,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/software", perm: "devices.view", element: <Software /> },
   { path: "/deployments", perm: "devices.view", element: <Deployments /> },
   { path: "/deployments/:id", perm: "devices.view", element: <DeploymentDetail /> },
+  { path: "/remote", perm: "remote.control", element: <Remote /> },
   { path: "/admin/users", perm: "users.manage", element: <Users /> },
   { path: "/admin/authentication", perm: "settings.manage", element: <Authentication /> },
   { path: "/admin/mail", perm: "settings.manage", element: <Mail /> },
@@ -62,6 +65,14 @@ export function App() {
   }
   if (me.mustChangePassword) return <ForcePasswordChange />;
   if (location.pathname === "/login") return <Navigate to="/" replace />;
+  // The remote control viewer fills its own tab, without the menu.
+  if (location.pathname.startsWith("/remote/connect/") && can("remote.control")) {
+    return (
+      <Routes>
+        <Route path="/remote/connect/:deviceId" element={<RemoteViewer />} />
+      </Routes>
+    );
+  }
 
   const planned = navigation.flatMap((g) => g.items).filter((i) => i.phase !== undefined && (!i.perm || can(i.perm)));
   return (

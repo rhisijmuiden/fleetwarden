@@ -15,7 +15,8 @@ export type Permission =
   | "patches.manage"
   | "patches.approve"
   | "software.manage"
-  | "software.deploy";
+  | "software.deploy"
+  | "remote.control";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -84,12 +85,37 @@ export type DeviceGroup = {
   windowStart: number | null;
   windowEnd: number | null;
   patchPolicyId: number | null;
+  remoteConsent: RemoteConsentSetting;
   createdAt: string;
   deviceCount: number;
   onlineCount: number;
 };
 
 export type Platform = "windows" | "linux";
+
+export type RemoteConsentSetting = "auto" | "direct" | "notify" | "ask";
+export type RemoteState = "pending" | "consent" | "connecting" | "active" | "ended" | "denied" | "failed";
+
+export type RemoteSession = {
+  id: string;
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  userId: number | null;
+  operator: string;
+  kind: "desktop" | "terminal";
+  consent: "direct" | "notify" | "ask";
+  state: RemoteState;
+  reason: string;
+  remoteIp: string;
+  createdAt: string;
+  connectedAt: string | null;
+  endedAt: string | null;
+  bytesDown: number;
+  bytesUp: number;
+};
+
+export type RemoteSessionList = { items: RemoteSession[]; total: number };
 
 export type Disk = { name: string; model: string; sizeBytes: number; media: string };
 export type Volume = { mount: string; fileSystem: string; sizeBytes: number; freeBytes: number };
@@ -483,15 +509,36 @@ export type BackupSchedule = { enabled: boolean; intervalHours: number; startTim
 
 export type BackupConfig = { passphraseSet: boolean; schedule: BackupSchedule; nextRun: string | null; timeZone: string; instanceId: string };
 
-export type LocationProgress = { name: string; state: "waiting" | "running" | "succeeded" | "failed"; done: number; total: number; kind: string; error?: string };
+export type LocationProgress = {
+  name: string;
+  state: "waiting" | "running" | "succeeded" | "failed";
+  done: number;
+  total: number;
+  kind: string;
+  error?: string;
+};
 
-export type BackupProgress = { running: boolean; trigger: string; startedAt: string; phase: "dump" | "upload" | "done" | ""; locations: Record<string, LocationProgress> | null };
+export type BackupProgress = {
+  running: boolean;
+  trigger: string;
+  startedAt: string;
+  phase: "dump" | "upload" | "done" | "";
+  locations: Record<string, LocationProgress> | null;
+};
 
 export type Snapshot = { chain: string; id: string; kind: "full" | "incremental"; time: string; instance: string };
 
 export type SnapshotDetails = Snapshot & { host: string; version: string; size: number; chunks: number; newChunks: number; restorable: boolean };
 
-export type RestoreStatus = { id: string; state: "applying" | "completed" | "failed"; message: string; snapshot: string; requestedBy: string; startedAt: string; updatedAt: string };
+export type RestoreStatus = {
+  id: string;
+  state: "applying" | "completed" | "failed";
+  message: string;
+  snapshot: string;
+  requestedBy: string;
+  startedAt: string;
+  updatedAt: string;
+};
 
 export type RestoreView = {
   state: "" | "preparing" | "requested" | "failed";

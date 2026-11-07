@@ -126,7 +126,8 @@ namespace FleetWarden.Tray
             now.Click += (s, e) => Answer(false);
             var later = (Button)root.FindName("PostponeButton");
             later.Content = Strings.Postpone(prompt);
-            later.Visibility = prompt.CanPostpone ? Visibility.Visible : Visibility.Collapsed;
+            later.Visibility = prompt.CanPostpone || prompt.Kind == Prompt.Remote ? Visibility.Visible : Visibility.Collapsed;
+            if (prompt.Kind == Prompt.Remote) T(root, "Remaining").Visibility = Visibility.Collapsed;
             later.Click += (s, e) => Answer(true);
 
             deadline = DateTime.UtcNow.AddSeconds(Math.Max(prompt.CountdownSeconds, 1));
@@ -146,7 +147,9 @@ namespace FleetWarden.Tray
             var left = deadline - DateTime.UtcNow;
             if (left <= TimeSpan.Zero)
             {
-                Answer(false); // nobody chose: go ahead
+                // Nobody chose: an update goes ahead, a remote session does not.
+                if (Prompt.Kind == Prompt.Remote) CloseQuietly();
+                else Answer(false);
                 return;
             }
             countdown.Text = Strings.Countdown(Prompt, TimeSpan.FromSeconds(Math.Ceiling(left.TotalSeconds)));
@@ -176,7 +179,7 @@ namespace FleetWarden.Tray
             if (answered) return;
             answered = true;
             timer.Stop();
-            answer?.Invoke(postpone && Prompt.CanPostpone);
+            answer?.Invoke(Prompt.Kind == Prompt.Remote ? postpone : postpone && Prompt.CanPostpone);
             Close();
         }
 

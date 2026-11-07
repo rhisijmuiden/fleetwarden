@@ -49,13 +49,28 @@ $run = if ($runKey.PSObject.Properties['FleetWardenTray']) { $runKey.FleetWarden
 if ($run -ne "`"$tray`"") { throw "tray app Run entry is '$run'" }
 $shots = Join-Path $env:RUNNER_TEMP 'tray'
 New-Item -ItemType Directory -Force $shots | Out-Null
-foreach ($demo in @('install', 'en', '--light'), @('reboot', 'nl', '--dark'), @('install', 'nl', '--light'), @('browser', 'en', '--light'), @('browser', 'nl', '--dark')) {
+foreach ($demo in @('install', 'en', '--light'), @('reboot', 'nl', '--dark'), @('install', 'nl', '--light'), @('browser', 'en', '--light'), @('browser', 'nl', '--dark'), @('remote', 'en', '--light'), @('remote', 'nl', '--dark'), @('banner', 'en', '--light'), @('banner', 'nl', '--dark')) {
     $png = Join-Path $shots "popup-$($demo[0])-$($demo[1]).png"
     $p = Start-Process $tray -ArgumentList '--demo', $demo[0], '--lang', $demo[1], $demo[2], '--screenshot', "`"$png`"" -PassThru
     if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "tray app hung rendering $($demo -join ' ')" }
     if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw "tray app could not render its pop-up ($($demo -join ' '), exit $($p.ExitCode))" }
     Write-Host "rendered $png ($((Get-Item $png).Length) bytes)"
 }
+
+# The remote desktop helper the way a session starts it: the agent runs as
+# SYSTEM and starts the helper in the console session. A warning only, as the
+# runner's own session may not be the console session.
+$remotePng = Join-Path $shots 'remote-system.png'
+$taskOut = Join-Path $env:RUNNER_TEMP 'remote-test.txt'
+$action = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"`"$exe`" remote-test --screenshot `"$remotePng`" > `"$taskOut`" 2>&1`""
+Register-ScheduledTask -TaskName 'FleetWardenRemoteTest' -Action $action -User 'SYSTEM' -RunLevel Highest -Force | Out-Null
+Start-ScheduledTask -TaskName 'FleetWardenRemoteTest'
+$deadline = (Get-Date).AddSeconds(60)
+while ((Get-ScheduledTask -TaskName 'FleetWardenRemoteTest').State -eq 'Running' -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 500 }
+Unregister-ScheduledTask -TaskName 'FleetWardenRemoteTest' -Confirm:$false
+if (Test-Path $taskOut) { Get-Content $taskOut | ForEach-Object { Write-Host "remote-test: $_" } }
+if (Test-Path $remotePng) { Write-Host "remote helper captured $remotePng ($((Get-Item $remotePng).Length) bytes)" }
+else { Write-Host "::warning::the remote desktop helper did not capture the console session" }
 
 # A real Windows Update scan through WUA (the runner image disables the service).
 Set-Service wuauserv -StartupType Manual -ErrorAction SilentlyContinue

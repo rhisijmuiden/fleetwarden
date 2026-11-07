@@ -1,0 +1,100 @@
+# Overnemen op afstand
+
+*English: [remote.md](remote.md)*
+
+Met FleetWarden neem je vanuit de browser het scherm, de muis en het
+toetsenbord over van Windows-servers en -clients. Naast de agent hoeft er
+niets geïnstalleerd te worden: de service (`FleetWardenAgent`, SYSTEM) start
+bij een sessie een desktophelper in de consolesessie en stopt die weer als de
+sessie eindigt.
+
+## Een sessie starten
+
+- **Overnemen op afstand** in het menu toont de online Windows-apparaten met
+  een zoekveld, de sessies die nu lopen en het sessielogboek.
+- Op de pagina van een apparaat opent **Verbinden** dezelfde viewer.
+
+De viewer opent in een eigen browsertabblad. De werkbalk heeft:
+
+- **Monitor**: één monitor tegelijk, of alle monitoren samen.
+- **Kwaliteit**: laag, middel of hoog (lager is vloeiender op trage lijnen).
+- **Ctrl+Alt+Del**, en een paneel **Speciale toetsen** voor Alt+Tab, Win, Win+R,
+  Win+L, Ctrl+Esc, Ctrl+Shift+Esc, Alt+F4 en Print Screen.
+- **Klembord**: tekst die op de andere machine gekopieerd wordt, verschijnt
+  hier; Ctrl+V in de viewer plakt je eigen klembord op de andere machine;
+  **Typen** typt een tekst als toetsaanslagen (voor velden die plakken
+  blokkeren, zoals het aanmeldscherm).
+- **Scherm verversen**, **Passend in venster** en **Volledig scherm** (dan gaan
+  toetsen als Alt+Tab en de Windows-toets naar de andere machine).
+- **Sessie beëindigen**.
+
+Het toetsenbord stuurt scancodes, dus de toetsenbordindeling van de andere
+machine geldt, net als bij een echt toetsenbord. Het aanmeldscherm, het
+vergrendelscherm en UAC-vragen werken ook: de helper volgt het bureaublad
+dat de invoer krijgt.
+
+Alleen gebruikers met het recht **Apparaten op afstand overnemen** (`remote.control`;
+de rollen Beheerder en Technicus hebben het) kunnen sessies starten of
+beëindigen.
+
+## Toestemming
+
+Per apparaatgroep bepaalt **Overnemen op afstand** wat de aangemelde
+gebruiker ziet:
+
+| Instelling | Wat er gebeurt |
+| --- | --- |
+| Automatisch (servers direct, werkplekken vragen), de standaard | Servers en hypervisors: direct. Werkplekken: vragen. |
+| Direct overnemen | De sessie start zonder melding. |
+| Gebruiker melden | De sessie start; de gebruiker ziet bovenaan het scherm een balk met **Sessie beëindigen**. |
+| Gebruiker vragen | De gebruiker krijgt een pop-up met de naam van de beheerder en moet binnen 30 seconden op **Toestaan** klikken; anders wordt de sessie geweigerd. Tijdens de sessie staat de balk in beeld. |
+
+Als niemand is aangemeld, start een sessie direct (er is niemand om het te
+vragen). Is er wel iemand aangemeld maar start de pop-up-app niet, dan wordt
+een sessie met *vragen* geweigerd (`consent_unavailable`).
+
+## Sessielogboek
+
+Elke sessie wordt vastgelegd met het apparaat, de beheerder, het IP-adres, de
+toestemmingsmodus, de duur, de verstuurde data en hoe de sessie eindigde
+(bijvoorbeeld *beëindigd door de beheerder*, *geweigerd door de gebruiker*,
+*beëindigd door de gebruiker*, *geen antwoord*). Begin en einde staan ook in
+het auditlog. Het logboek wordt 400 dagen bewaard.
+
+## Beveiliging en netwerk
+
+- De browser praat alleen met de server, via HTTPS op poort 443. De agent
+  opent per sessie een aparte, ondertekende WebSocket; de server stuurt die
+  door. Achter een reverse proxy moeten WebSocket-upgrades doorgegeven worden
+  (zie [reverse-proxy.md](reverse-proxy.md)).
+- Het deel tussen agent en server is bovenop TLS nog eens versleuteld met
+  X25519 + AES-256-GCM, met een nieuwe sleutel per sessie.
+- De named pipe van de helper accepteert alleen de agentservice (SYSTEM).
+- Een agent draait maximaal 4 sessies tegelijk; een sessie heeft één viewer.
+
+## Ctrl+Alt+Del
+
+Windows accepteert een software-Ctrl+Alt+Del van services alleen als het
+beleid
+`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\SoftwareSASGeneration`
+dat toestaat. De agent zet het de eerste keer op `1` (services), of op `3` als
+het `2` was (toegankelijkheidsapps). Een groepsbeleid *Software Secure
+Attention Sequence uitschakelen of inschakelen* dat iets anders zegt gaat
+voor; zet dat op *Services* (of *Services en toegankelijkheidstoepassingen*).
+
+## Ontwerpkeuzes
+
+Het plan noemde WebRTC met H.264. Deze versie stuurt gewijzigde tegels van
+64×64 als JPEG via de WebSocket-relay: dat werkt door elke proxy en firewall
+die HTTPS doorlaat, heeft geen codec op de machines en geen TURN-server nodig,
+en doordat elk beeld bevestigd wordt blijft de vertraging laag op trage
+lijnen. Een direct WebRTC-pad en een webterminal voor Linux volgen in de
+volgende stap.
+
+## Problemen oplossen
+
+- *Overnemen kan alleen bij Windows-apparaten*: Linux-ondersteuning (een
+  terminal) komt later.
+- Op de machine start `fleetwarden-agent remote-test --screenshot C:\shot.png`
+  (als SYSTEM, bijvoorbeeld met `psexec -s`) de helper zoals een sessie dat
+  doet en bewaart het eerste beeld.
