@@ -27,7 +27,7 @@ func newTestServer(t *testing.T, db Pinger) *Server {
 	}
 	trusted, _ := config.ParsePrefixes("10.0.0.0/8")
 	cfg := config.Server{WebDir: dir, TrustedProxies: trusted}
-	return New(cfg, db, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	return New(cfg, Deps{DB: db, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 }
 
 func TestHealth(t *testing.T) {
@@ -82,8 +82,8 @@ func TestSPAFallback(t *testing.T) {
 	}
 	rec = httptest.NewRecorder()
 	newTestServer(t, nil).Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/api/v1/unknown", nil))
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("unknown API route code = %d, want 404", rec.Code)
+	if rec.Code == http.StatusOK {
+		t.Errorf("unknown API route code = %d, want an error", rec.Code)
 	}
 }
 

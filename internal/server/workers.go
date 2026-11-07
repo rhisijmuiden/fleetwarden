@@ -1,0 +1,69 @@
+package server
+
+import (
+	"context"
+	"time"
+
+	"github.com/rhisijmuiden/fleetwarden/internal/mail"
+	"github.com/rhisijmuiden/fleetwarden/internal/store"
+)
+
+const mailMaxAttempts = 6
+
+func mailBackoff(attempt int) time.Duration {
+	return time.Duration(attempt*attempt) * time.Minute // 1, 4, 9, 16, 25 minutes
+}
+
+// RunWorkers runs the background jobs until ctx ends: the mail queue,
+// session and mail log clean-up, and update result reporting.
+func (s *Server) RunWorkers(ctx context.Context) {
+	if s.st == nil {
+		return
+	}
+	s.reportUpdateOutcome(ctx)
+	mailTick := time.NewTicker(15 * time.Second)
+	houseTick := time.NewTicker(time.Hour)
+	updTick := time.NewTicker(time.Minute)
+	defer mailTick.Stop()
+	defer houseTick.Stop()
+	defer updTick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-mailTick.C:
+			s.ProcessMailQueue(ctx)
+		case <-updTick.C:
+			s.reportUpdateOutcome(ctx)
+		case <-houseTick.C:
+			if err := s.st.PurgeSessions(ctx, sessionIdle); err != nil {
+				s.log.Warn("purge sessions", "err", err)
+			}
+			if err := s.st.PurgeMail(ctx, 90*24*time.Hour); err != nil {
+				s.log.Warn("purge mail log", "err", err)
+			}
+		}
+	}
+}
+
+// ProcessMailQueue sends due messages once.
+func (s *Server) ProcessMailQueue(ctx context.Context) {
+	cfg, err := s.loadMail(ctx)
+	if err != nil || !cfg.Enabled {
+		return // messages wait until mail is configured
+	}
+	for {
+		n, err := s.st.ProcessMail(ctx, 10, mailMaxAttempts, mailBackoff, func(m store.Mail) error {
+			sctx, cancel := context.WithTimeout(ctx, 45*time.Second)
+			defer cancel()
+			return s.mailer.Send(sctx, cfg, mail.Message{To: m.To, Subject: m.Subject, Text: m.BodyText, HTML: m.BodyHTML})
+		})
+		if err != nil {
+			s.log.Error("mail queue", "err", err)
+			return
+		}
+		if n < 10 {
+			return
+		}
+	}
+}

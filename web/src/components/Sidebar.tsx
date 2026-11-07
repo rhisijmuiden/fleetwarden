@@ -1,13 +1,19 @@
 import { NavLink } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Info, PanelLeft, PanelLeftClose } from "lucide-react";
-import logo from "../../../branding/logo.svg";
+import { useAuth } from "../auth";
+import { useBranding } from "../branding";
 import { navigation } from "../nav";
 
 type Props = { collapsed: boolean; onToggle: () => void; onInfo: () => void };
 
 export function Sidebar({ collapsed, onToggle, onInfo }: Props) {
   const { t } = useTranslation();
+  const { can } = useAuth();
+  const { branding, logoUrl } = useBranding();
+  const groups = navigation
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.perm || can(i.perm)) }))
+    .filter((g) => g.items.length > 0);
   const itemBase =
     "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
@@ -18,12 +24,12 @@ export function Sidebar({ collapsed, onToggle, onInfo }: Props) {
       }`}
     >
       <div className="flex h-16 items-center gap-3 px-4">
-        <img src={logo} alt="" className="size-8 shrink-0" />
-        {!collapsed && <span className="text-base font-semibold tracking-tight text-white">FleetWarden</span>}
+        <img src={logoUrl} alt="" className="size-8 shrink-0 object-contain" />
+        {!collapsed && <span className="truncate text-base font-semibold tracking-tight text-white">{branding.productName}</span>}
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4" aria-label="Main">
-        {navigation.map((group) => (
+        {groups.map((group) => (
           <div key={group.label}>
             {!collapsed && (
               <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-sidebar-fg/60 uppercase">

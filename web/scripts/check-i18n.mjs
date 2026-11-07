@@ -17,3 +17,27 @@ if (missingNl.length || missingEn.length) {
   process.exit(1);
 }
 console.log(`i18n OK: ${en.size} keys in en and nl`);
+
+// Every literal key passed to t("...") in the source must exist.
+import { readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+const srcDir = new URL("../src", import.meta.url).pathname;
+const files = [];
+const walk = (d) => {
+  for (const f of readdirSync(d)) {
+    const p = join(d, f);
+    if (statSync(p).isDirectory()) walk(p);
+    else if (/\.tsx?$/.test(f)) files.push(p);
+  }
+};
+walk(srcDir);
+const used = new Set();
+for (const f of files) {
+  for (const m of readFileSync(f, "utf8").matchAll(/\bt\(\s*"([a-zA-Z0-9_.-]+)"/g)) used.add(m[1]);
+}
+const missing = [...used].filter((k) => !en.has(k));
+if (missing.length) {
+  console.error("Used in the source but missing in en.json:", missing.join(", "));
+  process.exit(1);
+}
+console.log(`i18n OK: ${used.size} literal keys used in the source all exist`);

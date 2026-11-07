@@ -1,0 +1,13 @@
+[Unit]
+Description=FleetWarden updater (installs a release requested in the web interface)
+Documentation=https://github.com/rhisijmuiden/fleetwarden
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/fleetwarden/fleetwarden-update
+TimeoutStartSec=30min
+# Runs as root: it installs packages. It only accepts a version number from
+# the request file and downloads from the official GitHub releases.
+PrivateTmp=true

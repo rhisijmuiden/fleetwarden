@@ -1,6 +1,8 @@
 import type { LucideIcon } from "lucide-react";
+import type { Permission } from "./api";
 import {
   Bell,
+  ScrollText,
   DatabaseBackup,
   FileBarChart,
   FolderTree,
@@ -22,6 +24,7 @@ export type NavItem = {
   label: string; // i18n key
   icon: LucideIcon;
   phase?: number; // planned phase while not built yet
+  perm?: Permission; // hidden for users without this permission
 };
 
 export type NavGroup = { label: string; items: NavItem[] };
@@ -58,12 +61,13 @@ export const navigation: NavGroup[] = [
   {
     label: "nav.administration",
     items: [
-      { path: "/admin/users", label: "nav.users", icon: Users, phase: 1 },
-      { path: "/admin/authentication", label: "nav.authentication", icon: KeyRound, phase: 1 },
-      { path: "/admin/mail", label: "nav.mail", icon: Mail, phase: 1 },
-      { path: "/admin/backup", label: "nav.backup", icon: DatabaseBackup, phase: 2 },
-      { path: "/admin/branding", label: "nav.branding", icon: Palette, phase: 1 },
-      { path: "/admin/settings", label: "nav.settings", icon: Settings, phase: 1 },
+      { path: "/admin/users", label: "nav.users", icon: Users, perm: "users.manage" },
+      { path: "/admin/authentication", label: "nav.authentication", icon: KeyRound, perm: "settings.manage" },
+      { path: "/admin/mail", label: "nav.mail", icon: Mail, perm: "settings.manage" },
+      { path: "/admin/backup", label: "nav.backup", icon: DatabaseBackup, phase: 2, perm: "settings.manage" },
+      { path: "/admin/branding", label: "nav.branding", icon: Palette, perm: "settings.manage" },
+      { path: "/admin/audit", label: "nav.audit", icon: ScrollText, perm: "audit.view" },
+      { path: "/admin/settings", label: "nav.settings", icon: Settings, perm: "settings.manage" },
     ],
   },
 ];

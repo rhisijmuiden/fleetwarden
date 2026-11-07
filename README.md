@@ -9,7 +9,7 @@ and ManageEngine Endpoint Central. It runs entirely on your own Debian 13
 server and manages Windows workstations, Windows servers, Debian machines and
 Proxmox VE nodes through a lightweight agent.
 
-> **Status:** early development (phase 0, foundation). Not ready for production use.
+> **Status:** early development (phase 1: sign-in, roles, mail, updates from the UI). Not ready for production use.
 
 ## Planned features
 
@@ -36,6 +36,13 @@ curl -fsSL https://raw.githubusercontent.com/rhisijmuiden/fleetwarden/main/insta
 
 Add `-s -- --channel test` to install the latest test build. Then put the server
 behind your reverse proxy, see [docs/reverse-proxy.md](docs/reverse-proxy.md).
+
+The installer prints a one-time password for the `admin` account; you choose
+your own password at the first sign-in. Lost it? Run
+`sudo fleetwarden-server reset-admin`.
+
+- Optional Microsoft Entra ID sign-in: [docs/entra-sso.md](docs/entra-sso.md)
+- Updates and channels: [docs/updates.md](docs/updates.md)
 
 ## Development
 

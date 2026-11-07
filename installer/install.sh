@@ -74,9 +74,20 @@ if [[ -d /run/systemd/system ]]; then
 fi
 
 version=$(/usr/bin/fleetwarden-server -version)
+PW_FILE=/var/lib/fleetwarden/initial-admin-password
+login_info="  Sign in with your existing administrator account."
+if [[ -s "$PW_FILE" ]]; then
+    login_info="  First sign-in (you must choose a new password right away):
+     username: $(sed -n 1p "$PW_FILE")
+     password: $(sed -n 2p "$PW_FILE")
+  This one-time password is also stored in $PW_FILE
+  until you change it."
+fi
 cat <<MSG
 
   $version is installed.
+
+$login_info
 
   Next steps:
    1. Point your reverse proxy (Zoraxy, Nginx, Caddy, ...) at http://127.0.0.1:8080
@@ -86,5 +97,6 @@ cat <<MSG
 
   Configuration: /etc/fleetwarden/server.env
   Logs:          journalctl -u fleetwarden-server
+  Lost the admin password or authenticator? sudo fleetwarden-server reset-admin
 
 MSG
