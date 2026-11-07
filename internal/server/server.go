@@ -13,9 +13,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rhisijmuiden/fleetwarden/internal/auth"
+	"github.com/rhisijmuiden/fleetwarden/internal/backup"
 	"github.com/rhisijmuiden/fleetwarden/internal/config"
 	"github.com/rhisijmuiden/fleetwarden/internal/mail"
 	"github.com/rhisijmuiden/fleetwarden/internal/secrets"
@@ -41,6 +43,8 @@ type Deps struct {
 	Mailer  Mailer
 	Updates *updates.Checker
 	SSO     *sso.Client
+	// Backup overrides how backup locations are reached (tests).
+	Backup backup.Options
 }
 
 // Mailer delivers one message with a mail configuration.
@@ -61,6 +65,14 @@ type Server struct {
 	ipFails  *auth.Limiter
 	usrFails *auth.Limiter
 	now      func() time.Time
+
+	backupOpts backup.Options
+	backupMu   sync.Mutex // held while a backup runs or a restore is prepared
+	progress   progressState
+	restore    restorePrep
+	bgCtx      context.Context // ends when RunWorkers' context ends
+	bgCancel   context.CancelFunc
+	bgWG       sync.WaitGroup
 }
 
 // Session lifetimes.
@@ -84,8 +96,10 @@ func New(cfg config.Server, d Deps) *Server {
 	if d.SSO == nil {
 		d.SSO = sso.NewClient()
 	}
+	bgCtx, bgCancel := context.WithCancel(context.Background())
 	return &Server{
-		cfg: cfg, db: d.DB, st: d.Store, box: d.Secrets, log: d.Log, mailer: d.Mailer, sso: d.SSO, updates: d.Updates,
+		bgCtx: bgCtx, bgCancel: bgCancel,
+		cfg: cfg, db: d.DB, st: d.Store, box: d.Secrets, log: d.Log, mailer: d.Mailer, sso: d.SSO, updates: d.Updates, backupOpts: d.Backup,
 		ipFails:  auth.NewLimiter(20, 15*time.Minute),
 		usrFails: auth.NewLimiter(8, 15*time.Minute),
 		now:      time.Now,
@@ -164,6 +178,25 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.Handle("POST /api/v1/system/update/check", s.authed(auth.PermSystemUpdate, 0, s.handleUpdateCheck))
 	mux.Handle("PUT /api/v1/system/channel", s.authed(auth.PermSystemUpdate, 0, s.handleSetChannel))
 	mux.Handle("POST /api/v1/system/update/apply", s.authed(auth.PermSystemUpdate, 0, s.handleApplyUpdate))
+
+	bk := func(h http.HandlerFunc) http.Handler { return s.authed(auth.PermBackupManage, 0, h) }
+	mux.Handle("GET /api/v1/backup/config", bk(s.handleGetBackupConfig))
+	mux.Handle("PUT /api/v1/backup/schedule", bk(s.handlePutSchedule))
+	mux.Handle("PUT /api/v1/backup/passphrase", bk(s.handlePutPassphrase))
+	mux.Handle("GET /api/v1/backup/locations", bk(s.handleListLocations))
+	mux.Handle("POST /api/v1/backup/locations", bk(s.handleCreateLocation))
+	mux.Handle("PUT /api/v1/backup/locations/{id}", bk(s.handleUpdateLocation))
+	mux.Handle("DELETE /api/v1/backup/locations/{id}", bk(s.handleDeleteLocation))
+	mux.Handle("POST /api/v1/backup/locations/test", bk(s.handleTestLocation))
+	mux.Handle("POST /api/v1/backup/ssh-key", bk(s.handleSSHKey))
+	mux.Handle("POST /api/v1/backup/run", bk(s.handleRunBackup))
+	mux.Handle("GET /api/v1/backup/progress", bk(s.handleBackupProgress))
+	mux.Handle("GET /api/v1/backup/runs", bk(s.handleBackupRuns))
+	mux.Handle("POST /api/v1/backup/snapshots", bk(s.handleListSnapshots))
+	mux.Handle("POST /api/v1/backup/snapshots/details", bk(s.handleSnapshotDetails))
+	mux.Handle("GET /api/v1/backup/restore", bk(s.handleRestoreStatus))
+	mux.Handle("POST /api/v1/backup/restore", bk(s.handleStartRestore))
+	mux.Handle("DELETE /api/v1/backup/restore", bk(s.handleCancelRestore))
 }
 
 type health struct {

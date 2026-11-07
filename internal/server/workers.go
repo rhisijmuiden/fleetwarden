@@ -15,12 +15,20 @@ func mailBackoff(attempt int) time.Duration {
 }
 
 // RunWorkers runs the background jobs until ctx ends: the mail queue,
-// session and mail log clean-up, and update result reporting.
+// session and mail log clean-up, update and restore result reporting and
+// scheduled backups. It waits for a running backup to stop before returning.
 func (s *Server) RunWorkers(ctx context.Context) {
 	if s.st == nil {
 		return
 	}
+	stop := context.AfterFunc(ctx, s.bgCancel)
+	defer stop()
+	defer s.bgWG.Wait()
 	s.reportUpdateOutcome(ctx)
+	s.reportRestoreOutcome(ctx)
+	if err := s.st.FailInterruptedBackupRuns(ctx); err != nil {
+		s.log.Warn("backup history", "err", err)
+	}
 	mailTick := time.NewTicker(15 * time.Second)
 	houseTick := time.NewTicker(time.Hour)
 	updTick := time.NewTicker(time.Minute)
@@ -35,12 +43,16 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.ProcessMailQueue(ctx)
 		case <-updTick.C:
 			s.reportUpdateOutcome(ctx)
+			s.backupTick(ctx)
 		case <-houseTick.C:
 			if err := s.st.PurgeSessions(ctx, sessionIdle); err != nil {
 				s.log.Warn("purge sessions", "err", err)
 			}
 			if err := s.st.PurgeMail(ctx, 90*24*time.Hour); err != nil {
 				s.log.Warn("purge mail log", "err", err)
+			}
+			if err := s.st.PurgeBackupRuns(ctx, 400*24*time.Hour); err != nil {
+				s.log.Warn("purge backup history", "err", err)
 			}
 		}
 	}

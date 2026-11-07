@@ -23,13 +23,14 @@ const (
 	PermSettingsManage Permission = "settings.manage"
 	PermAuditView      Permission = "audit.view"
 	PermSystemUpdate   Permission = "system.update"
+	PermBackupManage   Permission = "backup.manage"
 )
 
 // Roles lists the roles in order of privilege.
 var Roles = []Role{RoleAdministrator, RoleTechnician, RoleReadOnly}
 
 var rolePermissions = map[Role][]Permission{
-	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate},
+	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage},
 	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage},
 	RoleReadOnly:      {PermDashboardView, PermDevicesView},
 }

@@ -92,7 +92,10 @@ func newEnv(t *testing.T) *env {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html></html>"), 0o644)
 	trusted, _ := config.ParsePrefixes("127.0.0.1/32")
-	cfg := config.Server{WebDir: dir, TrustedProxies: trusted, DataDir: t.TempDir(), UpdateStatusDir: t.TempDir()}
+	envFile := filepath.Join(t.TempDir(), "server.env")
+	os.WriteFile(envFile, []byte("FW_LISTEN=127.0.0.1:8080\n"), 0o640)
+	cfg := config.Server{WebDir: dir, TrustedProxies: trusted, DataDir: t.TempDir(), UpdateStatusDir: t.TempDir(),
+		DatabaseURL: os.Getenv("FW_TEST_DATABASE_URL"), EnvFile: envFile}
 	box, err := secrets.LoadOrCreate(cfg.SecretKeyPath())
 	if err != nil {
 		t.Fatal(err)
