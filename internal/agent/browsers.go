@@ -73,9 +73,10 @@ func installBrowser(ctx context.Context, be SoftwareBackend, procs ProcessContro
 	if !b.Firefox || procs == nil {
 		return be.Install(ctx, b.Installer, file)
 	}
-	done := make(chan struct{})
-	defer close(done)
+	done, stopped := make(chan struct{}), make(chan struct{})
+	defer func() { close(done); <-stopped }()
 	go func() {
+		defer close(stopped)
 		t := time.NewTimer(firefoxHelperGrace)
 		defer t.Stop()
 		for {

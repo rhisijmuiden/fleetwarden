@@ -276,15 +276,21 @@ func TestInstallBrowserEndsFirefoxHelpers(t *testing.T) {
 	if _, err := installBrowser(ctx, h, h, agentproto.BrowserUpdate{Firefox: true}, "x"); err != nil {
 		t.Fatal(err)
 	}
-	if h.killed != 2 {
-		t.Errorf("killed %d", h.killed)
+	if h.killedN() != 2 {
+		t.Errorf("killed %d", h.killedN())
 	}
 
 	// Chrome's installer is left alone.
 	h = &hangingInstall{fakeBrowserHost{running: map[string]bool{"default-browser-agent.exe": true}}}
 	sctx, scancel := context.WithTimeout(ctx, 100*time.Millisecond)
 	defer scancel()
-	if _, err := installBrowser(sctx, h, h, agentproto.BrowserUpdate{}, "x"); err == nil || h.killed != 0 {
-		t.Errorf("chrome: %v, killed %d", err, h.killed)
+	if _, err := installBrowser(sctx, h, h, agentproto.BrowserUpdate{}, "x"); err == nil || h.killedN() != 0 {
+		t.Errorf("chrome: %v, killed %d", err, h.killedN())
 	}
+}
+
+func (f *fakeBrowserHost) killedN() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.killed
 }
