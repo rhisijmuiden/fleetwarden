@@ -16,6 +16,7 @@ import { Authentication } from "./pages/admin/Authentication";
 import { Mail } from "./pages/admin/Mail";
 import { Branding } from "./pages/admin/Branding";
 import { Settings } from "./pages/admin/Settings";
+import { ReverseProxy } from "./pages/admin/ReverseProxy";
 import { Audit } from "./pages/admin/Audit";
 import { Backup } from "./pages/admin/backup/Backup";
 import { Devices } from "./pages/devices/Devices";
@@ -52,6 +53,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/admin/branding", perm: "settings.manage", element: <Branding /> },
   { path: "/admin/audit", perm: "audit.view", element: <Audit /> },
   { path: "/admin/settings", perm: "settings.manage", element: <Settings /> },
+  { path: "/admin/reverse-proxy", perm: "settings.manage", element: <ReverseProxy /> },
 ];
 
 export function App() {

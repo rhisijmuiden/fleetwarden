@@ -32,7 +32,8 @@
     "settings": "Settings",
     "info": "About",
     "audit": "Audit log",
-    "agentUpdates": "Agent updates"
+    "agentUpdates": "Agent updates",
+    "reverseProxy": "Reverse proxy"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -226,7 +227,9 @@
     "mail_not_configured": "Set up the mail server first (Administration > Mail server).",
     "report_failed": "The report could not be made.",
     "invalid_threshold": "Enter a threshold within the allowed range.",
-    "invalid_kind": "Choose a valid type."
+    "invalid_kind": "Choose a valid type.",
+    "network_too_wide": "Trusting every address would let anyone fake their IP address. Enter the proxy's own address or network.",
+    "invalid_upstream": "Enter the upstream as host:port, for example 127.0.0.1:8080."
   },
   "login": {
     "title": "Sign in",
@@ -482,14 +485,16 @@
     "subtitle": "General server settings, agent scans and updates.",
     "general": "General",
     "publicUrl": "Public URL",
-    "publicUrlHint": "The address people use through your reverse proxy, used for SSO and links in e-mails. Empty: detected as {{url}}.",
     "scans": "Agent scans",
     "scansSubtitle": "How often agents send their software inventory and scan for missing Windows and Linux updates. Device groups can override these defaults.",
     "inventoryInterval": "Software inventory every",
     "inventoryHint": "Hardware, installed software and logged-on user. 15 minutes to 7 days.",
     "patchScanInterval": "Update scan every",
     "patchScanHint": "Windows Update or apt. Only for devices in a group with a patch policy. 1 hour to 7 days.",
-    "scansApplied": "Online agents use the new interval within a minute."
+    "scansApplied": "Online agents use the new interval within a minute.",
+    "publicUrlDetected": "Not set, detected as {{url}}",
+    "proxyHint": "The public URL, trusted proxies, configuration examples and a connection test are on the Reverse proxy page.",
+    "openProxy": "Reverse proxy settings"
   },
   "audit": {
     "title": "Audit log",
@@ -1812,6 +1817,210 @@
       "recipientsHint": "Up to 20 addresses, separated by commas. Leave empty to only show alerts here.",
       "notifyResolved": "Also mail when an alert is resolved",
       "enabled": "Rule is active"
+    }
+  },
+  "proxy": {
+    "title": "Reverse proxy",
+    "subtitle": "Run FleetWarden behind nginx, Caddy, HAProxy or Zoraxy: what the server sees, which proxies it trusts, ready-made configuration and an end-to-end test.",
+    "statusTitle": "How this browser reaches the server",
+    "statusSubtitle": "What the server sees for the request that loaded this page.",
+    "peer": "Direct connection from",
+    "trusted": "trusted proxy",
+    "notTrusted": "not trusted",
+    "clientIp": "Client IP (after proxy)",
+    "scheme": "Scheme",
+    "host": "Host",
+    "listen": "Server listens on",
+    "serverAddresses": "Addresses of this server",
+    "untrustedTitle": "A proxy at {{peer}} forwards requests, but is not trusted",
+    "untrustedText": "The server ignores its X-Forwarded-* headers. Audit logs and rate limits then see the proxy instead of the user, cookies are not marked secure and links point to http. Add this address to the trusted proxies and save.",
+    "trustPeer": "Trust {{peer}}",
+    "localOnlyTitle": "The server only listens on {{listen}}",
+    "localOnlyText": "Only a proxy on this same machine can reach it. Is your proxy on another host (for example Zoraxy on a separate machine)? Let the server listen on the network by running this on the server, then add the proxy's address below. The setting is in {{file}}.",
+    "openTitle": "The server listens on {{listen}}",
+    "openText": "Other machines can reach the server directly. Allow port access only from the proxy with a firewall, so that everyone goes through the proxy and its TLS.",
+    "settingsTitle": "Proxy settings",
+    "settingsSubtitle": "Applied immediately, no restart needed.",
+    "publicUrl": "External base URL",
+    "publicUrlHint": "The address users and agents use, such as https://fleet.example.com. Used for SSO, agent installers and links in e-mails. Empty: detected as {{url}}.",
+    "trustedProxies": "Trusted proxies",
+    "trustedHint": "One IP address or network per line (CIDR). Only these may set X-Forwarded-For, -Proto and -Host. Always trusted from the server configuration: {{env}} (FW_TRUSTED_PROXIES in {{file}}).",
+    "hsts": "Send HSTS header",
+    "hstsHint": "Tells browsers to use only HTTPS for this domain for one year. Turn on once HTTPS works.",
+    "examplesTitle": "Configuration examples",
+    "examplesSubtitle": "Filled in with this server's address. Choose your proxy, copy the configuration and run the test below.",
+    "rememberChoices": "Remember choices",
+    "proxyType": "Proxy",
+    "domain": "Domain",
+    "domainHint": "From the external base URL.",
+    "upstream": "FleetWarden address (upstream)",
+    "upstreamHint": "Where the proxy reaches this server: host:port.",
+    "tlsMode": "Certificate",
+    "tlsAcme": "Let's Encrypt (automatic)",
+    "tlsOwn": "Own certificate files",
+    "upstreamLocalOnly": "The server only listens on {{listen}}, so a proxy on another host cannot reach this upstream. Change FW_LISTEN first (see above).",
+    "copied": "Copied",
+    "download": "Download",
+    "reqTitle": "What the proxy must do for all features",
+    "req": {
+      "web": {
+        "title": "Web interface and API",
+        "text": "Forward everything under / to FleetWarden: the web interface, /api/ and /healthz."
+      },
+      "agents": {
+        "title": "Agents",
+        "text": "/agent/ (enrollment, installers, downloads) must be reachable from the internet on port 443 for agents outside the office."
+      },
+      "websocket": {
+        "title": "WebSockets",
+        "text": "Agents (/agent/v1/ws), remote control and live updates use WebSockets: forward Upgrade and Connection headers."
+      },
+      "headers": {
+        "title": "Forwarded headers",
+        "text": "Send X-Forwarded-For, X-Forwarded-Proto and X-Forwarded-Host (or keep Host) and add the proxy to the trusted proxies."
+      },
+      "tls": {
+        "title": "TLS",
+        "text": "The proxy terminates HTTPS with a valid certificate; agents refuse untrusted certificates. Redirect http:// to https://."
+      },
+      "uploads": {
+        "title": "Large uploads",
+        "text": "Software packages and agent installers up to {{gib}} GiB: raise the body size limit and stream uploads."
+      },
+      "timeouts": {
+        "title": "Long connections",
+        "text": "Agents stay connected and remote sessions can take hours: idle timeouts of at least one hour (FleetWarden pings every 30 seconds)."
+      }
+    },
+    "zoraxy": {
+      "s1": "Ingress (called Status in older Zoraxy versions)",
+      "s1a": "Inbound / Proxy Listening Port: 443, with \"Use TLS to serve proxy request\" on.",
+      "s1b": "\"Enable HTTP server on port 80\" on, and \"Force redirect HTTP request to HTTPS\" on.",
+      "s1c": "Port 80 and 443 forwarded to Zoraxy on your router.",
+      "s2": "HTTP Proxy > Create Proxy Rule",
+      "matching": "Matching Keyword / Domain",
+      "target": "Target IP Address or Domain Name with port",
+      "s2c": "Leave \"Proxy Target require TLS Connection\" off: FleetWarden speaks plain HTTP behind the proxy.",
+      "s3": "Advance Settings of the rule (also under HTTP Proxy > Edit)",
+      "s3a": "Leave \"Disable WebSocket\" off: agents and remote control need WebSockets.",
+      "wsTimeout": "WebSocket Timeout (seconds)",
+      "s3c": "Turn \"Refresh timeout on activity\" on, so the timeout is an idle timeout and not a maximum duration of 5 minutes.",
+      "s3d": "Leave \"Block Common Exploits\" off for this rule: it can block agent traffic and installer uploads.",
+      "s4acme": "TLS / SSL certificates > ACME Client",
+      "s4a": "Set an ACME e-mail, choose Let's Encrypt and request a certificate for {{domain}}.",
+      "s4b": "Turn on \"Enable Certificate Auto Renew\".",
+      "s4own": "TLS / SSL certificates",
+      "s4ownA": "Upload the certificate (full chain) and private key for {{domain}}.",
+      "s5": "Here in FleetWarden",
+      "s5a": "Zoraxy sends X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host and X-Real-Ip by itself; no custom headers needed. It has no upload limit.",
+      "s5b": "Add Zoraxy's IP address to the trusted proxies above, save, and run the test."
+    },
+    "testTitle": "Test the configuration",
+    "testSubtitle": "Checks the whole path end to end: from the server through the external URL (as an agent does) and from this browser.",
+    "testIntro": "Save your settings first. The test reaches this server through the external base URL, checks the certificate, the forwarded headers, the agent endpoint and WebSockets, and then tests WebSockets and a 16 MB upload from this browser.",
+    "runTest": "Run test",
+    "summaryPass": "Everything works: web interface, agents, WebSockets and uploads go through the proxy correctly.",
+    "summaryFail": "{{n}} check(s) failed. See the explanation per check.",
+    "summaryWarn": "Works, with {{n}} warning(s).",
+    "skipped": "Skipped because an earlier check failed or does not apply.",
+    "side": {
+      "server": "From the server through the external URL (agent path)",
+      "browser": "From this browser"
+    },
+    "status": {
+      "pass": "Passed",
+      "warn": "Warning",
+      "fail": "Failed",
+      "skip": "Skipped"
+    },
+    "check": {
+      "listen": {
+        "title": "Server listen address",
+        "pass": "Listening on {{detail}}."
+      },
+      "public_url": {
+        "title": "External base URL",
+        "pass": "{{detail}}",
+        "warn": "{{detail}} uses http://. Agents and sign-in then travel unencrypted; use https:// via the proxy.",
+        "fail": "No external base URL set. Fill it in above and save, so agents and links use the address of the proxy."
+      },
+      "dns": {
+        "title": "DNS",
+        "pass": "Resolves to {{detail}}.",
+        "fail": "The domain does not resolve from the server. Create the DNS record, or add it to /etc/hosts for internal use."
+      },
+      "tls": {
+        "title": "TLS certificate",
+        "pass": "Valid (issuer, protocol, days left): {{detail}}.",
+        "warn": "Valid but expires soon (issuer, protocol, days left): {{detail}}. Check automatic renewal.",
+        "fail": "Not valid: {{detail}}. Agents refuse to connect. Use Let's Encrypt or a certificate from a trusted CA, issued for this domain."
+      },
+      "reach": {
+        "title": "Server reachable through the proxy",
+        "pass": "The proxy forwards to this FleetWarden server.",
+        "fail": "Not reachable: {{detail}}. Check that the proxy runs, forwards to the upstream above, and that the server can reach its own external URL (with NAT you may need hairpin NAT or an internal DNS record)."
+      },
+      "peer_trusted": {
+        "title": "Proxy is trusted",
+        "pass": "The proxy connects from {{detail}} and is trusted.",
+        "fail": "The proxy connects from {{detail}}, which is not trusted. Add it to the trusted proxies and save."
+      },
+      "forwarded_proto": {
+        "title": "X-Forwarded-Proto",
+        "pass": "The proxy reports the scheme correctly ({{detail}}).",
+        "fail": "Missing or wrong ({{detail}}). Let the proxy send X-Forwarded-Proto: https, otherwise cookies are not secure and links use http."
+      },
+      "forwarded_host": {
+        "title": "Host / X-Forwarded-Host",
+        "pass": "The server sees the external host {{detail}}.",
+        "warn": "The server sees host {{detail}} instead of the external domain. Let the proxy keep the Host header or send X-Forwarded-Host."
+      },
+      "forwarded_for": {
+        "title": "X-Forwarded-For",
+        "pass": "Client address forwarded ({{detail}}).",
+        "fail": "Not sent. The audit log and rate limits then see the proxy instead of the real user."
+      },
+      "agent_hello": {
+        "title": "Agent endpoint",
+        "pass": "Agents can enroll and connect (server {{detail}}).",
+        "fail": "/agent/v1/hello does not answer correctly: {{detail}}. Forward /agent/ to FleetWarden too."
+      },
+      "websocket": {
+        "title": "WebSocket (agents, remote control)",
+        "pass": "WebSocket upgrade and messages work through the proxy.",
+        "fail": "The upgrade failed: {{detail}}. Forward the Upgrade and Connection headers (nginx: proxy_set_header Upgrade/Connection; Zoraxy: do not disable WebSocket)."
+      },
+      "http_redirect": {
+        "title": "http:// to https://",
+        "pass": "Redirected or port 80 closed ({{detail}}).",
+        "warn": "http:// answers with status {{detail}} instead of a redirect to https://."
+      },
+      "browser_https": {
+        "title": "This browser uses HTTPS",
+        "pass": "Connected over https.",
+        "warn": "This page is loaded over {{detail}}. Open FleetWarden via https:// through the proxy."
+      },
+      "browser_origin": {
+        "title": "Opened via the external URL",
+        "pass": "This page is opened via the external base URL.",
+        "warn": "This page is opened via {{detail}}, not the external base URL. The browser tests below then test that path."
+      },
+      "browser_headers": {
+        "title": "Forwarded headers for this browser",
+        "pass": "Proxy and client recognised: {{detail}}.",
+        "warn": "This browser connects directly ({{detail}}), not through a proxy.",
+        "fail": "Not accepted as a trusted proxy request over HTTPS ({{detail}}). Check the trusted proxies and that the proxy sends X-Forwarded-Proto."
+      },
+      "browser_websocket": {
+        "title": "WebSocket from this browser (remote control, live updates)",
+        "pass": "Works.",
+        "fail": "Failed ({{detail}}). Check WebSocket forwarding and the Host/Origin header in the proxy."
+      },
+      "browser_upload": {
+        "title": "Upload of 16 MB (installers)",
+        "pass": "Accepted ({{detail}}). Make sure the proxy limit is at least 2 GiB.",
+        "fail": "Rejected ({{detail}}). Status 413 means the proxy body size limit is too low (nginx: client_max_body_size; Caddy: request_body max_size)."
+      }
     }
   }
 }
