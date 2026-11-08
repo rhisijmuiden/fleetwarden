@@ -59,7 +59,8 @@ type Agent struct {
 	// Remote opens remote desktop sessions; defaults to the platform
 	// backend (nil where there is none).
 	Remote RemoteBackend
-	// Minute is the length of a postpone minute; tests shorten it.
+	// Minute is the length of a postpone or inventory-interval minute;
+	// tests shorten it.
 	Minute time.Duration
 	// MachineID overrides the platform machine ID (tests).
 	MachineID string
@@ -324,9 +325,12 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 		a.requestInventory()
 	}
 	sent := make(chan struct{}, 1)
+	// invEvery carries a changed inventory interval to the timers.
+	invEvery := make(chan time.Duration, 1)
 	go func() { // timers: heartbeat and inventory
 		hb := time.NewTicker(seconds(w.HeartbeatSeconds, 60))
-		inv := time.NewTicker(time.Duration(max(w.InventoryMinutes, 15)) * time.Minute)
+		invInterval := a.inventoryInterval(w.InventoryMinutes)
+		inv := time.NewTicker(invInterval)
 		defer hb.Stop()
 		defer inv.Stop()
 		a.reportUpdateResult(send)
@@ -347,6 +351,12 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 				a.reportUpdateResult(send) // a rollback may finish after the reconnect
 			case <-inv.C:
 				a.sendInventory(ctx, send)
+			case d := <-invEvery:
+				if d != invInterval {
+					a.Log.Info("inventory interval changed", "from", invInterval, "to", d)
+					invInterval = d
+					inv.Reset(d)
+				}
 			case <-inventoryNow:
 				a.sendInventory(ctx, send)
 				select {
@@ -375,6 +385,15 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 				return
 			case agentproto.TypeUpdate:
 				a.handleUpdate(ctx, e, send)
+			case agentproto.TypeAgentConfig:
+				var c agentproto.AgentConfig
+				if e.Decode(&c) == nil && c.InventoryMinutes > 0 {
+					select { // keep only the newest value
+					case <-invEvery:
+					default:
+					}
+					invEvery <- a.inventoryInterval(c.InventoryMinutes)
+				}
 			case agentproto.TypePatchConfig:
 				a.handlePatchConfig(e)
 			case agentproto.TypePatchScan:
@@ -412,6 +431,16 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 		ws.Close(websocket.StatusGoingAway, "agent stopping") //nolint:errcheck
 		return ctx.Err()
 	}
+}
+
+// inventoryInterval turns the server's interval into a duration, never less
+// than 15 minutes.
+func (a *Agent) inventoryInterval(minutes int) time.Duration {
+	minute := a.Minute
+	if minute <= 0 {
+		minute = time.Minute
+	}
+	return time.Duration(max(minutes, 15)) * minute
 }
 
 func (a *Agent) sendInventory(ctx context.Context, send func(string, any)) {

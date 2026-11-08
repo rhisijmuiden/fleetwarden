@@ -82,6 +82,16 @@ window. Technicians and read-only users can be limited to device groups
 (**Users & roles**, or per Entra role mapping); administrators always see
 every group.
 
+## Scan intervals
+
+**Settings > Agent scans** sets how often agents send their inventory
+(hardware, installed software, logged-on user; every 6 hours by default,
+15 minutes to 7 days) and how often devices with a patch policy scan for
+missing Windows or apt updates (every 6 hours by default, 1 hour to 7 days).
+Edit a group under **Groups** to give it its own intervals. Online agents get a
+changed inventory interval within a minute; update scans are started by the
+server, so a new update scan interval applies right away.
+
 ## Agent updates
 
 **Administration > Agent updates** shows the agent versions on the server and

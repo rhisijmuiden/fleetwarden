@@ -175,7 +175,7 @@
     "invalid_patch_window": "Choose at least a valid start time and a window of 30 minutes to 24 hours.",
     "invalid_reboot": "Unknown restart setting.",
     "invalid_notification": "Check the postpone settings: up to 20 postpones of 5 to 1440 minutes, a countdown of 30 to 3600 seconds.",
-    "invalid_scan_interval": "Scan every 1 to 168 hours.",
+    "invalid_scan_interval": "Inventory runs every 15 minutes to 7 days, update scans every hour to 7 days.",
     "invalid_time_zone": "Unknown time zone.",
     "invalid_approvals": "An approval rule is not valid (delay 0 to 365 days).",
     "policy_exists": "A patch policy with this name already exists.",
@@ -462,10 +462,17 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "General server settings and updates.",
+    "subtitle": "General server settings, agent scans and updates.",
     "general": "General",
     "publicUrl": "Public URL",
-    "publicUrlHint": "The address people use through your reverse proxy, used for SSO and links in e-mails. Empty: detected as {{url}}."
+    "publicUrlHint": "The address people use through your reverse proxy, used for SSO and links in e-mails. Empty: detected as {{url}}.",
+    "scans": "Agent scans",
+    "scansSubtitle": "How often agents send their software inventory and scan for missing Windows and Linux updates. Device groups can override these defaults.",
+    "inventoryInterval": "Software inventory every",
+    "inventoryHint": "Hardware, installed software and logged-on user. 15 minutes to 7 days.",
+    "patchScanInterval": "Update scan every",
+    "patchScanHint": "Windows Update or apt. Only for devices in a group with a patch policy. 1 hour to 7 days.",
+    "scansApplied": "Online agents use the new interval within a minute."
   },
   "audit": {
     "title": "Audit log",
@@ -932,7 +939,11 @@
       "ask": "The logged-on user must allow each session within 30 seconds. Without a logged-on user the session starts directly.",
       "notify": "The session starts directly; the user sees a bar that someone is connected, with a button to end it.",
       "direct": "The session starts without a notice, for servers and unattended computers."
-    }
+    },
+    "scans": "Scan intervals",
+    "overrideInventory": "Own software inventory interval",
+    "overridePatchScan": "Own update scan interval",
+    "scanDefault": "Default under Settings: {{value}}."
   },
   "agentUpdates": {
     "title": "Agent updates",
@@ -1157,7 +1168,6 @@
     "advanced": "Advanced",
     "takeOver": "Take over Windows Update",
     "takeOverHint": "Turns off Windows' own automatic installs, so updates only arrive in the window. Devices that get updates from Intune or a WSUS GPO: choose one tool to be in charge.",
-    "scanHours": "Scan every (hours)",
     "lastScan": "Last scan",
     "neverScanned": "Not scanned yet.",
     "missingCount": "Missing",
@@ -1193,7 +1203,8 @@
     "autoApproved": "Approved by policy",
     "approvedFrom": "Approved from {{when}}",
     "awaitingApproval": "Waiting for approval",
-    "history": "Patch history"
+    "history": "Patch history",
+    "scanIntervalMoved": "How often devices scan for updates is set under Settings > Agent scans, and per device group."
   },
   "software": {
     "title": "Software",
@@ -1578,5 +1589,19 @@
       "cad_failed": "Ctrl+Alt+Del could not be sent.",
       "helper_restarting": "The screen is reconnecting (the user may be signing in or out)…"
     }
+  },
+  "interval": {
+    "unit": "Unit",
+    "unitNames": {
+      "minutes": "minutes",
+      "hours": "hours",
+      "days": "days"
+    },
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes",
+    "hours_one": "{{count}} hour",
+    "hours_other": "{{count}} hours",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
   }
 }

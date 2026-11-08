@@ -83,6 +83,16 @@ updatevenster. Technici en alleen-lezen-gebruikers kun je beperken tot
 apparaatgroepen (**Gebruikers & rollen**, of per Entra-rolkoppeling);
 beheerders zien altijd alle groepen.
 
+## Scanintervallen
+
+**Instellingen > Agentscans** bepaalt hoe vaak agents hun inventaris sturen
+(hardware, geïnstalleerde software, aangemelde gebruiker; standaard elke 6 uur,
+15 minuten tot 7 dagen) en hoe vaak apparaten met een patchbeleid scannen op
+ontbrekende Windows- of apt-updates (standaard elke 6 uur, 1 uur tot 7 dagen).
+Bewerk een groep onder **Groepen** om die eigen intervallen te geven. Online
+agents krijgen een gewijzigd inventarisinterval binnen een minuut; updatescans
+start de server zelf, dus een nieuw updatescaninterval geldt meteen.
+
 ## Agent-updates
 
 **Administratie > Agent-updates** toont de agentversies op de server en rolt ze uit:

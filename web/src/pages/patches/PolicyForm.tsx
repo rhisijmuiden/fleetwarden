@@ -211,9 +211,7 @@ export function PolicyForm({
         <section className="space-y-3">
           <h3 className="text-sm font-semibold">{t("patches.advanced")}</h3>
           <Switch checked={d.takeOver} onChange={(v) => set("takeOver", v)} label={t("patches.takeOver")} description={t("patches.takeOverHint")} />
-          <Field label={t("patches.scanHours")} className="max-w-40">
-            {(id) => <Input id={id} type="number" min={1} max={168} value={d.scanHours} onChange={(e) => set("scanHours", Number(e.target.value) || 1)} />}
-          </Field>
+          <p className="text-xs text-muted">{t("patches.scanIntervalMoved")}</p>
         </section>
       </form>
     </Modal>
