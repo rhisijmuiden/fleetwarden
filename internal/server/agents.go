@@ -72,6 +72,7 @@ type agentConn struct {
 	out      chan *agentproto.Envelope
 	cancel   context.CancelFunc
 	since    time.Time
+	gateway  int64             // the gateway the agent came through; 0 for direct
 	sent     map[string]string // last value of settings messages, guarded by the hub
 }
 
@@ -106,6 +107,28 @@ func (h *agentHub) online(id string) bool {
 	defer h.mu.RUnlock()
 	_, ok := h.conns[id]
 	return ok
+}
+
+// via returns whether a device is online and the gateway it uses.
+func (h *agentHub) via(id string) (bool, int64) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	c, ok := h.conns[id]
+	if !ok {
+		return false, 0
+	}
+	return true, c.gateway
+}
+
+// viaCounts counts connected agents per gateway (0: direct).
+func (h *agentHub) viaCounts() map[int64]int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	out := map[int64]int{}
+	for _, c := range h.conns {
+		out[c.gateway]++
+	}
+	return out
 }
 
 func (h *agentHub) onlineIDs() []string {
@@ -350,6 +373,9 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := &agentConn{deviceID: dev.ID, groupID: dev.GroupID, sess: sess, ws: ws, out: make(chan *agentproto.Envelope, 32), cancel: cancel, since: s.now()}
+	if g, ok := gatewayFrom(r); ok {
+		c.gateway = g.ID
+	}
 	intervals := s.loadScanSettings(ctx)
 	if g, err := s.st.GroupByID(ctx, dev.GroupID); err == nil {
 		intervals = intervals.effective(g.InventoryMinutes, g.PatchScanMinutes)
@@ -367,13 +393,14 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	}
 	s.hub.add(c)
 	defer s.hub.remove(c)
+	s.sendEndpoints(dev.ID, s.agentEndpoints(ctx))
 	agentVersion := cleanText(a.AgentVersion, 50)
 	_ = s.st.TouchDevice(context.WithoutCancel(ctx), dev.ID, ip, agentVersion, dev.LoggedInUser, dev.LocalIPs, nil)
 	if dev.UpdateVersion != "" && dev.UpdateVersion == agentVersion && dev.UpdateState != "completed" {
 		_ = s.st.CompleteDeviceUpdate(context.WithoutCancel(ctx), dev.ID, agentVersion)
 		s.log.Info("agent updated", "device", dev.ID, "host", dev.Hostname, "version", agentVersion)
 	}
-	s.log.Info("agent connected", "device", dev.ID, "host", dev.Hostname, "ip", ip)
+	s.log.Info("agent connected", "device", dev.ID, "host", dev.Hostname, "ip", ip, "gateway", c.gateway)
 	defer s.log.Info("agent disconnected", "device", dev.ID, "host", dev.Hostname)
 
 	go s.agentWriter(ctx, c)

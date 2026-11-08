@@ -60,7 +60,7 @@ func (s *Server) deviceInScope(w http.ResponseWriter, r *http.Request) (store.De
 		s.internalError(w, r, err)
 		return d, false
 	}
-	d.Online = s.hub.online(d.ID)
+	s.markOnline(&d)
 	return d, true
 }
 
@@ -88,7 +88,7 @@ func (s *Server) handleListDevices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for i := range items {
-		items[i].Online = s.hub.online(items[i].ID)
+		s.markOnline(&items[i])
 	}
 	writeJSON(w, http.StatusOK, deviceList{Items: items, Total: total})
 }
@@ -532,6 +532,16 @@ func (s *Server) handleTokenInstall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	base := s.baseURL(r)
+	if via := r.URL.Query().Get("via"); via != "" {
+		// Install commands for devices outside the network: through a gateway.
+		id, err := strconv.ParseInt(via, 10, 64)
+		g, gerr := s.st.GatewayByID(r.Context(), id)
+		if err != nil || gerr != nil || !g.Enabled {
+			apiError(w, http.StatusBadRequest, "invalid_gateway")
+			return
+		}
+		base = strings.TrimRight(g.PublicURL, "/")
+	}
 	info := installInfo{
 		Token: plain, ServerURL: base, Usable: t.Usable(s.now()),
 		WindowsCommand: "iwr '" + base + "/agent/install.ps1?t=" + plain + "' -UseBasicParsing | iex",
@@ -563,7 +573,7 @@ func (s *Server) handleTokenDevices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for i := range devs {
-		devs[i].Online = s.hub.online(devs[i].ID)
+		s.markOnline(&devs[i])
 	}
 	writeJSON(w, http.StatusOK, devs)
 }
@@ -583,4 +593,13 @@ func (s *Server) handleRevokeToken(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleAgentPackages(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.agentPackages().all())
+}
+
+// markOnline fills in the connection state of a device.
+func (s *Server) markOnline(d *store.Device) {
+	online, gw := s.hub.via(d.ID)
+	d.Online, d.ConnectedVia = online, ""
+	if online && gw != 0 {
+		d.ConnectedVia = s.gatewayName(gw)
+	}
 }

@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -208,16 +209,31 @@ func (a *Agent) Run(ctx context.Context) error {
 		a.resumeSoftwareJob()
 	}
 	backoff = newBackoff()
+	next := 0 // index into the candidate addresses
 	for {
 		cfg, err := LoadConfig(a.ConfigPath)
 		if err != nil {
 			return err
 		}
+		cands := cfg.Candidates()
+		if next >= len(cands) {
+			next = 0
+		}
+		// The session, downloads and remote control all use the address
+		// that answered; the configured one stays on disk.
+		active := cfg
+		active.Server = cands[next]
 		a.mu.Lock()
-		a.cfg = cfg
+		a.cfg = active
 		a.mu.Unlock()
 		start := time.Now()
-		err = a.session(ctx, cfg)
+		err = a.session(ctx, active, len(cands) > 1)
+		if errors.Is(err, errDial) && next+1 < len(cands) && ctx.Err() == nil {
+			a.Log.Info("server address not reachable, trying the next one", "server", active.Server, "err", err)
+			next++
+			continue
+		}
+		next = 0 // after a lost session or a full round, start with the preferred address again
 		switch {
 		case errors.Is(err, ErrRemoved):
 			a.Log.Warn("the server removed this device; clearing the enrollment")
@@ -244,14 +260,19 @@ func (a *Agent) Run(ctx context.Context) error {
 }
 
 var (
+	errDial          = errors.New("connect")
 	errSessionDone   = errors.New("session finished")
 	errUnknownDevice = errors.New("the server does not know this device")
 )
 
-func (a *Agent) session(ctx context.Context, cfg Config) error {
+func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	dctx, dcancel := context.WithTimeout(ctx, 30*time.Second)
+	dialTimeout := 30 * time.Second
+	if alternatives {
+		dialTimeout = 10 * time.Second // other addresses wait
+	}
+	dctx, dcancel := context.WithTimeout(ctx, dialTimeout)
 	ws, res, err := websocket.Dial(dctx, wsURL(cfg.Server)+agentproto.PathWS, &websocket.DialOptions{
 		HTTPClient:      a.HTTP,
 		HTTPHeader:      http.Header{"User-Agent": {"fleetwarden-agent/" + version.Version}},
@@ -262,7 +283,7 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 		res.Body.Close()
 	}
 	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return fmt.Errorf("%w: %w", errDial, err)
 	}
 	defer ws.CloseNow() //nolint:errcheck
 	ws.SetReadLimit(4 << 20)
@@ -394,6 +415,11 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 					}
 					invEvery <- a.inventoryInterval(c.InventoryMinutes)
 				}
+			case agentproto.TypeEndpoints:
+				var ep agentproto.Endpoints
+				if e.Decode(&ep) == nil {
+					a.saveEndpoints(ep.URLs)
+				}
 			case agentproto.TypePatchConfig:
 				a.handlePatchConfig(e)
 			case agentproto.TypePatchScan:
@@ -431,6 +457,27 @@ func (a *Agent) session(ctx context.Context, cfg Config) error {
 		ws.Close(websocket.StatusGoingAway, "agent stopping") //nolint:errcheck
 		return ctx.Err()
 	}
+}
+
+// saveEndpoints stores the server's address list when it changed.
+func (a *Agent) saveEndpoints(urls []string) {
+	eps := cleanEndpoints(urls)
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	cfg, err := LoadConfig(a.ConfigPath)
+	if err != nil || !cfg.Enrolled() || slices.Equal(cfg.Endpoints, eps) || (len(cfg.Endpoints) == 0 && len(eps) == 0) {
+		return
+	}
+	cfg.Endpoints = eps
+	if len(eps) == 0 {
+		cfg.Endpoints = nil
+	}
+	if err := SaveConfig(a.ConfigPath, cfg); err != nil {
+		a.Log.Warn("saving server addresses", "err", err)
+		return
+	}
+	a.cfg.Endpoints = cfg.Endpoints
+	a.Log.Info("server addresses updated", "endpoints", eps)
 }
 
 // inventoryInterval turns the server's interval into a duration, never less

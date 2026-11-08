@@ -286,6 +286,9 @@ type Device struct {
 	InventoryAt  *time.Time      `json:"inventoryAt"`
 	Notes        string          `json:"notes"`
 	Online       bool            `json:"online"` // filled in by the server
+	// ConnectedVia names the secure gateway of the current connection;
+	// empty for a direct connection (filled in by the server).
+	ConnectedVia string `json:"connectedVia,omitempty"`
 
 	UpdateVersion string     `json:"updateVersion"` // agent update: target version
 	UpdateState   string     `json:"updateState"`

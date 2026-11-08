@@ -24,6 +24,38 @@ type Config struct {
 	DeviceID        string `json:"deviceId,omitempty"`
 	PrivateKey      []byte `json:"privateKey,omitempty"` // Ed25519 seed
 	ServerPublicKey []byte `json:"serverPublicKey,omitempty"`
+
+	// Endpoints are further addresses of the same server (its external URL
+	// and secure gateways), sent by the server. The agent tries them in
+	// order, then Server.
+	Endpoints []string `json:"endpoints,omitempty"`
+}
+
+// maxEndpoints bounds the list the server may send.
+const maxEndpoints = 16
+
+// Candidates returns the addresses to try, in order, without duplicates.
+func (c Config) Candidates() []string {
+	out := make([]string, 0, len(c.Endpoints)+1)
+	seen := map[string]bool{}
+	for _, u := range append(append([]string{}, c.Endpoints...), c.Server) {
+		if u != "" && !seen[u] {
+			seen[u] = true
+			out = append(out, u)
+		}
+	}
+	return out
+}
+
+// cleanEndpoints validates the list the server sent.
+func cleanEndpoints(in []string) []string {
+	out := []string{}
+	for _, u := range in {
+		if n, err := NormalizeServer(u); err == nil && strings.Contains(u, "://") && len(out) < maxEndpoints {
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 // Enrolled reports whether the agent has a device identity.
