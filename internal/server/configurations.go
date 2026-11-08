@@ -100,6 +100,12 @@ func configItem(c store.Configuration) (agentproto.ConfigItem, error) {
 	case agentproto.ConfigScript:
 		it.Script = &agentproto.ScriptConfig{}
 		err = json.Unmarshal(c.Settings, it.Script)
+	case agentproto.ConfigDrives:
+		it.Drives = &agentproto.DriveSettings{}
+		err = json.Unmarshal(c.Settings, it.Drives)
+	case agentproto.ConfigPrinters:
+		it.Printers = &agentproto.PrinterSettings{}
+		err = json.Unmarshal(c.Settings, it.Printers)
 	default:
 		err = errors.New("unknown configuration type")
 	}
@@ -203,6 +209,18 @@ func validateConfig(c *store.Configuration) string {
 			return "invalid_settings"
 		}
 		bad, v = validScript(&p, c.Platform), p
+	case agentproto.ConfigDrives:
+		var p agentproto.DriveSettings
+		if dec.Decode(&p) != nil {
+			return "invalid_settings"
+		}
+		bad, v = validDrives(&p), p
+	case agentproto.ConfigPrinters:
+		var p agentproto.PrinterSettings
+		if dec.Decode(&p) != nil {
+			return "invalid_settings"
+		}
+		bad, v = validPrinters(&p), p
 	}
 	if bad != "" {
 		return bad
@@ -437,6 +455,128 @@ func validScript(p *agentproto.ScriptConfig, platform string) string {
 	}
 	if p.TimeoutMinutes < 1 || p.TimeoutMinutes > 120 {
 		return "invalid_timeout"
+	}
+	return ""
+}
+
+var (
+	// A share path: \\server\share\folder, where %USERNAME% and
+	// %USERDOMAIN% may stand for parts.
+	drivePathRE   = regexp.MustCompile(`^\\\\[A-Za-z0-9._%-]{1,253}(\\[^\\/:*?"<>|\x00-\x1f]+)+$`)
+	printerPathRE = regexp.MustCompile(`^\\\\[A-Za-z0-9._-]{1,253}\\[^\\/,"\x00-\x1f]{1,200}$`)
+	printerNameRE = regexp.MustCompile(`^[^\\/,"!\x00-\x1f]{1,100}$`)
+	hostRE        = regexp.MustCompile(`^[A-Za-z0-9.:-]{1,253}$`)
+	lprQueueRE    = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
+	driverNameRE  = regexp.MustCompile(`^[^"\x00-\x1f]{1,200}$`)
+)
+
+func validDrives(p *agentproto.DriveSettings) string {
+	if len(p.Drives) == 0 {
+		return "nothing_configured"
+	}
+	if len(p.Drives) > 23 {
+		return "duplicate_drive"
+	}
+	seen := map[string]bool{}
+	for i := range p.Drives {
+		d := &p.Drives[i]
+		d.Letter = strings.ToUpper(strings.TrimRight(strings.TrimSpace(d.Letter), ":"))
+		if len(d.Letter) != 1 || d.Letter[0] < 'D' || d.Letter[0] > 'Z' {
+			return "invalid_drive_letter"
+		}
+		if seen[d.Letter] {
+			return "duplicate_drive"
+		}
+		seen[d.Letter] = true
+		d.Path = strings.TrimRight(strings.ReplaceAll(strings.TrimSpace(d.Path), "/", `\`), `\`)
+		if !drivePathRE.MatchString(d.Path) || len(d.Path) > 260 {
+			return "invalid_drive_path"
+		}
+		d.Label = cleanText(d.Label, 64)
+	}
+	return ""
+}
+
+func validPrinters(p *agentproto.PrinterSettings) string {
+	if len(p.Printers) == 0 {
+		return "nothing_configured"
+	}
+	if len(p.Printers) > 50 {
+		return "too_many_printers"
+	}
+	seen := map[string]bool{}
+	defaults := 0
+	for i := range p.Printers {
+		pr := &p.Printers[i]
+		pr.Driver = strings.TrimSpace(pr.Driver)
+		pr.DriverINF = strings.TrimSpace(pr.DriverINF)
+		if pr.Driver != "" && !driverNameRE.MatchString(pr.Driver) {
+			return "invalid_driver"
+		}
+		if pr.DriverINF != "" && (pr.Driver == "" || len(pr.DriverINF) > 260 || strings.ContainsAny(pr.DriverINF, "\"\x00\n\r") ||
+			!strings.HasSuffix(strings.ToLower(pr.DriverINF), ".inf")) {
+			return "invalid_driver_inf"
+		}
+		var key string
+		switch pr.Kind {
+		case agentproto.PrinterShared:
+			pr.Path = strings.TrimSpace(strings.ReplaceAll(pr.Path, "/", `\`))
+			if !printerPathRE.MatchString(pr.Path) {
+				return "invalid_printer_path"
+			}
+			if pr.Scope == "" {
+				pr.Scope = agentproto.PrinterDevice
+			}
+			if pr.Scope != agentproto.PrinterDevice && pr.Scope != agentproto.PrinterUser {
+				return "invalid_printer_scope"
+			}
+			pr.Name, pr.Address, pr.Protocol, pr.Port, pr.Queue = "", "", "", 0, ""
+			key = "shared:" + strings.ToLower(pr.Path)
+		case agentproto.PrinterIP:
+			pr.Name = strings.TrimSpace(pr.Name)
+			if !printerNameRE.MatchString(pr.Name) {
+				return "invalid_printer_name"
+			}
+			pr.Address = strings.TrimSpace(pr.Address)
+			if !hostRE.MatchString(pr.Address) {
+				return "invalid_printer_address"
+			}
+			if pr.Driver == "" {
+				return "driver_required"
+			}
+			switch pr.Protocol {
+			case "", agentproto.PrinterRaw:
+				pr.Protocol, pr.Queue = agentproto.PrinterRaw, ""
+				if pr.Port == 0 {
+					pr.Port = 9100
+				}
+				if pr.Port < 1 || pr.Port > 65535 {
+					return "invalid_printer_port"
+				}
+			case agentproto.PrinterLPR:
+				pr.Port = 0
+				pr.Queue = strings.TrimSpace(pr.Queue)
+				if !lprQueueRE.MatchString(pr.Queue) {
+					return "invalid_printer_queue"
+				}
+			default:
+				return "invalid_printer_protocol"
+			}
+			pr.Path, pr.Scope = "", ""
+			key = "ip:" + strings.ToLower(pr.Name)
+		default:
+			return "invalid_printer_kind"
+		}
+		if seen[key] {
+			return "duplicate_printer"
+		}
+		seen[key] = true
+		if pr.Default {
+			defaults++
+		}
+	}
+	if defaults > 1 {
+		return "multiple_default_printers"
 	}
 	return ""
 }

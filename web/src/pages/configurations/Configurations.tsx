@@ -15,7 +15,9 @@ import {
   type ConfigView,
   type Configuration,
   type DeviceConfigState,
+  type DriveSettings,
   type Platform,
+  type PrinterSettings,
   type RegistrySettings,
   type ScriptSettings,
   type ScriptShell,
@@ -24,7 +26,7 @@ import { useAuth } from "../../auth";
 import { useGroups } from "../../components/GroupScope";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Switch, formatDate, useErrorText } from "../../components/ui";
 import { PlatformBadge, StatusDot, timeAgo } from "../devices/util";
-import { BrowserForm, RegistryForm, ScriptForm, defaultSettings } from "./forms";
+import { BrowserForm, DrivesForm, PrintersForm, RegistryForm, ScriptForm, defaultSettings } from "./forms";
 import { ConfigProgress, ConfigStateBadge, TypeBadge, effectiveState, typeIcons } from "./util";
 
 function EmptyState({ onNew, canManage }: { onNew: () => void; canManage: boolean }) {
@@ -227,7 +229,7 @@ export function ConfigEditor() {
       return;
     }
     const platform = (params.get("platform") === "linux" ? "linux" : "windows") as Platform;
-    const type = (["browser", "registry", "script"].includes(params.get("type") ?? "") ? params.get("type") : "browser") as ConfigType;
+    const type = (["browser", "registry", "script", "drives", "printers"].includes(params.get("type") ?? "") ? params.get("type") : "browser") as ConfigType;
     setCfg({
       id: 0,
       name: "",
@@ -298,6 +300,10 @@ export function ConfigEditor() {
             <BrowserForm value={cfg.settings as BrowserSettings} onChange={setSettings} />
           ) : cfg.type === "registry" ? (
             <RegistryForm value={cfg.settings as RegistrySettings} onChange={setSettings} />
+          ) : cfg.type === "drives" ? (
+            <DrivesForm value={cfg.settings as DriveSettings} onChange={setSettings} />
+          ) : cfg.type === "printers" ? (
+            <PrintersForm value={cfg.settings as PrinterSettings} onChange={setSettings} />
           ) : (
             <ScriptForm value={cfg.settings as ScriptSettings} onChange={setSettings} platform={cfg.platform} shells={shells[cfg.platform]} />
           )}

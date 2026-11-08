@@ -30,11 +30,13 @@ const (
 	ConfigBrowser  = "browser"  // browser policies for Chrome, Edge and Firefox
 	ConfigRegistry = "registry" // Windows registry values (HKLM, or HKCU of every user)
 	ConfigScript   = "script"   // a PowerShell, cmd, bash or sh script
+	ConfigDrives   = "drives"   // network drives of the users (Windows)
+	ConfigPrinters = "printers" // printers, with their drivers (Windows)
 )
 
 // ConfigTypes lists the types per platform.
 var ConfigTypes = map[string][]string{
-	"windows": {ConfigBrowser, ConfigRegistry, ConfigScript},
+	"windows": {ConfigBrowser, ConfigRegistry, ConfigScript, ConfigDrives, ConfigPrinters},
 	"linux":   {ConfigBrowser, ConfigScript},
 }
 
@@ -79,6 +81,8 @@ type ConfigItem struct {
 	Browser  *BrowserPolicy    `json:"browser,omitempty"`
 	Registry *RegistrySettings `json:"registry,omitempty"`
 	Script   *ScriptConfig     `json:"script,omitempty"`
+	Drives   *DriveSettings    `json:"drives,omitempty"`
+	Printers *PrinterSettings  `json:"printers,omitempty"`
 }
 
 // Browser keys.
@@ -185,6 +189,65 @@ type ScriptConfig struct {
 	Trigger         string `json:"trigger"`
 	IntervalMinutes int    `json:"intervalMinutes,omitempty"`
 	TimeoutMinutes  int    `json:"timeoutMinutes"`
+}
+
+// DriveMapping maps a network drive for every user who logs on. Path may
+// hold %USERNAME% and %USERDOMAIN%, which the agent fills in per user.
+type DriveMapping struct {
+	Letter string `json:"letter"` // H
+	Path   string `json:"path"`   // \\server\home\%USERNAME%
+	Label  string `json:"label,omitempty"`
+}
+
+// DriveSettings maps network drives. The user's own Windows sign-in is
+// used to connect; on a PC without a domain Windows asks for a password the
+// first time, unless the user has the same account on the server.
+type DriveSettings struct {
+	Drives []DriveMapping `json:"drives"`
+}
+
+// Printer kinds.
+const (
+	PrinterShared = "shared" // a printer shared by a print server: \\server\name
+	PrinterIP     = "ip"     // a network printer by its address (TCP/IP)
+)
+
+// Who gets a shared printer.
+const (
+	PrinterDevice = "device" // every user of the device
+	PrinterUser   = "user"   // added in the profile of each user who logs on
+)
+
+// TCP/IP printer protocols.
+const (
+	PrinterRaw = "raw" // RAW on PortNumber (9100)
+	PrinterLPR = "lpr" // LPR with Queue
+)
+
+// Printer adds one printer.
+type Printer struct {
+	Kind string `json:"kind"`
+	// Path of a shared printer, and who gets it.
+	Path  string `json:"path,omitempty"`
+	Scope string `json:"scope,omitempty"`
+	// A TCP/IP printer: its name on the device, address and driver.
+	Name     string `json:"name,omitempty"`
+	Address  string `json:"address,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
+	Port     int    `json:"port,omitempty"`
+	Queue    string `json:"queue,omitempty"`
+	Driver   string `json:"driver,omitempty"`
+	// DriverINF is the .inf file of the driver, on a share or the device,
+	// for a driver that is not in Windows yet.
+	DriverINF string `json:"driverInf,omitempty"`
+	// Default makes it the default printer of every user.
+	Default bool `json:"default,omitempty"`
+}
+
+// PrinterSettings adds printers. Printers the agent added are removed again
+// when they are no longer configured.
+type PrinterSettings struct {
+	Printers []Printer `json:"printers"`
 }
 
 // Configuration states in a report.

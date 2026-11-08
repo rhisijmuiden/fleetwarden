@@ -70,6 +70,15 @@ type ConfigBackend interface {
 	// RegistryStore opens the registry of the machine (hive HKLM) or of a
 	// user (HKCU with their SID); nil when the platform has none.
 	RegistryStore(hive, sid string) (PolicyStore, error)
+	// DriveStore opens the network drives of a logged-on user: setting
+	// names are drive letters, values DriveValue; nil when the platform has
+	// none.
+	DriveStore(user ConfigUser) (PolicyStore, error)
+	// PrinterStore opens the printers of the device (user nil) or of a
+	// logged-on user: setting names are printerName, values Printer, and for
+	// a user "default" with the name of the default printer; nil when the
+	// platform has none.
+	PrinterStore(user *ConfigUser) (PolicyStore, error)
 	// Users lists the logged-on users.
 	Users() []ConfigUser
 	// RunScript runs a script as SYSTEM/root, or as the user when user is set.
@@ -347,6 +356,8 @@ func (a *Agent) applyConfig(ctx context.Context, p agentproto.ConfigPolicy, user
 
 	a.applyBrowsers(be, &st, p.Items, res)
 	a.applyRegistry(be, &st, p.Items, users, res)
+	a.applyDrives(be, &st, p.Items, users, res)
+	a.applyPrinters(be, &st, p.Items, users, res)
 	a.runScripts(ctx, be, &st, p.Items, users, fresh, res)
 
 	if err := a.saveConfigFile(configStateFile, st); err != nil {
@@ -662,4 +673,158 @@ func scriptConfigured(items []agentproto.ConfigItem, id string) bool {
 func sameBoot(a, b time.Time) bool {
 	d := a.Sub(b)
 	return d > -2*time.Minute && d < 2*time.Minute
+}
+
+// syncFor applies want to one store and records the outcome on the
+// configurations in ids. A nil store means the platform has none.
+func syncFor(st *configState, key string, open func() (PolicyStore, error), want map[string]any, ids []int64, res map[int64]*itemResult, what string) {
+	if len(want) == 0 && len(st.Managed[key]) == 0 {
+		return
+	}
+	s, err := open()
+	if s == nil || err != nil {
+		for _, id := range ids {
+			if err != nil {
+				res[id].fail(err.Error())
+			} else {
+				res[id].state = agentproto.ConfigUnsupported
+				res[id].note(what + " are not supported on this system")
+			}
+		}
+		return
+	}
+	repaired, err := syncStore(st, key, s, want, nil)
+	for _, id := range ids {
+		res[id].repaired += repaired
+		if err != nil {
+			res[id].fail(err.Error())
+		}
+	}
+}
+
+// DriveValue is how a network drive travels to a PolicyStore.
+type DriveValue struct {
+	Path  string `json:"path"` // with the user's name filled in
+	Label string `json:"label,omitempty"`
+}
+
+// expandUser fills in %USERNAME% and %USERDOMAIN% for a user.
+func expandUser(s string, u ConfigUser) string {
+	dom, name, ok := strings.Cut(u.Name, `\`)
+	if !ok {
+		dom, name = "", u.Name
+	}
+	var b strings.Builder
+	for {
+		i := strings.IndexByte(s, '%')
+		if i < 0 {
+			break
+		}
+		j := strings.IndexByte(s[i+1:], '%')
+		if j < 0 {
+			break
+		}
+		v := s[i+1 : i+1+j]
+		switch strings.ToUpper(v) {
+		case "USERNAME":
+			b.WriteString(s[:i] + name)
+		case "USERDOMAIN":
+			b.WriteString(s[:i] + dom)
+		default:
+			b.WriteString(s[:i+1+j])
+			s = s[i+1+j:]
+			continue
+		}
+		s = s[i+2+j:]
+	}
+	b.WriteString(s)
+	return b.String()
+}
+
+func (a *Agent) applyDrives(be ConfigBackend, st *configState, items []agentproto.ConfigItem, users []ConfigUser, res map[int64]*itemResult) {
+	var ids []int64
+	var drives []agentproto.DriveMapping
+	for _, it := range items {
+		if it.Type != agentproto.ConfigDrives || it.Drives == nil {
+			continue
+		}
+		ids = append(ids, it.ID)
+		drives = append(drives, it.Drives.Drives...) // a later one wins
+	}
+	seen := map[string]bool{}
+	for _, u := range users {
+		if u.SID == "" || seen[u.SID] {
+			continue
+		}
+		seen[u.SID] = true
+		want := map[string]any{}
+		for _, d := range drives {
+			want[strings.ToUpper(d.Letter)] = DriveValue{Path: expandUser(d.Path, u), Label: d.Label}
+		}
+		syncFor(st, "drives:"+u.SID, func() (PolicyStore, error) { return be.DriveStore(u) }, want, ids, res, "network drives")
+	}
+	if len(ids) > 0 && len(seen) == 0 {
+		for _, id := range ids {
+			res[id].state = agentproto.ConfigWaiting
+			res[id].note("network drives are mapped when a user logs on")
+		}
+	}
+}
+
+// defaultPrinterName is the setting of a user's default printer. It sorts
+// after the printers, so they are there when it is set.
+const defaultPrinterName = "~default"
+
+// printerName is the setting name of a printer in a store.
+func printerName(p agentproto.Printer) string {
+	if p.Kind == agentproto.PrinterShared {
+		return "shared:" + strings.ToLower(p.Path)
+	}
+	return "ip:" + strings.ToLower(p.Name)
+}
+
+// PrinterLabel is the name Windows shows for a printer.
+func PrinterLabel(p agentproto.Printer) string {
+	if p.Kind == agentproto.PrinterShared {
+		return p.Path
+	}
+	return p.Name
+}
+
+func (a *Agent) applyPrinters(be ConfigBackend, st *configState, items []agentproto.ConfigItem, users []ConfigUser, res map[int64]*itemResult) {
+	machine := map[string]any{}
+	perUser := map[string]any{}
+	var machineIDs, userIDs []int64
+	for _, it := range items {
+		if it.Type != agentproto.ConfigPrinters || it.Printers == nil {
+			continue
+		}
+		for _, p := range it.Printers.Printers {
+			if p.Kind == agentproto.PrinterShared && p.Scope == agentproto.PrinterUser {
+				perUser[printerName(p)] = p
+				userIDs = appendOnce(userIDs, it.ID)
+			} else {
+				machine[printerName(p)] = p
+				machineIDs = appendOnce(machineIDs, it.ID)
+			}
+			if p.Default {
+				perUser[defaultPrinterName] = PrinterLabel(p)
+				userIDs = appendOnce(userIDs, it.ID)
+			}
+		}
+	}
+	syncFor(st, "printers:machine", func() (PolicyStore, error) { return be.PrinterStore(nil) }, machine, machineIDs, res, "printers")
+	seen := map[string]bool{}
+	for _, u := range users {
+		if u.SID == "" || seen[u.SID] {
+			continue
+		}
+		seen[u.SID] = true
+		syncFor(st, "printers:"+u.SID, func() (PolicyStore, error) { return be.PrinterStore(&u) }, perUser, userIDs, res, "printers")
+	}
+	if len(userIDs) > 0 && len(seen) == 0 {
+		for _, id := range userIDs {
+			res[id].note("printers of the users are added when a user logs on")
+		}
+	}
 }

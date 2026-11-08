@@ -978,7 +978,7 @@ export type FleetAlert = {
 
 // ---- configuration management ----
 
-export type ConfigType = "browser" | "registry" | "script";
+export type ConfigType = "browser" | "registry" | "script" | "drives" | "printers";
 export type StartupMode = "" | "newtab" | "restore" | "urls";
 
 export type BrowserSettings = {
@@ -1009,7 +1009,24 @@ export type ScriptSettings = {
   timeoutMinutes: number;
 };
 
-export type ConfigSettings = BrowserSettings | RegistrySettings | ScriptSettings;
+export type DriveMapping = { letter: string; path: string; label?: string };
+export type DriveSettings = { drives: DriveMapping[] };
+export type PrinterKind = "shared" | "ip";
+export type PrinterConfig = {
+  kind: PrinterKind;
+  path?: string;
+  scope?: "device" | "user";
+  name?: string;
+  address?: string;
+  protocol?: "raw" | "lpr";
+  port?: number;
+  queue?: string;
+  driver?: string;
+  driverInf?: string;
+  default?: boolean;
+};
+export type PrinterSettings = { printers: PrinterConfig[] };
+export type ConfigSettings = BrowserSettings | RegistrySettings | ScriptSettings | DriveSettings | PrinterSettings;
 
 export type Configuration = {
   id: number;

@@ -275,7 +275,24 @@
     "invalid_trigger": "Dit moment is niet beschikbaar op dit platform.",
     "invalid_interval": "De interval moet tussen 5 minuten en 7 dagen liggen.",
     "configuration_exists": "Er bestaat al een configuratie met deze naam.",
-    "type_cannot_change": "Het soort en platform van een configuratie kunnen niet veranderen."
+    "type_cannot_change": "Het soort en platform van een configuratie kunnen niet veranderen.",
+    "invalid_drive_letter": "Kies een stationsletter van D tot en met Z.",
+    "invalid_drive_path": "Een sharepad is niet geldig. Gebruik \\\\server\\share, eventueel met %USERNAME%.",
+    "duplicate_drive": "Elke stationsletter kan maar één keer gebruikt worden.",
+    "too_many_printers": "Maximaal 50 printers per configuratie.",
+    "invalid_driver": "Een drivernaam is niet geldig.",
+    "invalid_driver_inf": "Het driverbestand moet een pad naar een .inf-bestand zijn, en heeft de drivernaam nodig.",
+    "invalid_printer_path": "Een gedeelde printer moet eruitzien als \\\\server\\printer (zonder komma's).",
+    "invalid_printer_scope": "Onbekende keuze voor wie de printer krijgt.",
+    "invalid_printer_name": "Een printernaam is niet geldig (geen \\, /, komma, aanhalingsteken of !).",
+    "invalid_printer_address": "Een printeradres is niet geldig. Gebruik een IP-adres of hostnaam.",
+    "driver_required": "Een TCP/IP-printer heeft een drivernaam nodig.",
+    "invalid_printer_port": "De poort moet tussen 1 en 65535 liggen.",
+    "invalid_printer_queue": "Een LPR-printer heeft een wachtrijnaam nodig (letters, cijfers, . _ -).",
+    "invalid_printer_protocol": "Onbekend printerprotocol.",
+    "invalid_printer_kind": "Onbekend printertype.",
+    "duplicate_printer": "Elke printer kan maar één keer toegevoegd worden.",
+    "multiple_default_printers": "Maar één printer kan de standaardprinter zijn."
   },
   "login": {
     "title": "Inloggen",
@@ -2213,12 +2230,16 @@
     "types": {
       "browser": "Browserbeleid",
       "registry": "Register",
-      "script": "Script"
+      "script": "Script",
+      "drives": "Netwerkschijven",
+      "printers": "Printers"
     },
     "typeHints": {
       "browser": "Startpagina, startknop, wachtwoordmanager en verplichte extensies voor Chrome, Edge en Firefox.",
       "registry": "Registerwaarden voor de computer (HKLM) of voor elke gebruiker die zich aanmeldt (HKCU).",
-      "script": "Een PowerShell-, cmd-, bash- of sh-script dat eenmalig, bij het opstarten, bij aanmelden of met een interval draait."
+      "script": "Een PowerShell-, cmd-, bash- of sh-script dat eenmalig, bij het opstarten, bij aanmelden of met een interval draait.",
+      "drives": "Koppel netwerkschijven zoals H: voor elke gebruiker die zich aanmeldt, ook op pc's zonder domein.",
+      "printers": "Gedeelde printers van een printserver en TCP/IP-printers, met hun driver en de standaardprinter."
     },
     "comingSoon": "Netwerkschijven, printers en meer Windows-instellingen volgen in de volgende update.",
     "cols": {
@@ -2378,6 +2399,46 @@
       "timeout": "Tijdslimiet (minuten)",
       "content": "Script",
       "contentHint": "Exitcode 0 betekent gelukt. De laatste 8.000 tekens van de uitvoer worden in het joblog bewaard."
+    },
+    "drives": {
+      "letter": "Stationsletter",
+      "path": "Sharepad",
+      "label": "Naam in Verkenner",
+      "labelPlaceholder": "Naam in Verkenner (optioneel)",
+      "add": "Schijf toevoegen",
+      "hint": "De agent koppelt de schijven in de sessie van elke gebruiker die zich aanmeldt, en zet ze terug als ze verwijderd worden. %USERNAME% en %USERDOMAIN% worden per gebruiker ingevuld. Windows maakt verbinding met de eigen aanmelding van de gebruiker: op een pc zonder domein vraagt Windows één keer om het wachtwoord als de schijf wordt geopend, tenzij de gebruiker hetzelfde account op de server heeft."
+    },
+    "printers": {
+      "kind": "Type",
+      "path": "Printerpad",
+      "name": "Printernaam",
+      "namePlaceholder": "Naam op de pc, bijv. Verdieping 2",
+      "scope": "Wie krijgt hem",
+      "address": "IP-adres of hostnaam",
+      "protocol": "Protocol",
+      "port": "Poort",
+      "queue": "Wachtrij",
+      "driver": "Driver",
+      "driverOptional": "Driver (optioneel)",
+      "driverHint": "De exacte naam van de driver, zoals Windows die toont. Ingebouwd: Microsoft IPP Class Driver, Generic / Text Only.",
+      "sharedDriverHint": "Installeer deze driver eerst, zodat gebruikers zonder beheerdersrechten kunnen verbinden (Windows blokkeert voor hen drivers van printservers).",
+      "driverInf": "Driverbestand (.inf, optioneel)",
+      "driverInfHint": "Voor een driver die nog niet in Windows zit. Een pad op de pc of op een share die de computer kan lezen.",
+      "default": "Maak dit de standaardprinter van elke gebruiker",
+      "add": "Printer toevoegen",
+      "hint": "De agent voegt de printers en hun drivers toe, en voegt ze opnieuw toe als ze verwijderd worden. Printers die hij heeft toegevoegd, worden verwijderd als de configuratie niet meer geldt.",
+      "kinds": {
+        "shared": "Gedeelde printer (printserver)",
+        "ip": "Netwerkprinter (TCP/IP)"
+      },
+      "scopes": {
+        "device": "Elke gebruiker van het apparaat",
+        "user": "Per gebruiker bij aanmelden"
+      },
+      "scopeHints": {
+        "device": "Windows voegt hem toe aan de printers van elke gebruiker bij de volgende aanmelding.",
+        "user": "Wordt meteen toegevoegd in de sessie van elke aangemelde gebruiker."
+      }
     }
   }
 }
