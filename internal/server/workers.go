@@ -36,6 +36,10 @@ func (s *Server) RunWorkers(ctx context.Context) {
 		s.log.Warn("remote session log", "err", err)
 	}
 	s.reconcileGateways(ctx)
+	if err := s.st.ResetInterruptedDriverDownloads(ctx); err != nil {
+		s.log.Warn("driver repository", "err", err)
+	}
+	s.checkRepository(ctx)
 	s.bgWG.Add(1)
 	go s.agentReleaseLoop(s.bgCtx)
 	mailTick := time.NewTicker(15 * time.Second)
@@ -55,11 +59,13 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.backupTick(ctx)
 			s.agentUpdateTick(ctx)
 			s.patchTick(ctx)
+			s.driversTick(ctx)
 			s.softwareTick(ctx)
 			s.configTick(ctx)
 			s.reportTick(ctx)
 			s.alertTick(ctx)
 		case <-houseTick.C:
+			s.checkRepository(ctx)
 			if err := s.st.PurgeSessions(ctx, sessionIdle); err != nil {
 				s.log.Warn("purge sessions", "err", err)
 			}

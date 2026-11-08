@@ -50,7 +50,7 @@ func defaultPatchPolicy() store.PatchPolicy {
 	return store.PatchPolicy{
 		Enabled: true, WindowDays: 127, WindowStart: 20 * 60, WindowMinutes: 240, Approvals: defaultApprovals(),
 		Reboot: agentproto.RebootPrompt, NotifyUsers: true, MaxPostpones: 3, PostponeMinutes: 60, CountdownSeconds: 300,
-		TakeOver: true, ScanHours: 6,
+		TakeOver: true, ScanHours: 6, Drivers: true,
 	}
 }
 
@@ -266,7 +266,11 @@ func (s *Server) patchTick(ctx context.Context) {
 			}
 		}
 		sort.Strings(approved)
-		if len(approved) == 0 && !(d.RebootPending && pol.Reboot != agentproto.RebootNever) {
+		drivers, err := s.deviceDriverJobs(ctx, d.ID, pol, nil)
+		if err != nil {
+			continue
+		}
+		if len(approved) == 0 && len(drivers) == 0 && !(d.RebootPending && pol.Reboot != agentproto.RebootNever) {
 			continue
 		}
 		if d.Cluster != "" {
@@ -274,7 +278,7 @@ func (s *Server) patchTick(ctx context.Context) {
 				continue // the next node waits until this one is done
 			}
 		}
-		if _, err := s.startPatchRun(ctx, d.ID, pol, approved, "window", ""); err == nil {
+		if _, err := s.startPatchRun(ctx, d.ID, pol, approved, drivers, "window", ""); err == nil {
 			started++
 		}
 	}
@@ -284,7 +288,7 @@ func (s *Server) patchTick(ctx context.Context) {
 func (s *Server) pushPatchConfig(id string, pol *store.PatchPolicy, product, color string) {
 	cfg := agentproto.PatchConfig{ProductName: product, AccentColor: color}
 	if pol != nil {
-		cfg.Managed, cfg.TakeOverWindowsUpdate = true, pol.TakeOver
+		cfg.Managed, cfg.TakeOverWindowsUpdate, cfg.ManageDrivers = true, pol.TakeOver, pol.Drivers || pol.Firmware
 	}
 	s.hub.sendChanged(id, "patch.config", agentproto.TypePatchConfig, cfg)
 }
@@ -306,25 +310,35 @@ func (s *Server) patchOnConnect(ctx context.Context, dev store.Device) {
 	s.pushPatchConfig(dev.ID, pol, b.ProductName, b.PrimaryColor)
 }
 
-func (s *Server) startPatchRun(ctx context.Context, deviceID string, pol *store.PatchPolicy, updateIDs []string, trigger, by string) (store.PatchRun, error) {
+// startPatchRun sends a patch job with Windows or apt updates and
+// repository drivers. The run lists both (drivers as "driver:<id>").
+func (s *Server) startPatchRun(ctx context.Context, deviceID string, pol *store.PatchPolicy, updateIDs []string,
+	drivers []agentproto.DriverInstall, trigger, by string) (store.PatchRun, error) {
 	p := defaultPatchPolicy()
 	var policyID *int64
 	if pol != nil {
 		p, policyID = *pol, &pol.ID
 	}
-	run, err := s.st.CreatePatchRun(ctx, store.PatchRun{DeviceID: deviceID, PolicyID: policyID, Trigger: trigger, Updates: updateIDs, RequestedBy: by})
+	all := slices.Clone(updateIDs)
+	for _, d := range drivers {
+		all = append(all, d.ID)
+	}
+	run, err := s.st.CreatePatchRun(ctx, store.PatchRun{DeviceID: deviceID, PolicyID: policyID, Trigger: trigger, Updates: all, RequestedBy: by})
 	if err != nil {
 		return run, err
 	}
 	job := agentproto.PatchInstall{
-		RunID: run.ID, Updates: run.Updates, Reboot: p.Reboot, Notify: p.NotifyUsers, MaxPostpones: p.MaxPostpones,
-		PostponeMinutes: p.PostponeMinutes, CountdownSeconds: p.CountdownSeconds,
+		RunID: run.ID, Updates: updateIDs, Reboot: p.Reboot, Notify: p.NotifyUsers, MaxPostpones: p.MaxPostpones,
+		PostponeMinutes: p.PostponeMinutes, CountdownSeconds: p.CountdownSeconds, Drivers: drivers,
+	}
+	if job.Updates == nil {
+		job.Updates = []string{}
 	}
 	if !s.hub.send(deviceID, agentproto.TypePatchInstall, job) {
 		_ = s.st.FailPatchRun(ctx, run.ID, "the device went offline")
 		return run, errDeviceOffline
 	}
-	s.log.Info("patch job started", "device", deviceID, "run", run.ID, "updates", len(updateIDs), "trigger", trigger)
+	s.log.Info("patch job started", "device", deviceID, "run", run.ID, "updates", len(updateIDs), "drivers", len(drivers), "trigger", trigger)
 	return run, nil
 }
 
@@ -353,6 +367,9 @@ func (s *Server) handlePatchScanMsg(ctx context.Context, c *agentConn, e *agentp
 		if !agentproto.ValidCategory(cat) {
 			cat = agentproto.CategoryOther
 		}
+		if cat == agentproto.CategoryDriver {
+			continue // drivers only come through the repository (older agents still report them)
+		}
 		row := store.PatchRow{UpdateID: id, Title: cleanText(u.Title, 500), KB: cleanText(u.KB, 20), Category: cat,
 			Severity: cleanText(u.Severity, 20), SizeBytes: max(u.SizeBytes, 0), CurrentVersion: cleanText(u.CurrentVersion, 100),
 			NewVersion: cleanText(u.NewVersion, 100), Reboot: u.RebootRequired}
@@ -364,8 +381,14 @@ func (s *Server) handlePatchScanMsg(ctx context.Context, c *agentConn, e *agentp
 		}
 		rows = append(rows, row)
 	}
-	return s.st.SaveScanResult(ctx, c.deviceID, store.ScanResult{Error: cleanText(res.Error, 1000), Source: cleanText(res.Source, 30),
-		Cluster: cleanText(res.Cluster, 100), RebootPending: res.RebootPending, Patches: rows})
+	if err := s.st.SaveScanResult(ctx, c.deviceID, store.ScanResult{Error: cleanText(res.Error, 1000), Source: cleanText(res.Source, 30),
+		Cluster: cleanText(res.Cluster, 100), RebootPending: res.RebootPending, Patches: rows}); err != nil {
+		return err
+	}
+	if !res.DriversScanned {
+		return nil
+	}
+	return s.saveDriverScan(ctx, c.deviceID, res)
 }
 
 func (s *Server) handlePatchStatusMsg(ctx context.Context, c *agentConn, e *agentproto.Envelope) error {
@@ -768,7 +791,7 @@ func (s *Server) handlePatchInstallNow(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	u, _ := currentUser(r)
-	run, err := s.startPatchRun(r.Context(), d.ID, pol, ids, "manual", u.Username)
+	run, err := s.startPatchRun(r.Context(), d.ID, pol, ids, nil, "manual", u.Username)
 	switch {
 	case errors.Is(err, store.ErrConflict):
 		apiError(w, http.StatusConflict, "run_open")

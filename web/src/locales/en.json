@@ -35,7 +35,8 @@
     "agentUpdates": "Agent updates",
     "reverseProxy": "Reverse proxy",
     "gateways": "Secure gateway",
-    "configurations": "Configurations"
+    "configurations": "Configurations",
+    "drivers": "Drivers & firmware"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -313,7 +314,11 @@
     "invalid_addresses": "Remote addresses are IP addresses, subnets (10.0.0.0/24), ranges (10.0.0.1-10.0.0.9) or LocalSubnet.",
     "invalid_program": "The program must be the full path of an .exe.",
     "invalid_profile": "Unknown network profile.",
-    "invalid_firewall_action": "Pick allow or block."
+    "invalid_firewall_action": "Pick allow or block.",
+    "invalid_state": "Unknown status.",
+    "invalid_ids": "Select between 1 and 500 updates.",
+    "invalid_driver_action": "Unknown action.",
+    "driver_not_ready": "Only updates that are in the repository can be installed."
   },
   "login": {
     "title": "Sign in",
@@ -435,7 +440,8 @@
     "remote_control": "Control devices remotely",
     "reports_manage": "Manage report schedules and compliance rules",
     "alerts_manage": "Acknowledge alerts and manage alert rules",
-    "config_manage": "Manage configurations (browser policies, registry, scripts)"
+    "config_manage": "Manage configurations (browser policies, registry, scripts)",
+    "drivers_manage": "Add drivers and firmware to the repository"
   },
   "auth": {
     "title": "Authentication",
@@ -901,7 +907,8 @@
       "software": "Software",
       "notes": "Notes",
       "updates": "Updates",
-      "configurations": "Configurations"
+      "configurations": "Configurations",
+      "drivers": "Drivers"
     },
     "system": "System",
     "osVersion": "Version",
@@ -1199,7 +1206,7 @@
       "critical": "Critical non-security fixes.",
       "cumulative": "Monthly cumulative updates and update rollups.",
       "definition": "Defender and other definition updates.",
-      "driver": "Hardware drivers from Windows Update.",
+      "driver": "Drivers now come through Drivers & firmware.",
       "feature": "New Windows versions (for example 25H2).",
       "other": "Other updates, and regular apt updates on Linux."
     },
@@ -1318,7 +1325,13 @@
     "approvedFrom": "Approved from {{when}}",
     "awaitingApproval": "Waiting for approval",
     "history": "Patch history",
-    "scanIntervalMoved": "How often devices scan for updates is set under Settings > Agent scans, and per device group."
+    "scanIntervalMoved": "How often devices scan for updates is set under Settings > Agent scans, and per device group.",
+    "driversSection": "Drivers and firmware",
+    "driversSectionHint": "Only updates that an administrator added to the driver repository are installed, in this window and with the restart settings below. Devices never download drivers from the vendor themselves.",
+    "drivers": "Install drivers from the repository",
+    "driversHint": "Also stops Windows from fetching drivers by itself when a device is plugged in.",
+    "firmware": "Install firmware (BIOS/UEFI) from the repository",
+    "firmwareHint": "Firmware needs a restart. On Windows BitLocker is suspended for that one restart. Test on a few devices first."
   },
   "software": {
     "title": "Software",
@@ -2558,5 +2571,101 @@
       "add": "Add rule",
       "hint": "The rules are in the Windows Firewall group \"FleetWarden\". Someone who changes or removes one gets it back; rules that are no longer configured are removed."
     }
+  },
+  "drivers": {
+    "title": "Drivers & firmware",
+    "subtitle": "Your own repository of driver and firmware updates. Devices report what they can get; nothing is downloaded until you add it here.",
+    "tabs": {
+      "available": "Available",
+      "repository": "Repository",
+      "rejected": "Rejected"
+    },
+    "lists": {
+      "available": "Available updates",
+      "repository": "In the repository",
+      "rejected": "Rejected updates"
+    },
+    "listHints": {
+      "available": "Offered by Windows Update or fwupd to at least one of your devices. Add an update to the repository to let the server download it.",
+      "repository": "Stored on this server. Devices install these in the patch window of their policy, or right away from a device's Drivers tab.",
+      "rejected": "Hidden from the available list. Restore one to see it again."
+    },
+    "empty": {
+      "available": "No new driver or firmware updates. Devices report them with each update scan.",
+      "repository": "The repository is empty.",
+      "rejected": "Nothing rejected."
+    },
+    "stats": {
+      "available": "Available",
+      "ready": "In repository",
+      "queued": "Downloading",
+      "size": "Repository size",
+      "devices": "{{devices}} device(s) with an update on offer · {{scanned}} scanned",
+      "free": "{{size}} free on the server"
+    },
+    "failedHint": "{{count}} download(s) failed. Open the update to see why, and try again.",
+    "search": "Search by name, vendor, class or hardware ID",
+    "kind": "Type",
+    "allKinds": "All types",
+    "kinds": {
+      "driver": "Driver",
+      "firmware": "Firmware"
+    },
+    "sources": {
+      "windows-update": "Windows Update",
+      "fwupd": "fwupd (LVFS)"
+    },
+    "states": {
+      "available": "Available",
+      "queued": "Waiting",
+      "downloading": "Downloading",
+      "ready": "In repository",
+      "failed": "Download failed",
+      "rejected": "Rejected"
+    },
+    "update": "Update",
+    "source": "Source",
+    "devicesCol": "Devices",
+    "deviceCol": "Device",
+    "size": "Size",
+    "status": "Status",
+    "selectAll": "Select all",
+    "add": "Add to repository",
+    "addSelected": "Add {{count}} to repository",
+    "retry": "Try again",
+    "reject": "Reject",
+    "unreject": "Restore",
+    "remove": "Remove from repository",
+    "removeSelected": "Remove {{count}} from repository",
+    "needsRestart": "needs a restart",
+    "vendor": "Vendor",
+    "class": "Class",
+    "version": "Version",
+    "released": "Released",
+    "hardwareId": "Hardware ID",
+    "firstSeen": "First seen",
+    "decidedBy": "Decided by",
+    "files": "Files",
+    "offeredTo": "Offered to {{count}} device(s)",
+    "noDevices": "No device in your scope reports this update.",
+    "currentVersion": "now {{version}}",
+    "firmwareWarningTitle": "Firmware update",
+    "firmwareWarning": "Firmware is only installed on devices whose patch policy allows firmware. Keep the device on power during the restart; on Windows BitLocker is suspended for that restart.",
+    "downloadFailed": "Download failed",
+    "notDownloadedHint": "Not downloaded yet. Adding it to the repository downloads it once from the vendor to this server; devices then get it from here.",
+    "deviceStatus": "Driver status",
+    "onOffer": "On offer",
+    "inRepository": "{{count}} in the repository",
+    "offered": "Driver and firmware updates",
+    "offeredHint": "Only updates in the repository can be installed. Others need an administrator to add them under Drivers & firmware first.",
+    "installSelected": "Install {{count}} now",
+    "installStarted": "Install started. Follow it on the Updates tab.",
+    "notInRepository": "Not in the repository yet",
+    "upToDate": "No driver or firmware updates on offer.",
+    "policyDriversOn": "Drivers: installed in the window",
+    "policyDriversOff": "Drivers: not automatically",
+    "policyFirmwareOn": "Firmware: installed in the window",
+    "policyFirmwareOff": "Firmware: not automatically",
+    "deviceNoPolicy": "The device's group has no patch policy, so nothing is installed automatically. You can still install repository updates by hand."
   }
 }

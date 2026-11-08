@@ -62,6 +62,9 @@ type PatchConfig struct {
 	// TakeOverWindowsUpdate turns off Windows' own automatic installs, so
 	// updates only arrive through FleetWarden.
 	TakeOverWindowsUpdate bool `json:"takeOverWindowsUpdate"`
+	// ManageDrivers stops Windows from fetching drivers by itself (also when
+	// a new device is plugged in): drivers come from the repository only.
+	ManageDrivers bool `json:"manageDrivers,omitempty"`
 	// Branding for the user pop-up (white label).
 	ProductName string `json:"productName"`
 	AccentColor string `json:"accentColor"`
@@ -94,6 +97,12 @@ type PatchScanResult struct {
 	// patches one node of a cluster at a time.
 	Cluster string `json:"cluster,omitempty"`
 	Error   string `json:"error,omitempty"`
+	// Drivers lists the driver and firmware updates on offer; DriversScanned
+	// is false for agents that do not look for them (older versions), so
+	// the server keeps what it knew. DriverError is a failed driver scan.
+	Drivers        []DriverUpdate `json:"drivers,omitempty"`
+	DriversScanned bool           `json:"driversScanned,omitempty"`
+	DriverError    string         `json:"driverError,omitempty"`
 }
 
 // PatchInstall asks the agent to install updates.
@@ -108,6 +117,9 @@ type PatchInstall struct {
 	MaxPostpones     int  `json:"maxPostpones"`
 	PostponeMinutes  int  `json:"postponeMinutes"`
 	CountdownSeconds int  `json:"countdownSeconds"`
+	// Drivers are repository driver and firmware updates, installed after
+	// the Windows or apt updates.
+	Drivers []DriverInstall `json:"drivers,omitempty"`
 }
 
 // Patch job states reported in PatchStatus.

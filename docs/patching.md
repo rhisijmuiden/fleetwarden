@@ -27,7 +27,8 @@ in the menu.
 ## Approval
 
 Each update falls into a category: security, critical, cumulative,
-definitions, drivers, feature updates or other. On Linux an update is
+definitions, feature updates or other. Drivers and firmware are not patches:
+they go through your own repository, see [drivers.md](drivers.md). On Linux an update is
 *security* when it comes from a security suite (for example
 `trixie-security`); everything else is *other*.
 
@@ -44,7 +45,15 @@ Under **Patch management > Updates** you see every missing update across your
 devices. **Approve** or **Decline** applies to every device and always wins
 over the category rule; **Follow policy** removes the decision. On a device's
 **Updates** tab you can also select updates and install them right away
-(outside the window), for example a driver for one machine.
+(outside the window), for example a fix for one machine.
+
+## Drivers and firmware
+
+A policy also says whether devices install the drivers and firmware from the
+[driver repository](drivers.md) in its window (**Install drivers from the
+repository**, on by default, and **Install firmware (BIOS/UEFI) from the
+repository**, off by default). They use the same window, pop-up and restart
+settings as the other updates, in the same job.
 
 ## Restart and the user
 

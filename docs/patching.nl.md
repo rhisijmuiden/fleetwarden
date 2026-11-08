@@ -27,7 +27,8 @@ Proxmox VE) in onderhoudsvensters die je per apparaatgroep instelt. Open
 ## Goedkeuring
 
 Elke update valt in een categorie: security, kritiek, cumulatief, definities,
-drivers, functie-updates of overig. Op Linux is een update *security* als hij
+functie-updates of overig. Drivers en firmware zijn geen patches: die lopen
+via je eigen repository, zie [drivers.nl.md](drivers.nl.md). Op Linux is een update *security* als hij
 uit een security-suite komt (bijvoorbeeld `trixie-security`); de rest is
 *overig*.
 
@@ -44,7 +45,15 @@ Onder **Patchbeheer > Updates** zie je alle ontbrekende updates van je
 apparaten. **Goedkeuren** of **Weigeren** geldt voor alle apparaten en gaat
 altijd voor de categorieregel; **Volg beleid** haalt het besluit weg. Op het
 tabblad **Updates** van een apparaat kun je ook updates selecteren en direct
-installeren (buiten het venster), bijvoorbeeld een driver voor één machine.
+installeren (buiten het venster), bijvoorbeeld een fix voor één machine.
+
+## Drivers en firmware
+
+Een beleid zegt ook of apparaten in het venster de drivers en firmware uit de
+[driver-repository](drivers.nl.md) installeren (**Drivers uit de repository
+installeren**, standaard aan, en **Firmware (BIOS/UEFI) uit de repository
+installeren**, standaard uit). Ze gebruiken hetzelfde venster, dezelfde pop-up
+en dezelfde herstartinstellingen als de andere updates, in dezelfde taak.
 
 ## Herstarten en de gebruiker
 

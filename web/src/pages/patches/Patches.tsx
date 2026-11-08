@@ -157,7 +157,7 @@ export function RunsTable({ runs, lang, showDevice }: { runs: PatchSummary["runs
   );
 }
 
-const categories: PatchCategory[] = ["security", "critical", "cumulative", "definition", "driver", "feature", "other"];
+const categories: PatchCategory[] = ["security", "critical", "cumulative", "definition", "feature", "other"];
 
 function Updates() {
   const { t, i18n } = useTranslation();

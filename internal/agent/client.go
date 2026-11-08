@@ -49,6 +49,9 @@ type Agent struct {
 	StartHelper func(exe, plan string) error
 	// Patches installs updates; defaults to the platform backend.
 	Patches PatchBackend
+	// Drivers scans for and installs driver and firmware updates; defaults
+	// to the platform backend.
+	Drivers DriverBackend
 	// Software installs and removes programs; defaults to the platform backend.
 	Software SoftwareBackend
 	// Notify asks the logged-on user before patching (the tray pop-up on

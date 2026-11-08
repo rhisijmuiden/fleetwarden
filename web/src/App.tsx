@@ -25,6 +25,7 @@ import { Groups } from "./pages/devices/Groups";
 import { AgentUpdates } from "./pages/admin/AgentUpdates";
 import { Gateways } from "./pages/admin/Gateways";
 import { Patches } from "./pages/patches/Patches";
+import { Drivers } from "./pages/drivers/Drivers";
 import { Software } from "./pages/software/Software";
 import { DeploymentDetail, Deployments } from "./pages/software/Deployments";
 import { Remote } from "./pages/remote/Remote";
@@ -42,6 +43,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/devices/:id", perm: "devices.view", element: <DeviceDetail /> },
   { path: "/groups", perm: "devices.view", element: <Groups /> },
   { path: "/patches", perm: "devices.view", element: <Patches /> },
+  { path: "/drivers", perm: "devices.view", element: <Drivers /> },
   { path: "/software", perm: "devices.view", element: <Software /> },
   { path: "/deployments", perm: "devices.view", element: <Deployments /> },
   { path: "/deployments/:id", perm: "devices.view", element: <DeploymentDetail /> },

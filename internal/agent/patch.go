@@ -189,6 +189,11 @@ func (a *Agent) handlePatchConfig(e *agentproto.Envelope) {
 	if err := a.patchBackend().Configure(c); err != nil {
 		a.Log.Warn("patch settings", "err", err)
 	}
+	if be := a.driverBackend(); be != nil {
+		if err := be.Configure(c.Managed && c.ManageDrivers); err != nil {
+			a.Log.Warn("driver settings", "err", err)
+		}
+	}
 }
 
 func (a *Agent) patchConfig() agentproto.PatchConfig {
@@ -236,8 +241,11 @@ func (a *Agent) scanAndSend(ctx context.Context) {
 	if res.Updates == nil {
 		res.Updates = []agentproto.PatchUpdate{}
 	}
+	if ctx.Err() == nil {
+		a.scanDrivers(ctx, &res)
+	}
 	a.emit(agentproto.TypePatchScanResult, res)
-	a.Log.Info("patch scan", "missing", len(res.Updates), "rebootPending", res.RebootPending)
+	a.Log.Info("patch scan", "missing", len(res.Updates), "drivers", len(res.Drivers), "rebootPending", res.RebootPending)
 }
 
 var patchIDRE = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9+.:_\-]{0,127}$`)
@@ -251,6 +259,12 @@ func (a *Agent) handlePatchInstall(e *agentproto.Envelope) {
 	for _, id := range job.Updates {
 		if !patchIDRE.MatchString(id) {
 			a.emit(agentproto.TypePatchStatus, agentproto.PatchStatus{RunID: job.RunID, State: agentproto.PatchFailed, Message: "invalid update id"})
+			return
+		}
+	}
+	for _, d := range job.Drivers {
+		if !validDriverJob(d) {
+			a.emit(agentproto.TypePatchStatus, agentproto.PatchStatus{RunID: job.RunID, State: agentproto.PatchFailed, Message: "invalid driver update"})
 			return
 		}
 	}
@@ -310,21 +324,32 @@ func (a *Agent) runPatchJob(ctx context.Context, job agentproto.PatchInstall) {
 		a.scanAndSend(ctx)
 	}
 	be := a.patchBackend()
-	a.Log.Info("patch job", "run", job.RunID, "updates", len(job.Updates), "reboot", job.Reboot)
+	a.Log.Info("patch job", "run", job.RunID, "updates", len(job.Updates), "drivers", len(job.Drivers), "reboot", job.Reboot)
 
-	if len(job.Updates) > 0 {
+	if len(job.Updates) > 0 || len(job.Drivers) > 0 {
 		if !r.askUser(ctx, PromptInstall) {
 			return // the agent stops; the next start reports the job as interrupted
 		}
 		r.report(agentproto.PatchInstalling, "")
 		var lastProgress time.Time
-		a.installMu.Lock()
-		results, reboot, err := be.Install(ctx, job.Updates, func(msg string) {
+		progress := func(msg string) {
 			if time.Since(lastProgress) > 5*time.Second {
 				lastProgress = time.Now()
 				r.report(agentproto.PatchInstalling, msg)
 			}
-		})
+		}
+		var results []agentproto.PatchResult
+		var reboot bool
+		var err error
+		a.installMu.Lock()
+		if len(job.Updates) > 0 {
+			results, reboot, err = be.Install(ctx, job.Updates, progress)
+		}
+		if err == nil && len(job.Drivers) > 0 && ctx.Err() == nil {
+			dres, dreboot := a.installDrivers(ctx, job.Drivers, progress)
+			results = append(results, dres...)
+			reboot = reboot || dreboot
+		}
 		a.installMu.Unlock()
 		if ctx.Err() != nil && errors.Is(ctx.Err(), context.Canceled) {
 			return
@@ -379,7 +404,7 @@ func (r *patchRun) askUser(ctx context.Context, kind string) bool {
 		r.asked++
 		left := max(r.job.MaxPostpones-used, 0)
 		p := Prompt{
-			ID: strconv.FormatInt(r.job.RunID, 10) + "-" + strconv.Itoa(r.asked), Kind: kind, Updates: len(r.job.Updates),
+			ID: strconv.FormatInt(r.job.RunID, 10) + "-" + strconv.Itoa(r.asked), Kind: kind, Updates: len(r.job.Updates) + len(r.job.Drivers),
 			CanPostpone: canPostpone && left > 0, PostponesLeft: left, PostponeMinutes: max(r.job.PostponeMinutes, 1),
 			CountdownSeconds: max(r.job.CountdownSeconds, 10), ProductName: cfg.ProductName, AccentColor: cfg.AccentColor,
 		}

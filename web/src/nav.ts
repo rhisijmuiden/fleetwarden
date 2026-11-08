@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { Permission } from "./api";
 import {
   Bell,
+  Cpu,
   ScrollText,
   DatabaseBackup,
   FileBarChart,
@@ -51,6 +52,7 @@ export const navigation: NavGroup[] = [
     label: "nav.management",
     items: [
       { path: "/patches", label: "nav.patches", icon: ShieldCheck, perm: "devices.view" },
+      { path: "/drivers", label: "nav.drivers", icon: Cpu, perm: "devices.view" },
       { path: "/software", label: "nav.software", icon: Package, perm: "devices.view" },
       { path: "/deployments", label: "nav.deployments", icon: Rocket, perm: "devices.view" },
       { path: "/configurations", label: "nav.configurations", icon: SlidersHorizontal, perm: "devices.view" },
