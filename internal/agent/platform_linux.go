@@ -207,6 +207,9 @@ func linuxDisks() []agentproto.Disk {
 var realFS = map[string]bool{"ext2": true, "ext3": true, "ext4": true, "xfs": true, "btrfs": true, "zfs": true, "vfat": true,
 	"exfat": true, "ntfs": true, "ntfs3": true, "f2fs": true, "jfs": true, "reiserfs": true}
 
+// fixedVolumes is linuxVolumes; it is cheap enough for every heartbeat.
+func fixedVolumes() []agentproto.Volume { return linuxVolumes() }
+
 func linuxVolumes() []agentproto.Volume {
 	f, err := os.Open("/proc/mounts")
 	if err != nil {

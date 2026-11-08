@@ -44,7 +44,7 @@ func (s *Store) ReportDevices(ctx context.Context, sc Scope, groups []int64, gra
 		groups = []int64{}
 	}
 	rows, err := s.pool.Query(ctx, `SELECT d.id::text, d.hostname, d.group_id, g.name, d.platform, d.kind, d.os_name, d.last_seen_at,
-		d.patch_scan_at, d.patch_reboot_pending, COALESCE(d.hardware->'volumes', '[]'::jsonb),
+		d.patch_scan_at, d.patch_reboot_pending, COALESCE(d.volumes, d.hardware->'volumes', '[]'::jsonb),
 		COALESCE(p.missing, 0), COALESCE(p.security, 0), COALESCE(p.security_old, 0)
 		FROM devices d JOIN device_groups g ON g.id = d.group_id
 		LEFT JOIN LATERAL (SELECT count(*)::int AS missing,

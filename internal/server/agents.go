@@ -451,6 +451,9 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 		if err := e.Decode(&hb); err != nil {
 			return err
 		}
+		if err := s.saveVolumes(ctx, c.deviceID, hb.Volumes); err != nil {
+			return err
+		}
 		return s.st.TouchDevice(ctx, c.deviceID, ip, cleanText(hb.AgentVersion, 50), cleanText(hb.LoggedInUser, 255),
 			cleanList(hb.LocalIPs, 32, 64), validTime(hb.BootTime))
 	case agentproto.TypeInventory:
@@ -459,6 +462,9 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 			return err
 		}
 		if err := s.saveInventory(ctx, c.deviceID, inv); err != nil {
+			return err
+		}
+		if err := s.saveVolumes(ctx, c.deviceID, inv.Volumes); err != nil {
 			return err
 		}
 		return s.st.TouchDevice(ctx, c.deviceID, ip, cleanText(inv.AgentVersion, 50), cleanText(inv.LoggedInUser, 255),
@@ -546,4 +552,27 @@ func (s *Server) saveInventory(ctx context.Context, id string, inv agentproto.In
 		LoggedInUser: cleanText(inv.LoggedInUser, 255), CPUCores: max(hw.CPUCores, 0), MemoryBytes: max(hw.MemoryBytes, 0),
 		LocalIPs: cleanList(inv.LocalIPs, 32, 64), BootTime: validTime(inv.BootTime), Hardware: hwRaw, Software: rows,
 	})
+}
+
+// saveVolumes stores the volumes an agent sent with its heartbeat. Agents
+// that don't send them keep the volumes from their inventory.
+func (s *Server) saveVolumes(ctx context.Context, deviceID string, vols []agentproto.Volume) error {
+	if len(vols) == 0 {
+		return nil
+	}
+	if len(vols) > 64 {
+		vols = vols[:64]
+	}
+	out := make([]store.ReportVolume, 0, len(vols))
+	for _, v := range vols {
+		if v.SizeBytes <= 0 || v.FreeBytes < 0 {
+			continue
+		}
+		out = append(out, store.ReportVolume{Mount: cleanText(v.Mount, 255), SizeBytes: v.SizeBytes, FreeBytes: min(v.FreeBytes, v.SizeBytes)})
+	}
+	raw, err := json.Marshal(out)
+	if err != nil {
+		return err
+	}
+	return s.st.SaveVolumes(ctx, deviceID, raw)
 }

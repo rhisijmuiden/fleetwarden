@@ -88,6 +88,9 @@ type Server struct {
 	bgCtx      context.Context // ends when RunWorkers' context ends
 	bgCancel   context.CancelFunc
 	bgWG       sync.WaitGroup
+	// workersStarted is when RunWorkers started; offline alerts wait for
+	// agents to reconnect after a restart.
+	workersStarted time.Time
 }
 
 // Session lifetimes.
@@ -168,6 +171,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.softwareRoutes(mux)
 	s.remoteRoutes(mux)
 	s.reportRoutes(mux)
+	s.alertRoutes(mux)
 
 	// Signed in. allowPending lets a user with a forced password change reach these.
 	mux.Handle("GET /api/v1/auth/me", s.authed("", allowPending, s.handleMe))

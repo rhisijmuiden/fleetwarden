@@ -892,3 +892,38 @@ export function uploadFile<T>(path: string, file: File, onProgress?: (p: number)
     xhr.send(file);
   });
 }
+
+export type AlertKind = "offline" | "disk";
+export type DeviceKind = "workstation" | "server" | "hypervisor";
+
+export type AlertRule = {
+  id: number;
+  name: string;
+  enabled: boolean;
+  kind: AlertKind;
+  threshold: number; // minutes offline, or percentage free space
+  groupIds: number[];
+  deviceKinds: DeviceKind[];
+  recipients: string[];
+  language: "en" | "nl";
+  notifyResolved: boolean;
+  openAlerts: number;
+  createdBy: string;
+};
+
+export type FleetAlert = {
+  id: number;
+  ruleId: number;
+  ruleName: string;
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  kind: AlertKind;
+  subject: string;
+  text: string;
+  openedAt: string;
+  resolvedAt: string | null;
+  acknowledgedAt: string | null;
+  acknowledgedBy: string;
+};
