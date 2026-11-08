@@ -33,13 +33,14 @@ const (
 	PermRemoteControl  Permission = "remote.control"  // see and control a device's screen
 	PermReportsManage  Permission = "reports.manage"  // report schedules, compliance settings and alert rules
 	PermAlertsManage   Permission = "alerts.manage"   // acknowledge alerts
+	PermConfigManage   Permission = "config.manage"   // configurations: browser policies, registry values, scripts
 )
 
 // Roles lists the roles in order of privilege.
 var Roles = []Role{RoleAdministrator, RoleTechnician, RoleReadOnly}
 
 var rolePermissions = map[Role][]Permission{
-	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermReportsManage, PermAlertsManage},
+	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermReportsManage, PermAlertsManage, PermConfigManage},
 	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage, PermPatchesApprove, PermSoftwareDeploy, PermRemoteControl, PermAlertsManage},
 	RoleReadOnly:      {PermDashboardView, PermDevicesView},
 }

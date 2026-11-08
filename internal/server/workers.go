@@ -56,6 +56,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.agentUpdateTick(ctx)
 			s.patchTick(ctx)
 			s.softwareTick(ctx)
+			s.configTick(ctx)
 			s.reportTick(ctx)
 			s.alertTick(ctx)
 		case <-houseTick.C:
@@ -76,6 +77,9 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			}
 			if err := s.st.PurgeSoftwareJobs(ctx, 400*24*time.Hour); err != nil {
 				s.log.Warn("purge software history", "err", err)
+			}
+			if err := s.st.PurgeConfigurationRuns(ctx, configRunDays*24*time.Hour); err != nil {
+				s.log.Warn("purge configuration script runs", "err", err)
 			}
 			s.pruneSoftwareFiles(ctx)
 		}

@@ -406,6 +406,7 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	go s.agentWriter(ctx, c)
 	go s.patchOnConnect(ctx, dev)
 	go s.softwareOnConnect(ctx, dev.ID)
+	go s.configOnConnect(ctx, dev.ID)
 	for {
 		e, err := readEnvelope(ctx, ws)
 		if err != nil {
@@ -504,6 +505,8 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 		return s.handlePatchStatusMsg(ctx, c, e)
 	case agentproto.TypeSoftwareStatus:
 		return s.handleSoftwareStatusMsg(ctx, c, e)
+	case agentproto.TypeConfigStatus:
+		return s.handleConfigStatusMsg(ctx, c, e)
 	case agentproto.TypeRemoteStatus:
 		return s.handleRemoteStatusMsg(c, e)
 	default:

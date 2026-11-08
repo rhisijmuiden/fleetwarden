@@ -11,9 +11,10 @@ import { DeployDialog, type DeployTarget } from "../software/DeployDialog";
 import { JobDialog, JobsTable } from "../software/Deployments";
 import { SourceBadge } from "../software/util";
 import { RemoteButton } from "../remote/Remote";
+import { DeviceConfigsTab } from "../configurations/DeviceConfigs";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
-type Tab = "overview" | "software" | "updates" | "notes";
+type Tab = "overview" | "software" | "updates" | "configurations" | "notes";
 
 export function DeviceDetail() {
   const { id = "" } = useParams();
@@ -103,7 +104,7 @@ export function DeviceDetail() {
       {notice && <Alert tone="success">{notice}</Alert>}
 
       <div className="flex gap-1 border-b border-line" role="tablist">
-        {(["overview", "software", "updates", "notes"] as Tab[]).map((k) => (
+        {(["overview", "software", "updates", "configurations", "notes"] as Tab[]).map((k) => (
           <button
             key={k}
             role="tab"
@@ -224,6 +225,7 @@ export function DeviceDetail() {
       )}
       {tab === "software" && <SoftwareTab device={device} />}
       {tab === "updates" && <DevicePatchesTab device={device} />}
+      {tab === "configurations" && <DeviceConfigsTab device={device} />}
       {tab === "notes" && <NotesTab device={device} editable={manage} onSaved={load} />}
 
       <MoveDialog
