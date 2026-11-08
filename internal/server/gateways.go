@@ -363,6 +363,8 @@ func (s *Server) broadcastEndpoints(ctx context.Context) {
 func (s *Server) gatewayRoutes(mux *http.ServeMux) {
 	adm := func(h http.HandlerFunc) http.Handler { return s.authed(auth.PermSettingsManage, 0, h) }
 	mux.Handle("GET /api/v1/gateways", adm(s.handleListGateways))
+	// The Add client wizard offers install commands through a gateway.
+	mux.Handle("GET /api/v1/gateways/options", s.authed(auth.PermDevicesManage, 0, s.handleGatewayOptions))
 	mux.Handle("POST /api/v1/gateways", adm(s.handleCreateGateway))
 	mux.Handle("PUT /api/v1/gateways/{id}", adm(s.handleUpdateGateway))
 	mux.Handle("POST /api/v1/gateways/{id}/pair", adm(s.handleRepairGateway))
@@ -420,6 +422,27 @@ func (s *Server) handleListGateways(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+type gatewayOption struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	PublicURL string `json:"publicUrl"`
+}
+
+func (s *Server) handleGatewayOptions(w http.ResponseWriter, r *http.Request) {
+	gws, err := s.st.ListGateways(r.Context())
+	if err != nil {
+		s.internalError(w, r, err)
+		return
+	}
+	out := []gatewayOption{}
+	for _, g := range gws {
+		if g.Enabled {
+			out = append(out, gatewayOption{ID: g.ID, Name: g.Name, PublicURL: g.PublicURL})
+		}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
 type gatewayReq struct {
 	Name        string `json:"name"`
 	Address     string `json:"address"`
@@ -466,7 +489,7 @@ func (s *Server) validGatewayReq(w http.ResponseWriter, r *http.Request, req *ga
 	pub, okU := normalizeGatewayURL(req.PublicURL)
 	switch {
 	case req.Name == "":
-		apiError(w, http.StatusBadRequest, "name_required")
+		apiError(w, http.StatusBadRequest, "invalid_name")
 		return false
 	case !okA:
 		apiError(w, http.StatusBadRequest, "invalid_address")

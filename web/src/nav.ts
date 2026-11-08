@@ -17,6 +17,7 @@ import {
   Rocket,
   Settings,
   ShieldCheck,
+  ShieldHalf,
   Users,
 } from "lucide-react";
 
@@ -68,6 +69,7 @@ export const navigation: NavGroup[] = [
       { path: "/admin/mail", label: "nav.mail", icon: Mail, perm: "settings.manage" },
       { path: "/admin/backup", label: "nav.backup", icon: DatabaseBackup, perm: "backup.manage" },
       { path: "/admin/agent-updates", label: "nav.agentUpdates", icon: RefreshCw, perm: "agents.manage" },
+      { path: "/admin/gateways", label: "nav.gateways", icon: ShieldHalf, perm: "settings.manage" },
       { path: "/admin/branding", label: "nav.branding", icon: Palette, perm: "settings.manage" },
       { path: "/admin/audit", label: "nav.audit", icon: ScrollText, perm: "audit.view" },
       { path: "/admin/settings", label: "nav.settings", icon: Settings, perm: "settings.manage" },

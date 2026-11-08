@@ -32,7 +32,8 @@
     "settings": "Settings",
     "info": "About",
     "audit": "Audit log",
-    "agentUpdates": "Agent updates"
+    "agentUpdates": "Agent updates",
+    "gateways": "Secure gateway"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -226,7 +227,24 @@
     "mail_not_configured": "Set up the mail server first (Administration > Mail server).",
     "report_failed": "The report could not be made.",
     "invalid_threshold": "Enter a threshold within the allowed range.",
-    "invalid_kind": "Choose a valid type."
+    "invalid_kind": "Choose a valid type.",
+    "gateway_bad_pairing_code": "The pairing code is wrong. Run \"sudo fleetwarden-gateway pairing-code\" on the gateway to see it.",
+    "gateway_unreachable": "The gateway could not be reached on this address. Check the address, the port and the firewall between the server and the DMZ.",
+    "gateway_already_paired": "This gateway is already paired with a server. Run \"sudo fleetwarden-gateway reset-pairing\" on the gateway for a new code.",
+    "gateway_paired_with_other_server": "This gateway is paired with another management server.",
+    "gateway_key_changed": "The gateway has a different key than when it was paired (reinstalled?). Pair it again.",
+    "gateway_proof_invalid": "The gateway could not prove its identity. Something between the server and the gateway may intercept the connection.",
+    "gateway_rate_limited": "Too many wrong pairing codes. Wait 15 minutes and try again.",
+    "gateway_protocol_mismatch": "The gateway runs an incompatible version. Update the gateway to the server's version.",
+    "gateway_protocol": "The gateway did not understand the server. Update the gateway to the server's version.",
+    "gateway_handshake_failed": "The connection to the gateway broke off during pairing.",
+    "gateway_tunnel_failed": "The tunnel to the gateway failed.",
+    "gateway_pairing_code_required": "Enter the pairing code of the gateway.",
+    "gateway_not_paired": "The gateway is not paired yet.",
+    "gateway_bad_signature": "The gateway refused the server's signature.",
+    "gateway_exists": "This gateway has already been added.",
+    "invalid_address": "Enter the gateway address as host or host:port.",
+    "invalid_gateway": "This gateway does not exist or is disabled."
   },
   "login": {
     "title": "Sign in",
@@ -853,7 +871,8 @@
     "agentUpdateTo": "{{state}} to {{version}}",
     "softwareJobs": "Software jobs",
     "installSoftware": "Install software",
-    "noPackages": "There are no packages for this platform in the library yet. Add one under"
+    "noPackages": "There are no packages for this platform in the library yet. Add one under",
+    "viaGateway": "via gateway {{name}}"
   },
   "addClient": {
     "button": "Add client",
@@ -888,7 +907,11 @@
     "token": "Enrollment token",
     "waiting": "Waiting for the device to enroll…",
     "connected": "connected",
-    "enrolled": "enrolled"
+    "enrolled": "enrolled",
+    "via": "Connect via",
+    "viaHint": "Devices outside your network use a secure gateway. The commands and downloads below point at the address you pick.",
+    "viaDirect": "Directly to this server (inside the network)",
+    "viaGateway": "Gateway {{name}} ({{url}})"
   },
   "tokens": {
     "expires": "Expires",
@@ -1812,6 +1835,116 @@
       "recipientsHint": "Up to 20 addresses, separated by commas. Leave empty to only show alerts here.",
       "notifyResolved": "Also mail when an alert is resolved",
       "enabled": "Rule is active"
+    }
+  },
+  "gateways": {
+    "title": "Secure gateway",
+    "subtitle": "A small relay in the DMZ for agents outside your network. The management server stays internal: it opens the connection to the gateway itself.",
+    "add": "Add gateway",
+    "addTitle": "Add a secure gateway",
+    "editTitle": "Edit {{name}}",
+    "editHint": "Changing the address or URL reconnects the tunnel. Agents receive the new URL automatically.",
+    "pair": "Pair",
+    "paired": "Gateway {{name}} is paired. The server connects to it now.",
+    "deleted": "Gateway {{name}} was removed.",
+    "deleteTitle": "Remove {{name}}?",
+    "deleteText_one": "{{count}} agent is connected through this gateway. It reconnects through another address when it can reach one. The gateway itself stays installed; reset its pairing to use it again.",
+    "deleteText_other": "{{count}} agents are connected through this gateway. They reconnect through another address when they can reach one. The gateway itself stays installed; reset its pairing to use it again.",
+    "test": "Test",
+    "repair": "Pair again",
+    "repairTitle": "Pair {{name}} again",
+    "repairText": "Needed after the gateway was reinstalled or reset. Run this on the gateway, then enter the new pairing code it shows:",
+    "repairHint": "Use \"Pair again\" with a new code from the gateway.",
+    "enable": "Enable",
+    "disable": "Disable",
+    "name": "Name",
+    "address": "Tunnel address",
+    "addressHint": "How this server reaches the gateway in the DMZ: IP address or host name, port {{port}} unless you changed it.",
+    "publicUrl": "Public URL for agents",
+    "publicUrlHint": "The address agents on the internet use, for example https://agents.example.com.",
+    "pairingCode": "Pairing code",
+    "pairingCodeHint": "Shown at installation, or with \"sudo fleetwarden-gateway pairing-code\" on the gateway. It works once.",
+    "agents": "Agents connected",
+    "version": "Version",
+    "lastConnected": "Connection",
+    "connectedSince": "since {{when}}",
+    "fingerprint": "Fingerprint",
+    "host": "Host name",
+    "tlsMode": "Certificate",
+    "requests": "Traffic",
+    "requestsValue": "{{requests}} requests · {{sockets}} open",
+    "errorTitle": "The tunnel is down",
+    "versionMismatch": "The gateway runs {{gateway}}, the server {{server}}. Update the gateway with the same install command to keep them in step.",
+    "state": {
+      "connected": "Connected",
+      "connecting": "Connecting",
+      "error": "Not connected",
+      "disabled": "Disabled"
+    },
+    "tls": {
+      "proxy": "Behind a reverse proxy",
+      "files": "Own certificate",
+      "acme": "Let's Encrypt"
+    },
+    "checks": {
+      "tunnel": "Tunnel",
+      "tunnelOk": "the server is connected to the gateway",
+      "publicUrl": "Public URL",
+      "publicUrlOk": "reaches this server through this gateway"
+    },
+    "checkCodes": {
+      "connecting": "still connecting",
+      "error": "not connected; see the error above",
+      "disabled": "the gateway is disabled",
+      "unreachable": "not reachable from the management server. That can be normal when the server cannot reach its own public address (no hairpin NAT); test it from a device outside the network.",
+      "bad_answer": "something answered, but not FleetWarden. Check the reverse proxy in front of the gateway.",
+      "other_server": "leads to another FleetWarden server.",
+      "not_via_gateway": "reaches this server, but not through this gateway. Point the URL at the gateway.",
+      "invalid_url": "the URL is not valid."
+    },
+    "linkErrors": {
+      "unreachable": "The gateway is not reachable",
+      "gateway_key_changed": "The gateway has a new key",
+      "paired_with_other_server": "The gateway is paired with another server",
+      "not_paired": "The gateway lost its pairing",
+      "bad_signature": "The gateway refused the server",
+      "gateway_proof_invalid": "The gateway could not prove its identity",
+      "protocol_mismatch": "Incompatible gateway version",
+      "protocol": "Incompatible gateway version",
+      "handshake_failed": "The handshake failed",
+      "tunnel_failed": "The tunnel failed"
+    },
+    "flow": {
+      "agents": "Agents",
+      "agentsHint": "at home, on the road",
+      "https": "HTTPS 443, in",
+      "gateway": "Secure gateway",
+      "gatewayHint": "DMZ, no data stored",
+      "tunnel": "tunnel, opened by the server",
+      "server": "Management server",
+      "serverHint": "internal network only",
+      "explain": "Agents trust only the server key they pinned at enrollment, so the gateway passes their signed messages on without being able to change them. Remote control stays end-to-end encrypted."
+    },
+    "setup": {
+      "title": "Set up a gateway",
+      "subtitle": "Three steps on a Debian 13 machine in your DMZ.",
+      "show": "Show the steps to add another gateway",
+      "install": "Install the gateway",
+      "installHint": "Run this on the DMZ machine. The installer asks how agents reach it: behind your reverse proxy, with your own certificate, or with a Let's Encrypt certificate it requests itself.",
+      "firewall": "Open the firewall",
+      "firewallIn": "Internet to gateway: TCP 443 (or the port of your reverse proxy).",
+      "firewallTunnel": "Management server to gateway: TCP {{port}} (the tunnel). Allow only the server's address.",
+      "firewallNone": "No rule from the DMZ into your network is needed.",
+      "pair": "Pair it with this server",
+      "pairHint": "The installer shows a one-time pairing code. You can show it again with:"
+    },
+    "endpoints": {
+      "title": "Addresses agents use",
+      "subtitle": "Sent to every agent. An agent tries them in this order and moves on when one does not answer, so laptops switch between office and home by themselves.",
+      "none": "No gateway yet: agents only use the address they were installed with.",
+      "direct": "Direct",
+      "viaGateway": "Via a gateway",
+      "noServerUrl": "Set the external base URL of this server (Settings or Reverse proxy) so agents also get the internal address. Without it they keep the address they were installed with."
     }
   }
 }

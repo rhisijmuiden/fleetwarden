@@ -22,6 +22,7 @@ import { Devices } from "./pages/devices/Devices";
 import { DeviceDetail } from "./pages/devices/DeviceDetail";
 import { Groups } from "./pages/devices/Groups";
 import { AgentUpdates } from "./pages/admin/AgentUpdates";
+import { Gateways } from "./pages/admin/Gateways";
 import { Patches } from "./pages/patches/Patches";
 import { Software } from "./pages/software/Software";
 import { DeploymentDetail, Deployments } from "./pages/software/Deployments";
@@ -49,6 +50,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/admin/mail", perm: "settings.manage", element: <Mail /> },
   { path: "/admin/backup", perm: "backup.manage", element: <Backup /> },
   { path: "/admin/agent-updates", perm: "agents.manage", element: <AgentUpdates /> },
+  { path: "/admin/gateways", perm: "settings.manage", element: <Gateways /> },
   { path: "/admin/branding", perm: "settings.manage", element: <Branding /> },
   { path: "/admin/audit", perm: "audit.view", element: <Audit /> },
   { path: "/admin/settings", perm: "settings.manage", element: <Settings /> },
