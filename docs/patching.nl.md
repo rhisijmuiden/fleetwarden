@@ -11,8 +11,9 @@ Proxmox VE) in onderhoudsvensters die je per apparaatgroep instelt. Open
 1. Maak een **patchbeleid** onder **Patchbeheer > Beleid** en koppel het aan
    een of meer groepen onder **Groepen** (groep bewerken, *Patchbeleid*).
    Apparaten in een groep zonder beleid worden niet automatisch gepatcht.
-2. Online agents scannen elke *Scan elke* uur (standaard 6) op ontbrekende
-   updates, en direct na een taak. **Nu scannen** op het tabblad **Updates**
+2. Online agents scannen op ontbrekende updates volgens het interval onder
+   **Instellingen > Agentscans** (standaard elke 6 uur; een groep kan een
+   eigen interval hebben), en direct na een taak. **Nu scannen** op het tabblad **Updates**
    van een apparaat scant meteen.
 3. Als het venster opengaat, stuurt de server elk online apparaat één taak met
    de goedgekeurde updates. Apparaten die offline zijn krijgen hun updates in

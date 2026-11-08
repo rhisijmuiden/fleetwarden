@@ -159,8 +159,11 @@ func validPolicy(p *store.PatchPolicy) string {
 	case p.MaxPostpones < 0 || p.MaxPostpones > 20 || p.PostponeMinutes < 5 || p.PostponeMinutes > 1440 ||
 		p.CountdownSeconds < 30 || p.CountdownSeconds > 3600:
 		return "invalid_notification"
-	case p.ScanHours < 1 || p.ScanHours > 168:
-		return "invalid_scan_interval"
+	}
+	// ScanHours is no longer used: the interval is set under Settings and per
+	// group. It is kept so older API clients keep working.
+	if p.ScanHours < 1 || p.ScanHours > 168 {
+		p.ScanHours = 6
 	}
 	if p.TimeZone != "" {
 		if _, err := time.LoadLocation(p.TimeZone); err != nil {
@@ -222,9 +225,12 @@ func (s *Server) patchTick(ctx context.Context) {
 	}
 	now := s.now()
 	branding := s.loadBranding(ctx)
+	defaults := s.loadScanSettings(ctx)
 	scans, started := 0, 0
 	for _, d := range devs {
 		pol := devicePolicy(d, policies)
+		intervals := defaults.effective(d.InventoryMinutes, d.PatchScanMinutes)
+		s.pushAgentConfig(d.ID, intervals)
 		s.pushPatchConfig(d.ID, pol, branding.ProductName, branding.PrimaryColor)
 		if d.OpenRun != nil {
 			if d.OpenRunUpdatedAt != nil && now.Sub(*d.OpenRunUpdatedAt) > patchRunStale {
@@ -235,7 +241,7 @@ func (s *Server) patchTick(ctx context.Context) {
 		if pol == nil {
 			continue
 		}
-		stale := d.ScanAt == nil || now.Sub(*d.ScanAt) > time.Duration(pol.ScanHours)*time.Hour
+		stale := d.ScanAt == nil || now.Sub(*d.ScanAt) > time.Duration(intervals.PatchScanMinutes)*time.Minute
 		if stale && (d.ScanRequestedAt == nil || now.Sub(*d.ScanRequestedAt) > patchScanRetry) && scans < patchScansPerTick {
 			if s.hub.send(d.ID, agentproto.TypePatchScan, nil) {
 				_ = s.st.MarkPatchScanRequested(ctx, d.ID)

@@ -86,10 +86,16 @@ export type DeviceGroup = {
   windowEnd: number | null;
   patchPolicyId: number | null;
   remoteConsent: RemoteConsentSetting;
+  /** Scan interval overrides in minutes; null uses the default from Settings. */
+  inventoryMinutes: number | null;
+  patchScanMinutes: number | null;
   createdAt: string;
   deviceCount: number;
   onlineCount: number;
 };
+
+/** ScanSettings are the server-wide agent scan intervals, in minutes. */
+export type ScanSettings = { inventoryMinutes: number; patchScanMinutes: number };
 
 export type Platform = "windows" | "linux";
 

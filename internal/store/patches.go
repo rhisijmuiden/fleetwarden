@@ -150,6 +150,8 @@ type PatchDevice struct {
 	Platform         string
 	GroupID          int64
 	PolicyID         *int64
+	InventoryMinutes *int // group overrides; nil uses the default
+	PatchScanMinutes *int
 	ScanAt           *time.Time
 	ScanRequestedAt  *time.Time
 	Cluster          string
@@ -161,8 +163,8 @@ type PatchDevice struct {
 
 // PatchDevices returns the scheduler view of the listed devices.
 func (s *Store) PatchDevices(ctx context.Context, ids []string) ([]PatchDevice, error) {
-	rows, err := s.pool.Query(ctx, `SELECT d.id::text, d.hostname, d.platform, d.group_id, g.patch_policy_id, d.patch_scan_at,
-		d.patch_scan_requested_at, d.patch_cluster, d.patch_reboot_pending,
+	rows, err := s.pool.Query(ctx, `SELECT d.id::text, d.hostname, d.platform, d.group_id, g.patch_policy_id,
+		g.inventory_minutes, g.patch_scan_minutes, d.patch_scan_at, d.patch_scan_requested_at, d.patch_cluster, d.patch_reboot_pending,
 		(SELECT max(r.started_at) FROM patch_runs r WHERE r.device_id = d.id AND r.trigger = 'window'),
 		o.id, o.updated_at
 		FROM devices d JOIN device_groups g ON g.id = d.group_id
@@ -176,7 +178,7 @@ func (s *Store) PatchDevices(ctx context.Context, ids []string) ([]PatchDevice, 
 	out := []PatchDevice{}
 	for rows.Next() {
 		var d PatchDevice
-		if err := rows.Scan(&d.ID, &d.Hostname, &d.Platform, &d.GroupID, &d.PolicyID, &d.ScanAt, &d.ScanRequestedAt, &d.Cluster,
+		if err := rows.Scan(&d.ID, &d.Hostname, &d.Platform, &d.GroupID, &d.PolicyID, &d.InventoryMinutes, &d.PatchScanMinutes, &d.ScanAt, &d.ScanRequestedAt, &d.Cluster,
 			&d.RebootPending, &d.LastWindowRunAt, &d.OpenRun, &d.OpenRunUpdatedAt); err != nil {
 			return nil, err
 		}

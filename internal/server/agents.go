@@ -26,7 +26,6 @@ import (
 const (
 	agentAuthTimeout   = 15 * time.Second
 	agentHeartbeat     = 60 * time.Second
-	agentInventoryMins = 6 * 60
 	agentPingInterval  = 30 * time.Second
 	agentWriteTimeout  = 20 * time.Second
 	agentReadLimit     = 16 << 20 // a full inventory with thousands of programs
@@ -351,10 +350,18 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := &agentConn{deviceID: dev.ID, groupID: dev.GroupID, sess: sess, ws: ws, out: make(chan *agentproto.Envelope, 32), cancel: cancel, since: s.now()}
+	intervals := s.loadScanSettings(ctx)
+	if g, err := s.st.GroupByID(ctx, dev.GroupID); err == nil {
+		intervals = intervals.effective(g.InventoryMinutes, g.PatchScanMinutes)
+	}
 	welcome, _ := sess.Seal(agentproto.TypeWelcome, "", agentproto.Welcome{
-		DeviceID: dev.ID, HeartbeatSeconds: int(agentHeartbeat / time.Second), InventoryMinutes: agentInventoryMins,
-		InventoryRequired: dev.InventoryAt == nil || s.now().Sub(*dev.InventoryAt) > agentInventoryMins*time.Minute,
+		DeviceID: dev.ID, HeartbeatSeconds: int(agentHeartbeat / time.Second), InventoryMinutes: intervals.InventoryMinutes,
+		InventoryRequired: inventoryDue(dev.InventoryAt, s.now(), intervals.InventoryMinutes),
 	})
+	// The welcome carries the interval, so the scheduler need not resend it.
+	if raw, err := json.Marshal(agentproto.AgentConfig{InventoryMinutes: intervals.InventoryMinutes}); err == nil {
+		c.sent = map[string]string{agentConfigKey: string(raw)}
+	}
 	if err := writeEnvelope(ctx, ws, welcome); err != nil {
 		return
 	}

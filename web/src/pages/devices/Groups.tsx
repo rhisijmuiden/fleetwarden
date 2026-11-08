@@ -2,9 +2,21 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Ban, FolderTree, KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
-import { del, get, post, put, type Channel, type DeviceGroup, type EnrollmentToken, type PatchPolicies, type RemoteConsentSetting } from "../../api";
+import {
+  del,
+  get,
+  post,
+  put,
+  type Channel,
+  type DeviceGroup,
+  type EnrollmentToken,
+  type PatchPolicies,
+  type RemoteConsentSetting,
+  type ScanSettings,
+} from "../../api";
 import { useAuth } from "../../auth";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, formatDate, useErrorText } from "../../components/ui";
+import { IntervalInput, formatInterval } from "../../components/IntervalInput";
 import { AddClient } from "./AddClient";
 
 export function Groups() {
@@ -211,6 +223,9 @@ function GroupForm({
   const [end, setEnd] = useState(6);
   const [policy, setPolicy] = useState(0);
   const [consent, setConsent] = useState<RemoteConsentSetting>("auto");
+  const [inventory, setInventory] = useState<number | null>(null);
+  const [patchScan, setPatchScan] = useState<number | null>(null);
+  const [defaults, setDefaults] = useState<ScanSettings | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -224,7 +239,14 @@ function GroupForm({
     setEnd(group?.windowEnd ?? 6);
     setPolicy(group?.patchPolicyId ?? 0);
     setConsent(group?.remoteConsent ?? "auto");
+    setInventory(group?.inventoryMinutes ?? null);
+    setPatchScan(group?.patchScanMinutes ?? null);
     setError(null);
+    // Only shown as a hint, so a user without access to Settings just misses it.
+    if (editing)
+      get<ScanSettings>("/settings/scans")
+        .then(setDefaults)
+        .catch(() => setDefaults(null));
   }, [editing]);
 
   const submit = async (e: FormEvent) => {
@@ -240,6 +262,8 @@ function GroupForm({
       windowEnd: windowOn ? end : null,
       patchPolicyId: policy || null,
       remoteConsent: consent,
+      inventoryMinutes: inventory,
+      patchScanMinutes: patchScan,
     };
     try {
       if (group) await put(`/groups/${group.id}`, body);
@@ -335,6 +359,33 @@ function GroupForm({
             </Select>
           )}
         </Field>
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold">{t("groups.scans")}</h3>
+          <IntervalOverride
+            label={t("groups.overrideInventory")}
+            value={inventory}
+            fallback={defaults?.inventoryMinutes ?? 360}
+            hint={
+              defaults &&
+              t("groups.scanDefault", {
+                value: formatInterval(defaults.inventoryMinutes, t),
+              })
+            }
+            onChange={setInventory}
+          />
+          <IntervalOverride
+            label={t("groups.overridePatchScan")}
+            value={patchScan}
+            fallback={defaults?.patchScanMinutes ?? 360}
+            hint={
+              defaults &&
+              t("groups.scanDefault", {
+                value: formatInterval(defaults.patchScanMinutes, t),
+              })
+            }
+            onChange={setPatchScan}
+          />
+        </section>
         <Field label={t("groups.remoteConsent")} hint={t(`groups.consentHint.${consent}`)}>
           {(id) => (
             <Select id={id} value={consent} onChange={(e) => setConsent(e.target.value as RemoteConsentSetting)}>
@@ -348,6 +399,31 @@ function GroupForm({
         </Field>
       </form>
     </Modal>
+  );
+}
+
+function IntervalOverride({
+  label,
+  value,
+  fallback,
+  hint,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  fallback: number;
+  hint?: string | null;
+  onChange: (v: number | null) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <input type="checkbox" className="size-4 accent-primary" checked={value != null} onChange={(e) => onChange(e.target.checked ? fallback : null)} />
+        {label}
+      </label>
+      {value != null && <IntervalInput value={value} onChange={onChange} />}
+      {hint && <p className="text-xs text-muted">{hint}</p>}
+    </div>
   );
 }
 

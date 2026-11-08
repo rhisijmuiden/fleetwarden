@@ -58,6 +58,7 @@ const (
 	TypeInventoryRequest = "inventory.request" // send a full inventory now
 	TypeUpdate           = "agent.update"      // install another agent version
 	TypeRemove           = "agent.remove"      // device was deleted: forget enrollment
+	TypeAgentConfig      = "agent.config"      // changed settings for this session
 	// agent -> server
 	TypeAuth         = "auth"
 	TypeHeartbeat    = "heartbeat"
@@ -139,6 +140,12 @@ type Welcome struct {
 	HeartbeatSeconds  int    `json:"heartbeatSeconds"`
 	InventoryMinutes  int    `json:"inventoryMinutes"`
 	InventoryRequired bool   `json:"inventoryRequired"`
+}
+
+// AgentConfig changes session settings after the welcome. Older agents
+// ignore it and keep the interval from the welcome until they reconnect.
+type AgentConfig struct {
+	InventoryMinutes int `json:"inventoryMinutes"`
 }
 
 // Update asks the agent to install another agent version. The agent fetches
