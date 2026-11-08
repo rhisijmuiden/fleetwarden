@@ -254,8 +254,11 @@ func TestConfigWindowsPrinters(t *testing.T) {
 	if got := powershell(t, "@(Get-Printer | Where-Object { $_.Name -eq '"+name+"' -or $_.Name -like '*fwtest*' }).Count"); got != "0" {
 		t.Errorf("printers left: %q", got)
 	}
-	// The spooler may still hold the port right after the printer goes; the
-	// next pass sweeps it up.
+	// The port goes too, but the spooler (through the WMI printer provider
+	// that Get-Printer uses) can hold a removed printer's port for minutes:
+	// Remove-PrinterPort then fails with "the server or printer name is
+	// invalid". Later passes sweep it up; what must hold is that no printer
+	// uses it any more.
 	portLeft := func() bool {
 		return powershell(t, "@(Get-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction SilentlyContinue).Count") != "0"
 	}
@@ -263,8 +266,12 @@ func TestConfigWindowsPrinters(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
 	}
+	if got := powershell(t, "@(Get-Printer | Where-Object PortName -eq 'FW_127.0.0.1_9100').Count"); got != "0" {
+		t.Errorf("a printer still uses the port: %q", got)
+	}
 	if portLeft() {
-		t.Errorf("port left: %s", powershell(t, "Get-Printer | Format-Table Name,PortName,PrinterStatus -AutoSize | Out-String; try { Remove-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction Stop } catch { $_.Exception.Message }; exit 0"))
+		t.Logf("the spooler still holds the unused port; a later pass removes it: %s",
+			powershell(t, "try { Remove-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction Stop } catch { $_.Exception.Message }; exit 0"))
 	}
 }
 
