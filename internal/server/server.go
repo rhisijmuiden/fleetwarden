@@ -203,6 +203,8 @@ func (s *Server) routes(mux *http.ServeMux) {
 
 	mux.Handle("GET /api/v1/settings/general", s.authed(auth.PermSettingsManage, 0, s.handleGetGeneral))
 	mux.Handle("PUT /api/v1/settings/general", s.authed(auth.PermSettingsManage, 0, s.handlePutGeneral))
+	mux.Handle("GET /api/v1/settings/scans", s.authed(auth.PermSettingsManage, 0, s.handleGetScans))
+	mux.Handle("PUT /api/v1/settings/scans", s.authed(auth.PermSettingsManage, 0, s.handlePutScans))
 
 	mux.Handle("GET /api/v1/audit", s.authed(auth.PermAuditView, 0, s.handleAudit))
 

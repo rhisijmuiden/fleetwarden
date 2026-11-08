@@ -11,8 +11,9 @@ in the menu.
 1. Create a **patch policy** under **Patch management > Policies** and assign
    it to one or more groups under **Groups** (edit a group, *Patch policy*).
    Devices in a group without a policy are not patched automatically.
-2. Online agents scan for missing updates every *Scan every* hours (6 by
-   default) and right after a job. **Scan now** on a device's **Updates** tab
+2. Online agents scan for missing updates at the interval under **Settings >
+   Agent scans** (every 6 hours by default; a group can have its own) and
+   right after a job. **Scan now** on a device's **Updates** tab
    scans at once.
 3. When the window opens, the server sends each online device one job with its
    approved updates. Devices that are offline get their updates in the next

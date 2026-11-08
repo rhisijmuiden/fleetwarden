@@ -179,7 +179,7 @@
     "invalid_patch_window": "Kies een geldige starttijd en een venster van 30 minuten tot 24 uur.",
     "invalid_reboot": "Onbekende herstartinstelling.",
     "invalid_notification": "Controleer het uitstellen: maximaal 20 keer, 5 tot 1440 minuten, een aftelling van 30 tot 3600 seconden.",
-    "invalid_scan_interval": "Scan elke 1 tot 168 uur.",
+    "invalid_scan_interval": "Inventaris elke 15 minuten tot 7 dagen, updatescans elk uur tot 7 dagen.",
     "invalid_time_zone": "Onbekende tijdzone.",
     "invalid_approvals": "Een goedkeuringsregel is ongeldig (wachttijd 0 tot 365 dagen).",
     "policy_exists": "Er bestaat al een patchbeleid met deze naam.",
@@ -475,10 +475,17 @@
   },
   "settings": {
     "title": "Instellingen",
-    "subtitle": "Algemene serverinstellingen en updates.",
+    "subtitle": "Algemene serverinstellingen, agentscans en updates.",
     "general": "Algemeen",
     "publicUrl": "Publieke URL",
-    "publicUrlHint": "Het adres dat mensen via je reverse proxy gebruiken, voor SSO en links in e-mails. Leeg: gedetecteerd als {{url}}."
+    "publicUrlHint": "Het adres dat mensen via je reverse proxy gebruiken, voor SSO en links in e-mails. Leeg: gedetecteerd als {{url}}.",
+    "scans": "Agentscans",
+    "scansSubtitle": "Hoe vaak agents hun software-inventaris sturen en scannen op ontbrekende Windows- en Linux-updates. Apparaatgroepen kunnen deze standaard overschrijven.",
+    "inventoryInterval": "Software-inventaris elke",
+    "inventoryHint": "Hardware, geïnstalleerde software en aangemelde gebruiker. 15 minuten tot 7 dagen.",
+    "patchScanInterval": "Updatescan elke",
+    "patchScanHint": "Windows Update of apt. Alleen voor apparaten in een groep met een patchbeleid. 1 uur tot 7 dagen.",
+    "scansApplied": "Online agents gebruiken het nieuwe interval binnen een minuut."
   },
   "audit": {
     "title": "Auditlog",
@@ -945,7 +952,11 @@
       "ask": "De ingelogde gebruiker moet elke sessie binnen 30 seconden toestaan. Zonder ingelogde gebruiker start de sessie direct.",
       "notify": "De sessie start direct; de gebruiker ziet een balk dat iemand is verbonden, met een knop om te stoppen.",
       "direct": "De sessie start zonder melding, voor servers en onbemande computers."
-    }
+    },
+    "scans": "Scanintervallen",
+    "overrideInventory": "Eigen interval voor software-inventaris",
+    "overridePatchScan": "Eigen interval voor updatescan",
+    "scanDefault": "Standaard onder Instellingen: {{value}}."
   },
   "agentUpdates": {
     "title": "Agent-updates",
@@ -1170,7 +1181,6 @@
     "advanced": "Geavanceerd",
     "takeOver": "Windows Update overnemen",
     "takeOverHint": "Zet de eigen automatische installaties van Windows uit, zodat updates alleen in het venster komen. Apparaten die updates via Intune of een WSUS-GPO krijgen: kies één tool die de baas is.",
-    "scanHours": "Scan elke (uur)",
     "lastScan": "Laatste scan",
     "neverScanned": "Nog niet gescand.",
     "missingCount": "Ontbrekend",
@@ -1206,7 +1216,8 @@
     "autoApproved": "Goedgekeurd door beleid",
     "approvedFrom": "Goedgekeurd vanaf {{when}}",
     "awaitingApproval": "Wacht op goedkeuring",
-    "history": "Patchgeschiedenis"
+    "history": "Patchgeschiedenis",
+    "scanIntervalMoved": "Hoe vaak apparaten op updates scannen stel je in onder Instellingen > Agentscans, en per apparaatgroep."
   },
   "software": {
     "title": "Software",
@@ -1731,5 +1742,19 @@
       "noneIgnored": "Er zijn geen programma's uitgesloten.",
       "unignore": "{{id}} weer meetellen"
     }
+  },
+  "interval": {
+    "unit": "Eenheid",
+    "unitNames": {
+      "minutes": "minuten",
+      "hours": "uur",
+      "days": "dagen"
+    },
+    "minutes_one": "{{count}} minuut",
+    "minutes_other": "{{count}} minuten",
+    "hours_one": "{{count}} uur",
+    "hours_other": "{{count}} uur",
+    "days_one": "{{count}} dag",
+    "days_other": "{{count}} dagen"
   }
 }
