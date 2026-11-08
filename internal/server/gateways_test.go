@@ -115,7 +115,10 @@ func TestSecureGateway(t *testing.T) {
 		t.Fatalf("second pairing: %d %+v", code, apiErr)
 	}
 	waitUntil(t, "tunnel", 10*time.Second, func() bool { return e.gatewayState(admin, created.ID).State == "connected" })
-	waitUntil(t, "gateway status", 10*time.Second, func() bool { st := e.gatewayState(admin, created.ID).Status; return st != nil && st.Version == "9.9.9-gw" })
+	waitUntil(t, "gateway status", 10*time.Second, func() bool {
+		st := e.gatewayState(admin, created.ID).Status
+		return st != nil && st.Version == "9.9.9-gw"
+	})
 
 	// Only agent paths pass the gateway.
 	if res, err := http.Get(tg.agents.URL + "/api/v1/auth/config"); err != nil || res.StatusCode != 404 {
