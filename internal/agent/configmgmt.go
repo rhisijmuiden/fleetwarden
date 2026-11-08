@@ -79,6 +79,11 @@ type ConfigBackend interface {
 	// a user "default" with the name of the default printer; nil when the
 	// platform has none.
 	PrinterStore(user *ConfigUser) (PolicyStore, error)
+	// SystemStore opens settings of the device: SystemPower (names
+	// powerSettingName, values seconds), SystemAdmins (names "admin:<member>",
+	// values the member) or SystemFirewall (names "rule:<name>", values
+	// FirewallRule); nil when the platform has none.
+	SystemStore(kind string) (PolicyStore, error)
 	// Users lists the logged-on users.
 	Users() []ConfigUser
 	// RunScript runs a script as SYSTEM/root, or as the user when user is set.
@@ -358,6 +363,7 @@ func (a *Agent) applyConfig(ctx context.Context, p agentproto.ConfigPolicy, user
 	a.applyRegistry(be, &st, p.Items, users, res)
 	a.applyDrives(be, &st, p.Items, users, res)
 	a.applyPrinters(be, &st, p.Items, users, res)
+	a.applySystem(be, &st, p.Items, res)
 	a.runScripts(ctx, be, &st, p.Items, users, fresh, res)
 
 	if err := a.saveConfigFile(configStateFile, st); err != nil {
@@ -459,10 +465,8 @@ func (a *Agent) applyRegistry(be ConfigBackend, st *configState, items []agentpr
 	keepNext := map[string]string{}
 	var machineIDs, userIDs []int64
 	for _, it := range items {
-		if it.Type != agentproto.ConfigRegistry || it.Registry == nil {
-			continue
-		}
-		for _, v := range it.Registry.Values {
+		values, keep := itemRegistryValues(it)
+		for _, v := range values {
 			name := regName(v)
 			val := RegValue{Key: v.Key, Name: v.Name, Type: v.Type, Value: v.Value}
 			if v.Hive == agentproto.HiveUser {
@@ -472,7 +476,7 @@ func (a *Agent) applyRegistry(be ConfigBackend, st *configState, items []agentpr
 				machine[name] = val
 				machineIDs = appendOnce(machineIDs, it.ID)
 			}
-			if it.Registry.Keep {
+			if keep {
 				keepNext[v.Hive+"|"+name] = "1"
 			}
 		}
@@ -829,5 +833,125 @@ func (a *Agent) applyPrinters(be ConfigBackend, st *configState, items []agentpr
 	}
 	if sw, ok := be.(interface{ SweepPrinterPorts() }); ok {
 		sw.SweepPrinterPorts()
+	}
+}
+
+// Registry places of the desktop settings. They are the keys the Windows
+// group policies use, so the user cannot change them.
+const (
+	userPolicySystemKey    = `Software\Microsoft\Windows\CurrentVersion\Policies\System`
+	machinePolicySystemKey = `SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`
+)
+
+// wallpaperStyleCodes are the WallpaperStyle policy values.
+var wallpaperStyleCodes = map[string]string{"center": "0", "tile": "1", "stretch": "2", "fit": "3", "fill": "4", "span": "5"}
+
+// itemRegistryValues returns the registry values a configuration sets:
+// registry configurations and the desktop settings.
+func itemRegistryValues(it agentproto.ConfigItem) ([]agentproto.RegistryValue, bool) {
+	switch {
+	case it.Type == agentproto.ConfigRegistry && it.Registry != nil:
+		return it.Registry.Values, it.Registry.Keep
+	case it.Type == agentproto.ConfigDesktop && it.Desktop != nil:
+		return desktopValues(*it.Desktop), false
+	}
+	return nil, false
+}
+
+func desktopValues(d agentproto.DesktopSettings) []agentproto.RegistryValue {
+	var out []agentproto.RegistryValue
+	if d.Wallpaper != "" {
+		style := wallpaperStyleCodes[d.WallpaperStyle]
+		if style == "" {
+			style = wallpaperStyleCodes["fill"]
+		}
+		out = append(out,
+			agentproto.RegistryValue{Hive: agentproto.HiveUser, Key: userPolicySystemKey, Name: "Wallpaper", Type: agentproto.RegString, Value: d.Wallpaper},
+			agentproto.RegistryValue{Hive: agentproto.HiveUser, Key: userPolicySystemKey, Name: "WallpaperStyle", Type: agentproto.RegString, Value: style})
+	}
+	if d.LockMinutes > 0 {
+		out = append(out, agentproto.RegistryValue{Hive: agentproto.HiveMachine, Key: machinePolicySystemKey,
+			Name: "InactivityTimeoutSecs", Type: agentproto.RegDWord, Value: strconv.Itoa(d.LockMinutes * 60)})
+	}
+	return out
+}
+
+// System store kinds.
+const (
+	SystemPower    = "power"
+	SystemAdmins   = "admins"
+	SystemFirewall = "firewall"
+)
+
+// PowerSetting is a Windows power setting: its subgroup and setting GUIDs.
+type PowerSetting struct {
+	Sub, Setting string
+}
+
+// powerSettings are the managed power settings by name.
+var powerSettings = map[string]PowerSetting{
+	"monitor":   {"7516b95f-f776-4464-8c53-06167f40cc99", "3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e"},
+	"sleep":     {"238c9fa8-0aad-41ed-83f4-97be242c8f20", "29f6c1db-86da-48c5-9fdb-f2b67b1f44da"},
+	"hibernate": {"238c9fa8-0aad-41ed-83f4-97be242c8f20", "9d7815a6-7ee4-497e-8888-515a05f02364"},
+}
+
+// powerSettingName is "<setting>-ac" or "<setting>-dc".
+func powerSettingName(setting string, ac bool) string {
+	if ac {
+		return setting + "-ac"
+	}
+	return setting + "-dc"
+}
+
+// ParsePowerSettingName splits a power setting name.
+func ParsePowerSettingName(name string) (PowerSetting, bool, bool) {
+	setting, side, _ := strings.Cut(name, "-")
+	ps, ok := powerSettings[setting]
+	return ps, side == "ac", ok && (side == "ac" || side == "dc")
+}
+
+func powerValues(p agentproto.PowerSettings) map[string]any {
+	out := map[string]any{}
+	add := func(setting string, ac bool, minutes *int) {
+		if minutes != nil {
+			out[powerSettingName(setting, ac)] = *minutes * 60
+		}
+	}
+	add("monitor", true, p.MonitorAC)
+	add("monitor", false, p.MonitorDC)
+	add("sleep", true, p.SleepAC)
+	add("sleep", false, p.SleepDC)
+	add("hibernate", true, p.HibernateAC)
+	add("hibernate", false, p.HibernateDC)
+	return out
+}
+
+// applySystem applies the power settings, local administrators and firewall
+// rules of the device.
+func (a *Agent) applySystem(be ConfigBackend, st *configState, items []agentproto.ConfigItem, res map[int64]*itemResult) {
+	want := map[string]map[string]any{SystemPower: {}, SystemAdmins: {}, SystemFirewall: {}}
+	ids := map[string][]int64{}
+	for _, it := range items {
+		switch {
+		case it.Type == agentproto.ConfigPower && it.Power != nil:
+			for k, v := range powerValues(*it.Power) {
+				want[SystemPower][k] = v
+			}
+			ids[SystemPower] = appendOnce(ids[SystemPower], it.ID)
+		case it.Type == agentproto.ConfigAdmins && it.Admins != nil:
+			for _, m := range it.Admins.Members {
+				want[SystemAdmins]["admin:"+strings.ToLower(m)] = m
+			}
+			ids[SystemAdmins] = appendOnce(ids[SystemAdmins], it.ID)
+		case it.Type == agentproto.ConfigFirewall && it.Firewall != nil:
+			for _, r := range it.Firewall.Rules {
+				want[SystemFirewall]["rule:"+strings.ToLower(r.Name)] = r
+			}
+			ids[SystemFirewall] = appendOnce(ids[SystemFirewall], it.ID)
+		}
+	}
+	labels := map[string]string{SystemPower: "power settings", SystemAdmins: "local administrators", SystemFirewall: "firewall rules"}
+	for _, kind := range []string{SystemPower, SystemAdmins, SystemFirewall} {
+		syncFor(st, kind, func() (PolicyStore, error) { return be.SystemStore(kind) }, want[kind], ids[kind], res, labels[kind])
 	}
 }

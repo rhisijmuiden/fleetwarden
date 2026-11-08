@@ -83,7 +83,9 @@ func (u *unixConfig) BrowserInstalled(b string) bool {
 func (u *unixConfig) RegistryStore(string, string) (PolicyStore, error) { return nil, nil }
 
 // Network drives and printers are Windows only for now.
-func (u *unixConfig) DriveStore(ConfigUser) (PolicyStore, error)    { return nil, nil }
+func (u *unixConfig) DriveStore(ConfigUser) (PolicyStore, error) { return nil, nil }
+func (u *unixConfig) SystemStore(string) (PolicyStore, error)    { return nil, nil }
+
 func (u *unixConfig) PrinterStore(*ConfigUser) (PolicyStore, error) { return nil, nil }
 
 // Users is empty: scripts as the user and user settings are Windows only.

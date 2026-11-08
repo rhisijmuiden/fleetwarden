@@ -32,12 +32,17 @@ const (
 	ConfigScript   = "script"   // a PowerShell, cmd, bash or sh script
 	ConfigDrives   = "drives"   // network drives of the users (Windows)
 	ConfigPrinters = "printers" // printers, with their drivers (Windows)
+	ConfigDesktop  = "desktop"  // wallpaper and screen lock (Windows)
+	ConfigPower    = "power"    // screen and sleep timeouts (Windows)
+	ConfigAdmins   = "admins"   // members of the local Administrators group (Windows)
+	ConfigFirewall = "firewall" // Windows Firewall rules
 )
 
 // ConfigTypes lists the types per platform.
 var ConfigTypes = map[string][]string{
-	"windows": {ConfigBrowser, ConfigRegistry, ConfigScript, ConfigDrives, ConfigPrinters},
-	"linux":   {ConfigBrowser, ConfigScript},
+	"windows": {ConfigBrowser, ConfigRegistry, ConfigScript, ConfigDrives, ConfigPrinters,
+		ConfigDesktop, ConfigPower, ConfigAdmins, ConfigFirewall},
+	"linux": {ConfigBrowser, ConfigScript},
 }
 
 // ValidConfigType reports whether a configuration type exists on a platform.
@@ -83,6 +88,10 @@ type ConfigItem struct {
 	Script   *ScriptConfig     `json:"script,omitempty"`
 	Drives   *DriveSettings    `json:"drives,omitempty"`
 	Printers *PrinterSettings  `json:"printers,omitempty"`
+	Desktop  *DesktopSettings  `json:"desktop,omitempty"`
+	Power    *PowerSettings    `json:"power,omitempty"`
+	Admins   *AdminSettings    `json:"admins,omitempty"`
+	Firewall *FirewallSettings `json:"firewall,omitempty"`
 }
 
 // Browser keys.
@@ -248,6 +257,83 @@ type Printer struct {
 // when they are no longer configured.
 type PrinterSettings struct {
 	Printers []Printer `json:"printers"`
+}
+
+// Wallpaper styles.
+var WallpaperStyles = []string{"fill", "fit", "stretch", "center", "tile", "span"}
+
+// DesktopSettings sets the wallpaper of every user and the screen lock.
+// Empty fields are not managed. They are Windows policies: the user cannot
+// change them, and the wallpaper changes at the next sign-in.
+type DesktopSettings struct {
+	// Wallpaper is an image on the device or a share (C:\..., \\server\...).
+	Wallpaper      string `json:"wallpaper,omitempty"`
+	WallpaperStyle string `json:"wallpaperStyle,omitempty"`
+	// LockMinutes locks the PC after this many minutes without input.
+	LockMinutes int `json:"lockMinutes,omitempty"`
+}
+
+// PowerSettings sets timeouts in minutes, on mains power (AC) and on battery
+// (DC); 0 is never, nil is not managed. They are Windows power policies:
+// the user cannot change them.
+type PowerSettings struct {
+	MonitorAC   *int `json:"monitorAc,omitempty"`
+	MonitorDC   *int `json:"monitorDc,omitempty"`
+	SleepAC     *int `json:"sleepAc,omitempty"`
+	SleepDC     *int `json:"sleepDc,omitempty"`
+	HibernateAC *int `json:"hibernateAc,omitempty"`
+	HibernateDC *int `json:"hibernateDc,omitempty"`
+}
+
+// AdminSettings adds accounts to the local Administrators group
+// (S-1-5-32-544, whatever its name in the language of Windows). Members the
+// agent added are removed again when they are no longer configured; other
+// members stay.
+type AdminSettings struct {
+	// Members are accounts or groups: DOMAIN\name, a local name,
+	// AzureAD\user@example.com, or a SID.
+	Members []string `json:"members"`
+}
+
+// Firewall rule fields.
+const (
+	FirewallIn    = "in"
+	FirewallOut   = "out"
+	FirewallAllow = "allow"
+	FirewallBlock = "block"
+)
+
+// FirewallProtocols are the protocols a rule can match; "any" matches all.
+var FirewallProtocols = []string{"any", "tcp", "udp", "icmpv4", "icmpv6"}
+
+// FirewallProfiles are the Windows network profiles.
+var FirewallProfiles = []string{"domain", "private", "public"}
+
+// FirewallRule is one rule. Empty fields match everything.
+type FirewallRule struct {
+	Name      string `json:"name"`
+	Direction string `json:"direction"`
+	Action    string `json:"action"`
+	Protocol  string `json:"protocol"`
+	// LocalPorts and RemotePorts are comma separated ports and ranges
+	// (80,443,8000-8080), for TCP and UDP only.
+	LocalPorts  string `json:"localPorts,omitempty"`
+	RemotePorts string `json:"remotePorts,omitempty"`
+	// RemoteAddresses are comma separated addresses, ranges and subnets
+	// (192.168.1.0/24, 10.0.0.1-10.0.0.9), or LocalSubnet.
+	RemoteAddresses string `json:"remoteAddresses,omitempty"`
+	// Program is the full path of the program the rule is for.
+	Program  string   `json:"program,omitempty"`
+	Profiles []string `json:"profiles,omitempty"` // empty: all
+}
+
+// FirewallGroup is the Windows Firewall group of the rules FleetWarden makes.
+const FirewallGroup = "FleetWarden"
+
+// FirewallSettings adds firewall rules, in the group FirewallGroup. Rules
+// the agent added are removed again when they are no longer configured.
+type FirewallSettings struct {
+	Rules []FirewallRule `json:"rules"`
 }
 
 // Configuration states in a report.

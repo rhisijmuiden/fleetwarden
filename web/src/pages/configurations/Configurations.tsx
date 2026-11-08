@@ -15,7 +15,11 @@ import {
   type ConfigView,
   type Configuration,
   type DeviceConfigState,
+  type AdminSettings,
+  type DesktopSettings,
   type DriveSettings,
+  type FirewallSettings,
+  type PowerSettings,
   type Platform,
   type PrinterSettings,
   type RegistrySettings,
@@ -26,7 +30,7 @@ import { useAuth } from "../../auth";
 import { useGroups } from "../../components/GroupScope";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Switch, formatDate, useErrorText } from "../../components/ui";
 import { PlatformBadge, StatusDot, timeAgo } from "../devices/util";
-import { BrowserForm, DrivesForm, PrintersForm, RegistryForm, ScriptForm, defaultSettings } from "./forms";
+import { AdminsForm, BrowserForm, DesktopForm, DrivesForm, FirewallForm, PowerForm, PrintersForm, RegistryForm, ScriptForm, defaultSettings } from "./forms";
 import { ConfigProgress, ConfigStateBadge, ConfigTabs, TypeBadge, effectiveState, typeIcons, useProfiles } from "./util";
 
 function EmptyState({ onNew, canManage }: { onNew: () => void; canManage: boolean }) {
@@ -89,7 +93,6 @@ function NewDialog({ open, onClose, types }: { open: boolean; onClose: () => voi
           );
         })}
       </div>
-      <p className="text-xs text-muted">{t("configs.comingSoon")}</p>
     </Modal>
   );
 }
@@ -233,7 +236,7 @@ export function ConfigEditor() {
       return;
     }
     const platform = (params.get("platform") === "linux" ? "linux" : "windows") as Platform;
-    const type = (["browser", "registry", "script", "drives", "printers"].includes(params.get("type") ?? "") ? params.get("type") : "browser") as ConfigType;
+    const type = (["browser", "registry", "script", "drives", "printers", "desktop", "power", "admins", "firewall"].includes(params.get("type") ?? "") ? params.get("type") : "browser") as ConfigType;
     setCfg({
       id: 0,
       name: "",
@@ -309,6 +312,14 @@ export function ConfigEditor() {
             <DrivesForm value={cfg.settings as DriveSettings} onChange={setSettings} />
           ) : cfg.type === "printers" ? (
             <PrintersForm value={cfg.settings as PrinterSettings} onChange={setSettings} />
+          ) : cfg.type === "desktop" ? (
+            <DesktopForm value={cfg.settings as DesktopSettings} onChange={setSettings} />
+          ) : cfg.type === "power" ? (
+            <PowerForm value={cfg.settings as PowerSettings} onChange={setSettings} />
+          ) : cfg.type === "admins" ? (
+            <AdminsForm value={cfg.settings as AdminSettings} onChange={setSettings} />
+          ) : cfg.type === "firewall" ? (
+            <FirewallForm value={cfg.settings as FirewallSettings} onChange={setSettings} />
           ) : (
             <ScriptForm value={cfg.settings as ScriptSettings} onChange={setSettings} platform={cfg.platform} shells={shells[cfg.platform]} />
           )}

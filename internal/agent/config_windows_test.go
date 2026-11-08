@@ -302,3 +302,73 @@ func TestConfigWindowsSharedPrinter(t *testing.T) {
 		t.Errorf("the connection to %s is still there", shared.Path)
 	}
 }
+
+// TestConfigWindowsSystem sets power timeouts, adds a local administrator
+// and a firewall rule, repairs them and removes them.
+func TestConfigWindowsSystem(t *testing.T) {
+	const user = "fwtestadm"
+	cleanup := func() {
+		powershell(t, "Remove-LocalUser -Name '"+user+"' -ErrorAction SilentlyContinue; Remove-NetFirewallRule -Group 'FleetWarden' -ErrorAction SilentlyContinue; exit 0")
+		_ = deleteKeyTree(registry.CURRENT_USER, `Software\FleetWardenTestSys`)
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+	powershell(t, "New-LocalUser -Name '"+user+"' -NoPassword | Out-Null")
+
+	be := NewWindowsTestConfigBackend(`Software\FleetWardenTestSys`, t.TempDir())
+	a := testConfigAgent(t, be)
+	seven := 7
+	pol := agentproto.ConfigPolicy{Items: []agentproto.ConfigItem{
+		{ID: 1, Revision: 1, Type: agentproto.ConfigPower, Power: &agentproto.PowerSettings{MonitorAC: &seven}},
+		{ID: 2, Revision: 1, Type: agentproto.ConfigAdmins, Admins: &agentproto.AdminSettings{Members: []string{user}}},
+		{ID: 3, Revision: 1, Type: agentproto.ConfigFirewall, Firewall: &agentproto.FirewallSettings{Rules: []agentproto.FirewallRule{
+			{Name: "FW test web", Direction: "in", Action: "block", Protocol: "tcp", LocalPorts: "8081,8090-8095", RemoteAddresses: "10.1.2.0/24", Profiles: []string{"private", "public"}}}}},
+	}}
+	ctx := context.Background()
+	a.applyConfig(ctx, pol, be.Users(), nil)
+	st := lastStatus(t, a)
+	for id := int64(1); id <= 3; id++ {
+		if s := itemState(st, id); s.State != "applied" {
+			t.Fatalf("item %d: %+v", id, s)
+		}
+	}
+	isAdmin := func() bool {
+		return powershell(t, "@(Get-LocalGroupMember -SID 'S-1-5-32-544' | Where-Object { $_.Name -like '*\\"+user+"' }).Count") == "1"
+	}
+	if !isAdmin() {
+		t.Error("the user is not an administrator")
+	}
+	rule := func() string {
+		return powershell(t, "$r = Get-NetFirewallRule -Group 'FleetWarden' -ErrorAction SilentlyContinue; if ($r) { \"$($r.DisplayName)|$($r.Action)|$(($r | Get-NetFirewallPortFilter).LocalPort -join ',')\" }")
+	}
+	if got := rule(); got != "FW test web|Block|8081,8090-8095" {
+		t.Errorf("firewall rule: %q", got)
+	}
+	if got := powershell(t, "powercfg /q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String 'Current AC' | ForEach-Object { ($_ -split ': ')[-1] }"); got != "0x000001a4" {
+		t.Logf("monitor timeout in the plan: %q (420 s = 0x000001a4)", got)
+	}
+
+	// Someone undoes it: it comes back.
+	powershell(t, "Remove-LocalGroupMember -SID 'S-1-5-32-544' -Member '"+user+"'; Set-NetFirewallRule -Group 'FleetWarden' -Action Allow")
+	a.applyConfig(ctx, pol, be.Users(), nil)
+	st = lastStatus(t, a)
+	for _, id := range []int64{2, 3} {
+		if s := itemState(st, id); s.Repaired != 1 || s.State != "applied" {
+			t.Errorf("repair %d: %+v", id, s)
+		}
+	}
+	if !isAdmin() || !strings.Contains(rule(), "|Block|") {
+		t.Errorf("not repaired: admin %v, rule %q", isAdmin(), rule())
+	}
+
+	a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
+	if isAdmin() {
+		t.Error("the user is still an administrator")
+	}
+	if got := rule(); got != "" {
+		t.Errorf("rule left: %q", got)
+	}
+	if _, err := registry.OpenKey(registry.CURRENT_USER, `Software\FleetWardenTestSys\Policies\Machine\`+powerPolicyKey+powerSettings["monitor"].Setting, registry.QUERY_VALUE); err == nil {
+		t.Error("the power policy is still there")
+	}
+}
