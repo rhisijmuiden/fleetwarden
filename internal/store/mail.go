@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -19,13 +20,24 @@ type Mail struct {
 	NextAttemptAt time.Time  `json:"nextAttemptAt"`
 	LastError     string     `json:"lastError"`
 	SentAt        *time.Time `json:"sentAt"`
+	// Attachments is a JSON array of mail.Attachment; it is emptied once the
+	// message was sent.
+	Attachments json.RawMessage `json:"-"`
+	Files       int             `json:"files"`
+}
+
+func attachmentsOrEmpty(a json.RawMessage) json.RawMessage {
+	if len(a) == 0 {
+		return json.RawMessage("[]")
+	}
+	return a
 }
 
 // EnqueueMail adds a message to the queue.
 func (s *Store) EnqueueMail(ctx context.Context, m Mail) (int64, error) {
 	var id int64
-	err := s.pool.QueryRow(ctx, `INSERT INTO mail_queue (kind, to_addr, subject, body_text, body_html)
-		VALUES ($1, $2, $3, $4, $5) RETURNING id`, m.Kind, m.To, m.Subject, m.BodyText, m.BodyHTML).Scan(&id)
+	err := s.pool.QueryRow(ctx, `INSERT INTO mail_queue (kind, to_addr, subject, body_text, body_html, attachments)
+		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, m.Kind, m.To, m.Subject, m.BodyText, m.BodyHTML, attachmentsOrEmpty(m.Attachments)).Scan(&id)
 	return id, err
 }
 
@@ -38,7 +50,7 @@ func (s *Store) ProcessMail(ctx context.Context, limit, maxAttempts int, backoff
 		return 0, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
-	rows, err := tx.Query(ctx, `SELECT id, kind, to_addr, subject, body_text, body_html, attempts FROM mail_queue
+	rows, err := tx.Query(ctx, `SELECT id, kind, to_addr, subject, body_text, body_html, attempts, attachments FROM mail_queue
 		WHERE status = 'queued' AND next_attempt_at <= now() ORDER BY next_attempt_at LIMIT $1 FOR UPDATE SKIP LOCKED`, limit)
 	if err != nil {
 		return 0, err
@@ -46,7 +58,7 @@ func (s *Store) ProcessMail(ctx context.Context, limit, maxAttempts int, backoff
 	var batch []Mail
 	for rows.Next() {
 		var m Mail
-		if err := rows.Scan(&m.ID, &m.Kind, &m.To, &m.Subject, &m.BodyText, &m.BodyHTML, &m.Attempts); err != nil {
+		if err := rows.Scan(&m.ID, &m.Kind, &m.To, &m.Subject, &m.BodyText, &m.BodyHTML, &m.Attempts, &m.Attachments); err != nil {
 			rows.Close()
 			return 0, err
 		}
@@ -67,7 +79,7 @@ func (s *Store) ProcessMail(ctx context.Context, limit, maxAttempts int, backoff
 			_, err = tx.Exec(ctx, `UPDATE mail_queue SET attempts = $2, status = $3, last_error = $4, next_attempt_at = $5 WHERE id = $1`,
 				m.ID, attempt, status, msg, time.Now().Add(backoff(attempt)))
 		} else {
-			_, err = tx.Exec(ctx, `UPDATE mail_queue SET attempts = $2, status = 'sent', last_error = '', sent_at = now() WHERE id = $1`,
+			_, err = tx.Exec(ctx, `UPDATE mail_queue SET attempts = $2, status = 'sent', last_error = '', sent_at = now(), attachments = '[]' WHERE id = $1`,
 				m.ID, attempt)
 		}
 		if err != nil {
@@ -91,8 +103,8 @@ func (s *Store) RecordMail(ctx context.Context, m Mail, sendErr error) error {
 
 // ListMail returns the most recent messages.
 func (s *Store) ListMail(ctx context.Context, limit int) ([]Mail, error) {
-	rows, err := s.pool.Query(ctx, `SELECT id, created_at, kind, to_addr, subject, status, attempts, next_attempt_at, last_error, sent_at
-		FROM mail_queue ORDER BY id DESC LIMIT $1`, limit)
+	rows, err := s.pool.Query(ctx, `SELECT id, created_at, kind, to_addr, subject, status, attempts, next_attempt_at, last_error, sent_at,
+		jsonb_array_length(attachments) FROM mail_queue ORDER BY id DESC LIMIT $1`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +112,7 @@ func (s *Store) ListMail(ctx context.Context, limit int) ([]Mail, error) {
 	out := []Mail{}
 	for rows.Next() {
 		var m Mail
-		if err := rows.Scan(&m.ID, &m.CreatedAt, &m.Kind, &m.To, &m.Subject, &m.Status, &m.Attempts, &m.NextAttemptAt, &m.LastError, &m.SentAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.CreatedAt, &m.Kind, &m.To, &m.Subject, &m.Status, &m.Attempts, &m.NextAttemptAt, &m.LastError, &m.SentAt, &m.Files); err != nil {
 			return nil, err
 		}
 		out = append(out, m)

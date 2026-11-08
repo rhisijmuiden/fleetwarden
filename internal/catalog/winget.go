@@ -64,6 +64,7 @@ type Winget struct {
 	lastErr   string
 	count     int
 	docs      map[string]cachedDoc
+	matches   map[string][]matchCandidate // installed program lookups, per index
 	refreshMu sync.Mutex
 }
 
@@ -132,7 +133,7 @@ func (w *Winget) load(path string, at time.Time) error {
 	}
 	w.mu.Lock()
 	old := w.db
-	w.db, w.updatedAt, w.count = db, at, n
+	w.db, w.updatedAt, w.count, w.matches = db, at, n, nil
 	w.mu.Unlock()
 	if old != nil {
 		old.Close()

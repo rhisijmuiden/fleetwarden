@@ -27,6 +27,7 @@ import { Software } from "./pages/software/Software";
 import { DeploymentDetail, Deployments } from "./pages/software/Deployments";
 import { Remote } from "./pages/remote/Remote";
 import { RemoteViewer } from "./pages/remote/Viewer";
+import { Reports } from "./pages/reports/Reports";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
@@ -40,6 +41,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/deployments", perm: "devices.view", element: <Deployments /> },
   { path: "/deployments/:id", perm: "devices.view", element: <DeploymentDetail /> },
   { path: "/remote", perm: "remote.control", element: <Remote /> },
+  { path: "/reports", perm: "devices.view", element: <Reports /> },
   { path: "/admin/users", perm: "users.manage", element: <Users /> },
   { path: "/admin/authentication", perm: "settings.manage", element: <Authentication /> },
   { path: "/admin/mail", perm: "settings.manage", element: <Mail /> },

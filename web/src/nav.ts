@@ -55,7 +55,7 @@ export const navigation: NavGroup[] = [
   {
     label: "nav.insights",
     items: [
-      { path: "/reports", label: "nav.reports", icon: FileBarChart, phase: 7 },
+      { path: "/reports", label: "nav.reports", icon: FileBarChart, perm: "devices.view" },
       { path: "/alerts", label: "nav.alerts", icon: Bell, phase: 7 },
     ],
   },

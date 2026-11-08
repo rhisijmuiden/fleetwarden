@@ -4,6 +4,7 @@
 package mail
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -93,10 +94,18 @@ func (c Config) Validate() error {
 
 // Message is one e-mail.
 type Message struct {
-	To      string
-	Subject string
-	Text    string
-	HTML    string
+	To          string
+	Subject     string
+	Text        string
+	HTML        string
+	Attachments []Attachment
+}
+
+// Attachment is a file sent with a message, such as a PDF report.
+type Attachment struct {
+	Name        string `json:"name"`
+	ContentType string `json:"contentType"`
+	Data        []byte `json:"data"`
 }
 
 // Sender sends messages. It caches the OAuth2 token source per configuration.
@@ -163,6 +172,13 @@ func (s *Sender) Send(ctx context.Context, cfg Config, msg Message) error {
 	m.SetBodyString(gomail.TypeTextPlain, msg.Text)
 	if msg.HTML != "" {
 		m.AddAlternativeString(gomail.TypeTextHTML, msg.HTML)
+	}
+	for _, a := range msg.Attachments {
+		ct := a.ContentType
+		if ct == "" {
+			ct = "application/octet-stream"
+		}
+		m.AttachReadSeeker(a.Name, bytes.NewReader(a.Data), gomail.WithFileContentType(gomail.ContentType(ct)))
 	}
 	return client.DialAndSendWithContext(ctx, m)
 }
