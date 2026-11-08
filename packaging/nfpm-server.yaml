@@ -22,6 +22,7 @@ depends:
   - ca-certificates
   - curl
   - jq
+  - cabextract # unpacks the Dell and HP BIOS catalogs
 recommends:
   - msitools # bakes the server address and token into the Windows agent MSI
 contents:

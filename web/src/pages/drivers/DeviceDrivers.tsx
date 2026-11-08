@@ -4,7 +4,15 @@ import { useTranslation } from "react-i18next";
 import { Download, RefreshCw } from "lucide-react";
 import { get, post, type Device, type DeviceDrivers } from "../../api";
 import { useAuth } from "../../auth";
-import { Alert, Badge, Button, Card, Spinner, formatDate, useErrorText } from "../../components/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Spinner,
+  formatDate,
+  useErrorText,
+} from "../../components/ui";
 import { formatBytes, timeAgo } from "../devices/util";
 import { DriverStateBadge, KindBadge, driverMeta, sourceName } from "./util";
 
@@ -74,19 +82,28 @@ export function DeviceDriversTab({ device }: { device: Device }) {
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs text-muted">{t("patches.lastScan")}</dt>
-              <dd>{data.scanAt ? `${formatDate(data.scanAt, i18n.language)} (${timeAgo(data.scanAt, i18n.language)})` : t("patches.neverScanned")}</dd>
+              <dd>
+                {data.scanAt
+                  ? `${formatDate(data.scanAt, i18n.language)} (${timeAgo(data.scanAt, i18n.language)})`
+                  : t("patches.neverScanned")}
+              </dd>
             </div>
             <div>
               <dt className="text-xs text-muted">{t("drivers.onOffer")}</dt>
               <dd>
-                {data.drivers.length} · {t("drivers.inRepository", { count: data.drivers.filter((d) => d.state === "ready").length })}
+                {data.drivers.length} ·{" "}
+                {t("drivers.inRepository", {
+                  count: data.drivers.filter((d) => d.state === "ready").length,
+                })}
               </dd>
             </div>
           </dl>
           {data.scanError && (
             <div className="mt-4">
               <Alert tone="warning" title={t("patches.scanFailed")}>
-                <span className="font-mono text-xs break-all">{data.scanError}</span>
+                <span className="font-mono text-xs break-all">
+                  {data.scanError}
+                </span>
               </Alert>
             </div>
           )}
@@ -94,12 +111,23 @@ export function DeviceDriversTab({ device }: { device: Device }) {
         <Card title={t("patches.policy")}>
           {pol ? (
             <div className="space-y-2 text-sm">
-              <Link to="/patches?tab=policies" className="font-medium hover:text-primary">
+              <Link
+                to="/patches?tab=policies"
+                className="font-medium hover:text-primary"
+              >
                 {pol.name}
               </Link>
               <div className="flex flex-wrap gap-2">
-                <Badge tone={pol.drivers ? "success" : "neutral"}>{pol.drivers ? t("drivers.policyDriversOn") : t("drivers.policyDriversOff")}</Badge>
-                <Badge tone={pol.firmware ? "warning" : "neutral"}>{pol.firmware ? t("drivers.policyFirmwareOn") : t("drivers.policyFirmwareOff")}</Badge>
+                <Badge tone={pol.drivers ? "success" : "neutral"}>
+                  {pol.drivers
+                    ? t("drivers.policyDriversOn")
+                    : t("drivers.policyDriversOff")}
+                </Badge>
+                <Badge tone={pol.firmware ? "warning" : "neutral"}>
+                  {pol.firmware
+                    ? t("drivers.policyFirmwareOn")
+                    : t("drivers.policyFirmwareOff")}
+                </Badge>
               </div>
             </div>
           ) : (
@@ -114,10 +142,24 @@ export function DeviceDriversTab({ device }: { device: Device }) {
         actions={
           manage && (
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" icon={<RefreshCw className="size-4" />} loading={busy === "scan"} disabled={!device.online} title={!device.online ? t("devices.offlineHint") : undefined} onClick={scan}>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<RefreshCw className="size-4" />}
+                loading={busy === "scan"}
+                disabled={!device.online}
+                title={!device.online ? t("devices.offlineHint") : undefined}
+                onClick={scan}
+              >
                 {t("patches.scanNow")}
               </Button>
-              <Button size="sm" icon={<Download className="size-4" />} loading={busy === "install"} disabled={!device.online || selected.size === 0} onClick={install}>
+              <Button
+                size="sm"
+                icon={<Download className="size-4" />}
+                loading={busy === "install"}
+                disabled={!device.online || selected.size === 0}
+                onClick={install}
+              >
                 {t("drivers.installSelected", { count: selected.size })}
               </Button>
             </div>
@@ -125,7 +167,9 @@ export function DeviceDriversTab({ device }: { device: Device }) {
         }
       >
         {data.drivers.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line px-4 py-6 text-center text-sm text-muted">{data.scanAt ? t("drivers.upToDate") : t("patches.neverScanned")}</p>
+          <p className="rounded-md border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
+            {data.scanAt ? t("drivers.upToDate") : t("patches.neverScanned")}
+          </p>
         ) : (
           <div className="-mx-5 -my-5 overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">
@@ -136,11 +180,19 @@ export function DeviceDriversTab({ device }: { device: Device }) {
                       <span className="sr-only">{t("patches.select")}</span>
                     </th>
                   )}
-                  <th className={`${manage ? "px-3" : "px-5"} py-3 font-medium`}>{t("drivers.update")}</th>
+                  <th
+                    className={`${manage ? "px-3" : "px-5"} py-3 font-medium`}
+                  >
+                    {t("drivers.update")}
+                  </th>
                   <th className="px-3 py-3 font-medium">{t("drivers.kind")}</th>
-                  <th className="px-3 py-3 font-medium">{t("drivers.deviceCol")}</th>
+                  <th className="px-3 py-3 font-medium">
+                    {t("drivers.deviceCol")}
+                  </th>
                   <th className="px-3 py-3 font-medium">{t("drivers.size")}</th>
-                  <th className="px-5 py-3 font-medium">{t("drivers.status")}</th>
+                  <th className="px-5 py-3 font-medium">
+                    {t("drivers.status")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -152,7 +204,11 @@ export function DeviceDriversTab({ device }: { device: Device }) {
                           type="checkbox"
                           className="size-4 accent-primary disabled:opacity-40"
                           disabled={d.state !== "ready"}
-                          title={d.state !== "ready" ? t("drivers.notInRepository") : undefined}
+                          title={
+                            d.state !== "ready"
+                              ? t("drivers.notInRepository")
+                              : undefined
+                          }
                           checked={selected.has(d.id)}
                           onChange={() => toggle(d.id)}
                           aria-label={d.title}
@@ -162,7 +218,13 @@ export function DeviceDriversTab({ device }: { device: Device }) {
                     <td className={`${manage ? "px-3" : "px-5"} py-2`}>
                       <div className="font-medium">{d.title}</div>
                       <div className="text-xs text-muted">
-                        {[driverMeta(d), sourceName(d, t), d.reboot ? t("drivers.needsRestart") : ""].filter(Boolean).join(" · ")}
+                        {[
+                          driverMeta(d),
+                          sourceName(d, t),
+                          d.reboot ? t("drivers.needsRestart") : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </div>
                     </td>
                     <td className="px-3 py-2">
@@ -170,9 +232,19 @@ export function DeviceDriversTab({ device }: { device: Device }) {
                     </td>
                     <td className="px-3 py-2 text-xs text-muted">
                       {d.deviceName || "–"}
-                      {d.currentVersion && <div>{t("drivers.currentVersion", { version: d.currentVersion })}</div>}
+                      {d.currentVersion && (
+                        <div>
+                          {t("drivers.currentVersion", {
+                            version: d.currentVersion,
+                          })}
+                        </div>
+                      )}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-muted">{d.sizeBytes ? formatBytes(d.sizeBytes, i18n.language) : "–"}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-muted">
+                      {d.sizeBytes
+                        ? formatBytes(d.sizeBytes, i18n.language)
+                        : "–"}
+                    </td>
                     <td className="px-5 py-2">
                       <DriverStateBadge state={d.state} />
                     </td>

@@ -1,24 +1,66 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Archive, Ban, Cpu, Download, HardDrive, PackageCheck, RotateCcw, Search, Trash2, TriangleAlert } from "lucide-react";
-import { get, post, type DriverDetail, type DriverSummary, type DriverUpdate } from "../../api";
+import {
+  Archive,
+  Ban,
+  Cpu,
+  Download,
+  HardDrive,
+  PackageCheck,
+  RotateCcw,
+  Search,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
+import {
+  get,
+  post,
+  type DriverDetail,
+  type DriverSummary,
+  type DriverUpdate,
+} from "../../api";
 import { useAuth } from "../../auth";
-import { Alert, Button, Card, Input, Modal, PageHeader, Select, Spinner, formatDate, useErrorText } from "../../components/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Input,
+  Modal,
+  PageHeader,
+  Select,
+  Spinner,
+  formatDate,
+  useErrorText,
+} from "../../components/ui";
 import { PlatformBadge, StatusDot, formatBytes } from "../devices/util";
 import { DriverStateBadge, KindBadge, driverMeta, sourceName } from "./util";
+import { UploadList, VendorCatalogs } from "./Vendors";
 
-type Tab = "available" | "repository" | "rejected";
-const tabs: Tab[] = ["available", "repository", "rejected"];
+type Tab = "available" | "repository" | "uploads" | "vendors" | "rejected";
+const tabs: Tab[] = [
+  "available",
+  "repository",
+  "uploads",
+  "vendors",
+  "rejected",
+];
+type ListTab = "available" | "repository" | "rejected";
 
 export function Drivers() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
-  const tab = (tabs.includes(params.get("tab") as Tab) ? params.get("tab") : "available") as Tab;
+  const tab = (
+    tabs.includes(params.get("tab") as Tab) ? params.get("tab") : "available"
+  ) as Tab;
   const [n, setN] = useState(0);
   return (
     <div className="space-y-6">
-      <PageHeader title={t("drivers.title")} description={t("drivers.subtitle")} />
+      <PageHeader
+        title={t("drivers.title")}
+        description={t("drivers.subtitle")}
+      />
       <Summary refresh={n} />
       <div className="flex gap-1 border-b border-line" role="tablist">
         {tabs.map((k) => (
@@ -33,19 +75,37 @@ export function Drivers() {
           </button>
         ))}
       </div>
-      <DriverList key={tab} tab={tab} onChanged={() => setN((x) => x + 1)} />
+      {tab === "uploads" ? (
+        <UploadList onChanged={() => setN((x) => x + 1)} />
+      ) : tab === "vendors" ? (
+        <VendorCatalogs onChanged={() => setN((x) => x + 1)} />
+      ) : (
+        <DriverList key={tab} tab={tab} onChanged={() => setN((x) => x + 1)} />
+      )}
     </div>
   );
 }
 
-function Stat({ label, value, tone, icon }: { label: string; value: number | string; tone?: string; icon: React.ReactNode }) {
+function Stat({
+  label,
+  value,
+  tone,
+  icon,
+}: {
+  label: string;
+  value: number | string;
+  tone?: string;
+  icon: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
       <div className="flex items-center gap-2 text-xs font-medium text-muted uppercase">
         {icon}
         {label}
       </div>
-      <div className={`mt-2 text-2xl font-semibold tabular-nums ${tone ?? ""}`}>{value}</div>
+      <div className={`mt-2 text-2xl font-semibold tabular-nums ${tone ?? ""}`}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -68,9 +128,22 @@ function Summary({ refresh }: { refresh: number }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Stat label={t("drivers.stats.available")} value={s.available} tone={s.available ? "text-warning" : ""} icon={<Cpu className="size-4" />} />
-        <Stat label={t("drivers.stats.ready")} value={s.ready} icon={<PackageCheck className="size-4" />} />
-        <Stat label={t("drivers.stats.queued")} value={s.queued} icon={<Download className="size-4" />} />
+        <Stat
+          label={t("drivers.stats.available")}
+          value={s.available}
+          tone={s.available ? "text-warning" : ""}
+          icon={<Cpu className="size-4" />}
+        />
+        <Stat
+          label={t("drivers.stats.ready")}
+          value={s.ready}
+          icon={<PackageCheck className="size-4" />}
+        />
+        <Stat
+          label={t("drivers.stats.queued")}
+          value={s.queued}
+          icon={<Download className="size-4" />}
+        />
         <Stat
           label={t("drivers.stats.size")}
           value={formatBytes(s.storedBytes, i18n.language)}
@@ -79,14 +152,25 @@ function Summary({ refresh }: { refresh: number }) {
       </div>
       <p className="text-xs text-muted">
         {t("drivers.stats.devices", { devices: s.devices, scanned: s.scanned })}
-        {sum.freeBytes != null && ` · ${t("drivers.stats.free", { size: formatBytes(sum.freeBytes, i18n.language) })}`}
+        {sum.freeBytes != null &&
+          ` · ${t("drivers.stats.free", { size: formatBytes(sum.freeBytes, i18n.language) })}`}
       </p>
-      {s.failed > 0 && <Alert tone="warning">{t("drivers.failedHint", { count: s.failed })}</Alert>}
+      {s.failed > 0 && (
+        <Alert tone="warning">
+          {t("drivers.failedHint", { count: s.failed })}
+        </Alert>
+      )}
     </div>
   );
 }
 
-function DriverList({ tab, onChanged }: { tab: Tab; onChanged: () => void }) {
+function DriverList({
+  tab,
+  onChanged,
+}: {
+  tab: ListTab;
+  onChanged: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const { can } = useAuth();
   const errorText = useErrorText();
@@ -109,7 +193,17 @@ function DriverList({ tab, onChanged }: { tab: Tab; onChanged: () => void }) {
     const ctl = new AbortController();
     const timer = setTimeout(() => {
       get<DriverUpdate[]>(`/drivers?${q}`, ctl.signal)
-        .then((l) => setList(tab === "available" ? l.filter((u) => u.state === "available" || u.state === "failed") : l))
+        .then((l) =>
+          setList(
+            tab === "available"
+              ? l.filter(
+                  (u) =>
+                    u.state === "available" ||
+                    (u.state === "failed" && u.source !== "upload"),
+                )
+              : l.filter((u) => u.source !== "upload"),
+          ),
+        )
         .catch((e) => !ctl.signal.aborted && setError(errorText(e)));
     }, 250);
     return () => {
@@ -120,7 +214,8 @@ function DriverList({ tab, onChanged }: { tab: Tab; onChanged: () => void }) {
 
   // Downloads in progress: keep the list fresh.
   useEffect(() => {
-    if (!list?.some((u) => u.state === "queued" || u.state === "downloading")) return;
+    if (!list?.some((u) => u.state === "queued" || u.state === "downloading"))
+      return;
     const id = setInterval(() => setN((x) => x + 1), 5000);
     return () => clearInterval(id);
   }, [list]);
@@ -150,21 +245,44 @@ function DriverList({ tab, onChanged }: { tab: Tab; onChanged: () => void }) {
     <div className="flex flex-wrap gap-2">
       {tab === "available" && (
         <>
-          <Button size="sm" icon={<Archive className="size-4" />} loading={busy === "add"} onClick={() => act("add", ids)}>
+          <Button
+            size="sm"
+            icon={<Archive className="size-4" />}
+            loading={busy === "add"}
+            onClick={() => act("add", ids)}
+          >
             {t("drivers.addSelected", { count: selected.size })}
           </Button>
-          <Button variant="secondary" size="sm" icon={<Ban className="size-4" />} loading={busy === "reject"} onClick={() => act("reject", ids)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Ban className="size-4" />}
+            loading={busy === "reject"}
+            onClick={() => act("reject", ids)}
+          >
             {t("drivers.reject")}
           </Button>
         </>
       )}
       {tab === "repository" && (
-        <Button variant="danger" size="sm" icon={<Trash2 className="size-4" />} loading={busy === "remove"} onClick={() => act("remove", ids)}>
+        <Button
+          variant="danger"
+          size="sm"
+          icon={<Trash2 className="size-4" />}
+          loading={busy === "remove"}
+          onClick={() => act("remove", ids)}
+        >
           {t("drivers.removeSelected", { count: selected.size })}
         </Button>
       )}
       {tab === "rejected" && (
-        <Button variant="secondary" size="sm" icon={<RotateCcw className="size-4" />} loading={busy === "remove"} onClick={() => act("remove", ids)}>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<RotateCcw className="size-4" />}
+          loading={busy === "remove"}
+          onClick={() => act("remove", ids)}
+        >
           {t("drivers.unreject")}
         </Button>
       )}
@@ -172,16 +290,30 @@ function DriverList({ tab, onChanged }: { tab: Tab; onChanged: () => void }) {
   );
 
   return (
-    <Card title={t(`drivers.lists.${tab}`)} description={t(`drivers.listHints.${tab}`)} actions={actions}>
+    <Card
+      title={t(`drivers.lists.${tab}`)}
+      description={t(`drivers.listHints.${tab}`)}
+      actions={actions}
+    >
       <div className="space-y-4">
         {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex flex-wrap gap-3">
           <div className="relative min-w-56 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
-            <Input className="pl-9" placeholder={t("drivers.search")} value={search} onChange={(e) => setSearch(e.target.value)} aria-label={t("drivers.search")} />
+            <Input
+              className="pl-9"
+              placeholder={t("drivers.search")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label={t("drivers.search")}
+            />
           </div>
           <div className="w-44">
-            <Select value={kind} onChange={(e) => setKind(e.target.value)} aria-label={t("drivers.kind")}>
+            <Select
+              value={kind}
+              onChange={(e) => setKind(e.target.value)}
+              aria-label={t("drivers.kind")}
+            >
               <option value="">{t("drivers.allKinds")}</option>
               <option value="driver">{t("drivers.kinds.driver")}</option>
               <option value="firmware">{t("drivers.kinds.firmware")}</option>
@@ -191,7 +323,9 @@ function DriverList({ tab, onChanged }: { tab: Tab; onChanged: () => void }) {
         {!list ? (
           <Spinner />
         ) : list.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line px-4 py-6 text-center text-sm text-muted">{t(`drivers.empty.${tab}`)}</p>
+          <p className="rounded-md border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
+            {t(`drivers.empty.${tab}`)}
+          </p>
         ) : (
           <div className="-mx-5 -mb-5 overflow-x-auto">
             <table className="w-full min-w-[820px] text-sm">
@@ -202,18 +336,36 @@ function DriverList({ tab, onChanged }: { tab: Tab; onChanged: () => void }) {
                       <input
                         type="checkbox"
                         className="size-4 accent-primary"
-                        checked={selected.size > 0 && selected.size === list.length}
-                        onChange={(e) => setSelected(e.target.checked ? new Set(list.map((u) => u.id)) : new Set())}
+                        checked={
+                          selected.size > 0 && selected.size === list.length
+                        }
+                        onChange={(e) =>
+                          setSelected(
+                            e.target.checked
+                              ? new Set(list.map((u) => u.id))
+                              : new Set(),
+                          )
+                        }
                         aria-label={t("drivers.selectAll")}
                       />
                     </th>
                   )}
-                  <th className={`${manage ? "px-3" : "px-5"} py-3 font-medium`}>{t("drivers.update")}</th>
+                  <th
+                    className={`${manage ? "px-3" : "px-5"} py-3 font-medium`}
+                  >
+                    {t("drivers.update")}
+                  </th>
                   <th className="px-3 py-3 font-medium">{t("drivers.kind")}</th>
-                  <th className="px-3 py-3 font-medium">{t("drivers.source")}</th>
-                  <th className="px-3 py-3 font-medium">{t("drivers.devicesCol")}</th>
+                  <th className="px-3 py-3 font-medium">
+                    {t("drivers.source")}
+                  </th>
+                  <th className="px-3 py-3 font-medium">
+                    {t("drivers.devicesCol")}
+                  </th>
                   <th className="px-3 py-3 font-medium">{t("drivers.size")}</th>
-                  <th className="px-5 py-3 font-medium">{t("drivers.status")}</th>
+                  <th className="px-5 py-3 font-medium">
+                    {t("drivers.status")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -221,14 +373,30 @@ function DriverList({ tab, onChanged }: { tab: Tab; onChanged: () => void }) {
                   <tr key={u.id} className="hover:bg-surface-muted/50">
                     {manage && (
                       <td className="px-5 py-2">
-                        <input type="checkbox" className="size-4 accent-primary" checked={selected.has(u.id)} onChange={() => toggle(u.id)} aria-label={u.title} />
+                        <input
+                          type="checkbox"
+                          className="size-4 accent-primary"
+                          checked={selected.has(u.id)}
+                          onChange={() => toggle(u.id)}
+                          aria-label={u.title}
+                        />
                       </td>
                     )}
                     <td className={`${manage ? "px-3" : "px-5"} py-2`}>
-                      <button className="text-left font-medium hover:text-primary" onClick={() => setOpen(u.id)}>
+                      <button
+                        className="text-left font-medium hover:text-primary"
+                        onClick={() => setOpen(u.id)}
+                      >
                         {u.title}
                       </button>
-                      <div className="text-xs text-muted">{driverMeta(u)}</div>
+                      <div className="text-xs text-muted">
+                        {driverMeta(u)}
+                        {u.critical && (
+                          <span className="ml-2">
+                            <Badge tone="danger">{t("drivers.critical")}</Badge>
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-2">
                       <KindBadge kind={u.kind} />
@@ -239,16 +407,27 @@ function DriverList({ tab, onChanged }: { tab: Tab; onChanged: () => void }) {
                     </td>
                     <td className="px-3 py-2 tabular-nums">{u.devices}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-muted">
-                      {u.state === "ready" ? formatBytes(u.storedBytes, i18n.language) : u.sizeBytes ? formatBytes(u.sizeBytes, i18n.language) : "–"}
+                      {u.state === "ready"
+                        ? formatBytes(u.storedBytes, i18n.language)
+                        : u.sizeBytes
+                          ? formatBytes(u.sizeBytes, i18n.language)
+                          : "–"}
                     </td>
                     <td className="px-5 py-2">
                       <DriverStateBadge state={u.state} />
                       {u.state === "failed" && (
-                        <div className="mt-1 max-w-[240px] truncate text-xs text-danger" title={u.error}>
+                        <div
+                          className="mt-1 max-w-[240px] truncate text-xs text-danger"
+                          title={u.error}
+                        >
                           {u.error}
                         </div>
                       )}
-                      {u.state === "ready" && u.storedAt && <div className="mt-1 text-xs text-muted">{formatDate(u.storedAt, i18n.language)}</div>}
+                      {u.state === "ready" && u.storedAt && (
+                        <div className="mt-1 text-xs text-muted">
+                          {formatDate(u.storedAt, i18n.language)}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -271,7 +450,15 @@ function DriverList({ tab, onChanged }: { tab: Tab; onChanged: () => void }) {
   );
 }
 
-function DriverDialog({ id, onClose, onAction }: { id: number; onClose: () => void; onAction: (a: "add" | "reject" | "remove") => void }) {
+function DriverDialog({
+  id,
+  onClose,
+  onAction,
+}: {
+  id: number;
+  onClose: () => void;
+  onAction: (a: "add" | "reject" | "remove") => void;
+}) {
   const { t, i18n } = useTranslation();
   const { can } = useAuth();
   const errorText = useErrorText();
@@ -286,25 +473,46 @@ function DriverDialog({ id, onClose, onAction }: { id: number; onClose: () => vo
   const footer =
     d && manage ? (
       <>
-        {(d.state === "available" || d.state === "failed" || d.state === "rejected") && (
-          <Button icon={<Archive className="size-4" />} onClick={() => onAction("add")}>
+        {(d.state === "available" ||
+          d.state === "failed" ||
+          d.state === "rejected") && (
+          <Button
+            icon={<Archive className="size-4" />}
+            onClick={() => onAction("add")}
+          >
             {d.state === "failed" ? t("drivers.retry") : t("drivers.add")}
           </Button>
         )}
         {(d.state === "available" || d.state === "failed") && (
-          <Button variant="secondary" icon={<Ban className="size-4" />} onClick={() => onAction("reject")}>
+          <Button
+            variant="secondary"
+            icon={<Ban className="size-4" />}
+            onClick={() => onAction("reject")}
+          >
             {t("drivers.reject")}
           </Button>
         )}
-        {(d.state === "ready" || d.state === "queued" || d.state === "downloading") && (
-          <Button variant="danger" icon={<Trash2 className="size-4" />} onClick={() => onAction("remove")}>
+        {(d.state === "ready" ||
+          d.state === "queued" ||
+          d.state === "downloading") && (
+          <Button
+            variant="danger"
+            icon={<Trash2 className="size-4" />}
+            onClick={() => onAction("remove")}
+          >
             {t("drivers.remove")}
           </Button>
         )}
       </>
     ) : undefined;
   return (
-    <Modal open onClose={onClose} title={d?.title ?? t("drivers.update")} footer={footer} wide>
+    <Modal
+      open
+      onClose={onClose}
+      title={d?.title ?? t("drivers.update")}
+      footer={footer}
+      wide
+    >
       {error && <Alert tone="danger">{error}</Alert>}
       {!d ? (
         !error && <Spinner />
@@ -313,7 +521,12 @@ function DriverDialog({ id, onClose, onAction }: { id: number; onClose: () => vo
           <div className="flex flex-wrap items-center gap-2">
             <KindBadge kind={d.kind} />
             <DriverStateBadge state={d.state} />
-            {d.reboot && <span className="text-xs text-muted">{t("drivers.needsRestart")}</span>}
+            {d.critical && <Badge tone="danger">{t("drivers.critical")}</Badge>}
+            {d.reboot && (
+              <span className="text-xs text-muted">
+                {t("drivers.needsRestart")}
+              </span>
+            )}
           </div>
           {d.kind === "firmware" && (
             <Alert tone="warning" title={t("drivers.firmwareWarningTitle")}>
@@ -329,27 +542,66 @@ function DriverDialog({ id, onClose, onAction }: { id: number; onClose: () => vo
             <Item label={t("drivers.vendor")} value={d.vendor} />
             <Item label={t("drivers.class")} value={d.class} />
             <Item label={t("drivers.version")} value={d.version} />
-            <Item label={t("drivers.released")} value={d.releasedAt ? formatDate(d.releasedAt, i18n.language).split(",")[0] : ""} />
+            <Item
+              label={t("drivers.released")}
+              value={
+                d.releasedAt
+                  ? formatDate(d.releasedAt, i18n.language).split(",")[0]
+                  : ""
+              }
+            />
             <Item label={t("drivers.source")} value={sourceName(d, t)} />
-            <Item label={t("drivers.hardwareId")} value={d.hardwareId} mono />
-            <Item label={t("drivers.firstSeen")} value={formatDate(d.firstSeenAt, i18n.language)} />
-            {d.decidedBy && <Item label={t("drivers.decidedBy")} value={`${d.decidedBy} · ${formatDate(d.decidedAt, i18n.language)}`} />}
+            {d.hardwareId && (
+              <Item label={t("drivers.hardwareId")} value={d.hardwareId} mono />
+            )}
+            <Item
+              label={t("drivers.installer")}
+              value={t(
+                `drivers.installers.${d.installer || (d.platform === "linux" ? "fwupd" : "inf")}`,
+              )}
+            />
+            {d.command && (
+              <Item label={t("drivers.command")} value={d.command} mono />
+            )}
+            <Item
+              label={t("drivers.firstSeen")}
+              value={formatDate(d.firstSeenAt, i18n.language)}
+            />
+            {d.decidedBy && (
+              <Item
+                label={t("drivers.decidedBy")}
+                value={`${d.decidedBy} · ${formatDate(d.decidedAt, i18n.language)}`}
+              />
+            )}
           </dl>
-          {d.description && <p className="rounded-md bg-surface-muted px-3 py-2 text-xs whitespace-pre-line text-muted">{d.description}</p>}
+          {d.description && (
+            <p className="rounded-md bg-surface-muted px-3 py-2 text-xs whitespace-pre-line text-muted">
+              {d.description}
+            </p>
+          )}
           <div>
-            <h3 className="mb-2 text-xs font-semibold text-muted uppercase">{t("drivers.files")}</h3>
+            <h3 className="mb-2 text-xs font-semibold text-muted uppercase">
+              {t("drivers.files")}
+            </h3>
             <ul className="space-y-1">
               {d.files.map((f, i) => (
-                <li key={i} className="flex flex-wrap items-baseline gap-x-2 text-xs">
+                <li
+                  key={i}
+                  className="flex flex-wrap items-baseline gap-x-2 text-xs"
+                >
                   <span className="font-medium">{f.name}</span>
-                  {f.size ? <span className="text-muted">{formatBytes(f.size, i18n.language)}</span> : null}
+                  {f.size ? (
+                    <span className="text-muted">
+                      {formatBytes(f.size, i18n.language)}
+                    </span>
+                  ) : null}
                   {f.stored ? (
                     <span className="font-mono text-success" title="SHA-256">
                       {f.stored.slice(0, 16)}…
                     </span>
                   ) : (
                     <span className="truncate text-muted" title={f.url}>
-                      {new URL(f.url).host}
+                      {f.url ? new URL(f.url).host : ""}
                     </span>
                   )}
                 </li>
@@ -357,7 +609,9 @@ function DriverDialog({ id, onClose, onAction }: { id: number; onClose: () => vo
             </ul>
           </div>
           <div>
-            <h3 className="mb-2 text-xs font-semibold text-muted uppercase">{t("drivers.offeredTo", { count: d.deviceList.length })}</h3>
+            <h3 className="mb-2 text-xs font-semibold text-muted uppercase">
+              {t("drivers.offeredTo", { count: d.deviceList.length })}
+            </h3>
             {d.deviceList.length === 0 ? (
               <p className="text-xs text-muted">{t("drivers.noDevices")}</p>
             ) : (
@@ -367,14 +621,18 @@ function DriverDialog({ id, onClose, onAction }: { id: number; onClose: () => vo
                     {d.deviceList.map((x) => (
                       <tr key={x.deviceId}>
                         <td className="px-3 py-1.5">
-                          <Link to={`/devices/${x.deviceId}`} className="font-medium hover:text-primary">
+                          <Link
+                            to={`/devices/${x.deviceId}`}
+                            className="font-medium hover:text-primary"
+                          >
                             {x.hostname}
                           </Link>
                           <div className="text-muted">{x.groupName}</div>
                         </td>
                         <td className="px-3 py-1.5 text-muted">
                           {x.deviceName}
-                          {x.currentVersion && ` · ${t("drivers.currentVersion", { version: x.currentVersion })}`}
+                          {x.currentVersion &&
+                            ` · ${t("drivers.currentVersion", { version: x.currentVersion })}`}
                         </td>
                         <td className="px-3 py-1.5">
                           <StatusDot online={x.online} />
@@ -398,11 +656,21 @@ function DriverDialog({ id, onClose, onAction }: { id: number; onClose: () => vo
   );
 }
 
-function Item({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Item({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
   return (
     <div className="min-w-0">
       <dt className="text-xs text-muted">{label}</dt>
-      <dd className={`break-words ${mono ? "font-mono text-xs" : ""}`}>{value || "–"}</dd>
+      <dd className={`break-words ${mono ? "font-mono text-xs" : ""}`}>
+        {value || "–"}
+      </dd>
     </div>
   );
 }

@@ -123,7 +123,8 @@ func collectHardware() agentproto.Hardware {
 	dmi := func(n string) string { return readTrim("/sys/class/dmi/id/" + n) }
 	hw := agentproto.Hardware{
 		Manufacturer: dmi("sys_vendor"), Model: dmi("product_name"), Serial: dmi("product_serial"),
-		BIOS: strings.TrimSpace(dmi("bios_vendor") + " " + dmi("bios_version")),
+		BIOS:      strings.TrimSpace(dmi("bios_vendor") + " " + dmi("bios_version")),
+		SystemSKU: dmi("product_sku"), Baseboard: dmi("board_name"), BIOSVersion: dmi("bios_version"),
 	}
 	cpuinfo, _ := os.ReadFile("/proc/cpuinfo")
 	cores := map[string]bool{}

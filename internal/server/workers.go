@@ -40,6 +40,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 		s.log.Warn("driver repository", "err", err)
 	}
 	s.checkRepository(ctx)
+	s.vendorTick()
 	s.bgWG.Add(1)
 	go s.agentReleaseLoop(s.bgCtx)
 	mailTick := time.NewTicker(15 * time.Second)
@@ -66,6 +67,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.alertTick(ctx)
 		case <-houseTick.C:
 			s.checkRepository(ctx)
+			s.vendorTick()
 			if err := s.st.PurgeSessions(ctx, sessionIdle); err != nil {
 				s.log.Warn("purge sessions", "err", err)
 			}

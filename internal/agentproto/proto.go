@@ -259,19 +259,26 @@ type OSInfo struct {
 
 // Hardware describes the machine.
 type Hardware struct {
-	Manufacturer string     `json:"manufacturer"`
-	Model        string     `json:"model"`
-	Serial       string     `json:"serial"`
-	BIOS         string     `json:"bios"`
-	CPU          string     `json:"cpu"`
-	CPUCores     int        `json:"cpuCores"`
-	CPUThreads   int        `json:"cpuThreads"`
-	MemoryBytes  int64      `json:"memoryBytes"`
-	Disks        []Disk     `json:"disks"`
-	Volumes      []Volume   `json:"volumes"`
-	Network      []NetIface `json:"network"`
-	GPUs         []string   `json:"gpus,omitempty"`
-	Virtual      bool       `json:"virtual"`
+	Manufacturer string `json:"manufacturer"`
+	Model        string `json:"model"`
+	Serial       string `json:"serial"`
+	BIOS         string `json:"bios"`
+	// The firmware platform, used to match vendor BIOS catalogs: the
+	// system SKU (Dell), the baseboard product (HP) and the bare BIOS
+	// version as SMBIOS reports it ("1.21.0", "S70 Ver. 01.23.00",
+	// "N3BET70W (1.50 )").
+	SystemSKU   string     `json:"systemSku,omitempty"`
+	Baseboard   string     `json:"baseboard,omitempty"`
+	BIOSVersion string     `json:"biosVersion,omitempty"`
+	CPU         string     `json:"cpu"`
+	CPUCores    int        `json:"cpuCores"`
+	CPUThreads  int        `json:"cpuThreads"`
+	MemoryBytes int64      `json:"memoryBytes"`
+	Disks       []Disk     `json:"disks"`
+	Volumes     []Volume   `json:"volumes"`
+	Network     []NetIface `json:"network"`
+	GPUs        []string   `json:"gpus,omitempty"`
+	Virtual     bool       `json:"virtual"`
 }
 
 // Disk is a physical or virtual disk.

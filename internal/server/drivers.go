@@ -368,10 +368,19 @@ func (s *Server) checkRepository(ctx context.Context) {
 	}
 	requeued := false
 	for _, u := range ready {
+		where := dir
+		if u.Source == agentproto.DriverSourceUpload {
+			where = s.uploadsDir()
+		}
 		for _, f := range u.Files {
-			if _, err := os.Stat(filepath.Join(dir, f.Stored)); f.Stored == "" || err != nil {
-				_ = s.st.RequeueDriver(ctx, u.ID)
-				requeued = true
+			if _, err := os.Stat(filepath.Join(where, f.Stored)); f.Stored == "" || err != nil {
+				if u.Source == agentproto.DriverSourceUpload {
+					// Cannot be downloaded again: the administrator uploads it again.
+					_ = s.st.FailDriver(ctx, u.ID, "the uploaded file is missing; upload the package again")
+				} else {
+					_ = s.st.RequeueDriver(ctx, u.ID)
+					requeued = true
+				}
 				break
 			}
 		}
@@ -383,20 +392,30 @@ func (s *Server) checkRepository(ctx context.Context) {
 	if err != nil {
 		return
 	}
+	pruneDir(dir, keep)
+	pruneDir(s.uploadsDir(), keep)
+}
+
+// pruneDir removes stored files no entry refers to and stale partial files.
+func pruneDir(dir string, keep map[string]bool) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return
 	}
 	for _, e := range entries {
 		name := e.Name()
-		if strings.HasPrefix(name, ".download-") {
+		if strings.HasPrefix(name, ".download-") || strings.HasPrefix(name, ".upload-") {
 			if info, err := e.Info(); err == nil && time.Since(info.ModTime()) > 2*driverDownloadTime {
 				_ = os.Remove(filepath.Join(dir, name))
 			}
 			continue
 		}
+		// A file written in the last hour may belong to an upload or
+		// download that is not recorded yet.
 		if isSHA256(name) && !keep[name] {
-			_ = os.Remove(filepath.Join(dir, name))
+			if info, err := e.Info(); err == nil && time.Since(info.ModTime()) > time.Hour {
+				_ = os.Remove(filepath.Join(dir, name))
+			}
 		}
 	}
 }
@@ -425,7 +444,7 @@ func (s *Server) deviceDriverJobs(ctx context.Context, deviceID string, pol *sto
 			continue
 		}
 		job := agentproto.DriverInstall{ID: agentproto.DriverResultID(r.ID), Source: r.Source, SourceID: r.SourceID, Kind: r.Kind,
-			Title: r.Title, DeviceID: r.FwDeviceID}
+			Title: r.Title, DeviceID: r.FwDeviceID, Installer: r.Installer, Command: r.Command, ExitCodes: r.ExitCodes}
 		for _, f := range r.Files {
 			job.Files = append(job.Files, agentproto.RepoFile{Name: f.Name, SHA256: f.Stored, Size: f.Size})
 		}
@@ -466,6 +485,9 @@ func (s *Server) handleRepositoryFile(w http.ResponseWriter, r *http.Request) {
 	}
 	f, err := os.Open(filepath.Join(s.repositoryDir(), sum))
 	if err != nil {
+		f, err = os.Open(filepath.Join(s.uploadsDir(), sum))
+	}
+	if err != nil {
 		http.Error(w, "no such file", http.StatusNotFound)
 		return
 	}
@@ -488,6 +510,13 @@ func (s *Server) driverRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /api/v1/drivers", view(s.handleListDrivers))
 	mux.Handle("GET /api/v1/drivers/{id}", view(s.handleGetDriver))
 	mux.Handle("POST /api/v1/drivers/state", repo(s.handleDriverState))
+	mux.Handle("GET /api/v1/drivers/vendors", view(s.handleVendorStatus))
+	mux.Handle("PUT /api/v1/drivers/vendors", repo(s.handlePutVendorSettings))
+	mux.Handle("POST /api/v1/drivers/vendors/sync", repo(s.handleVendorSync))
+	mux.Handle("POST /api/v1/drivers/uploads/file", repo(s.handleDriverUploadFile))
+	mux.Handle("POST /api/v1/drivers/uploads", repo(s.handleCreateDriverUpload))
+	mux.Handle("PUT /api/v1/drivers/uploads/{id}", repo(s.handleUpdateDriverUpload))
+	mux.Handle("DELETE /api/v1/drivers/uploads/{id}", repo(s.handleDeleteDriverUpload))
 	mux.Handle("GET /api/v1/devices/{id}/drivers", view(s.handleDeviceDrivers))
 	mux.Handle("POST /api/v1/devices/{id}/drivers/install", manage(s.handleDriverInstallNow))
 }
@@ -516,7 +545,14 @@ func (s *Server) handleDriverSummary(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleListDrivers(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	dq := store.DriverQuery{Scope: s.scope(r), Search: strings.TrimSpace(q.Get("search")), Kind: q.Get("kind")}
+	dq := store.DriverQuery{Scope: s.scope(r), Search: strings.TrimSpace(q.Get("search")), Kind: q.Get("kind"), Source: q.Get("source")}
+	switch dq.Source {
+	case "", agentproto.DriverSourceWindowsUpdate, agentproto.DriverSourceFwupd, agentproto.DriverSourceDell, agentproto.DriverSourceHP,
+		agentproto.DriverSourceLenovo, agentproto.DriverSourceUpload:
+	default:
+		apiError(w, http.StatusBadRequest, "invalid_source")
+		return
+	}
 	switch v := q.Get("state"); v {
 	case "", "repository", store.DriverAvailable, store.DriverQueued, store.DriverDownloading, store.DriverReady, store.DriverFailed,
 		store.DriverRejected:
@@ -532,7 +568,7 @@ func (s *Server) handleListDrivers(w http.ResponseWriter, r *http.Request) {
 	// The repository shows every stored update; the other lists only what
 	// a device in the user's scope can install.
 	dq.Offered = dq.State != "repository" && dq.State != store.DriverReady && dq.State != store.DriverQueued &&
-		dq.State != store.DriverDownloading
+		dq.State != store.DriverDownloading && dq.Source != agentproto.DriverSourceUpload
 	list, err := s.st.ListDrivers(r.Context(), dq)
 	if err != nil {
 		s.internalError(w, r, err)
@@ -594,6 +630,17 @@ func (s *Server) handleDriverState(w http.ResponseWriter, r *http.Request) {
 		apiError(w, http.StatusBadRequest, "invalid_ids")
 		return
 	}
+	// The stored files, to remove them from the repository after "remove".
+	var stored []string
+	if state == store.DriverAvailable {
+		for _, id := range req.IDs {
+			if d, err := s.st.DriverByID(r.Context(), id); err == nil && d.Source != agentproto.DriverSourceUpload {
+				for _, f := range d.Files {
+					stored = append(stored, strings.ToLower(f.Stored))
+				}
+			}
+		}
+	}
 	u, _ := currentUser(r)
 	changed, err := s.st.SetDriverState(r.Context(), req.IDs, state, u.Username)
 	if err != nil {
@@ -607,11 +654,14 @@ func (s *Server) handleDriverState(w http.ResponseWriter, r *http.Request) {
 		s.downloadDriversSoon()
 	}
 	if state == store.DriverAvailable && len(changed) > 0 {
-		s.bgWG.Add(1)
-		go func() {
-			defer s.bgWG.Done()
-			s.checkRepository(s.bgCtx)
-		}()
+		// Files no other entry refers to leave the repository.
+		if keep, err := s.st.StoredDriverFiles(r.Context()); err == nil {
+			for _, sum := range stored {
+				if isSHA256(sum) && !keep[sum] {
+					_ = os.Remove(filepath.Join(s.repositoryDir(), sum))
+				}
+			}
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]int{"changed": len(changed)})
 }

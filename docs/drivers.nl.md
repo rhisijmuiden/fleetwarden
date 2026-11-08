@@ -19,8 +19,66 @@ vanaf de server, nooit vanaf internet. Open **Drivers & firmware** in het menu.
   (`apt install fwupd`). fwupd haalt alleen de lijst met updates op; de
   firmware zelf komt uit de repository.
 
-Catalogi van Dell, HP en Lenovo (BIOS en drivers van de fabrikant) en het
-uploaden van eigen driverpakketten volgen in een latere update.
+- **BIOS van Dell, HP en Lenovo**: de server leest de BIOS-catalogi van de
+  fabrikant voor de modellen onder je Windows-apparaten (zie hieronder).
+- **Eigen pakketten**: drivers en firmware die je zelf uploadt (zie
+  hieronder).
+
+## BIOS uit de fabrikantcatalogi
+
+Eén keer per dag, en meteen voor een model dat hij nog niet kende, leest de
+server de BIOS-catalogus van elk Dell-, HP- en Lenovo-model onder de
+Windows-apparaten. Alleen de catalogusbestanden worden gelezen; de nieuwste
+BIOS die een apparaat kan krijgen staat onder **Beschikbaar** zoals elke
+andere update, en wordt pas gedownload als je hem aan de repository
+toevoegt. De download wordt gecontroleerd met de SHA-256 van de fabrikant.
+
+| Fabrikant | Gekoppeld op | Catalogus | Geïnstalleerd met |
+| --- | --- | --- | --- |
+| Dell | Systeem-ID (SKU) en BIOS-versie | `downloads.dell.com/catalog/CatalogIndexPC.cab` | het Dell Update Package, `/s` |
+| HP | Platform-ID (moederbord), ROM-familie en versie | referentiebestand van HP Image Assistant (`hpia.hpcloud.hp.com`) | `HpFirmwareUpdRec.exe -b -s` uit de SoftPaq |
+| Lenovo | Machinetype en BIOS-niveau | `download.lenovo.com/catalog/<type>_Win11.xml` | `winuptp.exe -s` uit het pakket |
+
+De agent geeft het systeem-ID, het moederbord en de kale BIOS-versie door
+met zijn inventaris; apparaten met een oudere agent worden gekoppeld zodra ze
+zijn bijgewerkt. De server heeft `cabextract` nodig om de catalogi van Dell
+en HP uit te pakken (een afhankelijkheid van het pakket). Onder **Drivers &
+firmware > Fabrikantcatalogi** zet je elke fabrikant uit, lees je de catalogi
+meteen opnieuw en zie je welke modellen er zijn gevonden. BIOS-updates van de
+fabrikant zijn firmware: ze worden alleen in het patchvenster geïnstalleerd
+als het beleid firmware toestaat, BitLocker wordt voor één herstart
+opgeschort en het hulpmiddel van de fabrikant herstart niet zelf; de
+patchtaak herstart volgens de herstartinstellingen van het beleid. Een BIOS
+met een setup-wachtwoord kan Dell niet stil bijwerken; de taak meldt dat dan.
+
+Drivers van de fabrikant uit deze catalogi worden niet aangeboden: Windows
+Update heeft dezelfde drivers voor deze modellen, en koppelen zou de PCI-ID's
+van elk onderdeel vragen. Upload zelf een driver van de fabrikant als je een
+specifieke nodig hebt.
+
+## Eigen pakketten
+
+Onder **Drivers & firmware > Eigen pakketten** slaat **Pakket uploaden** een
+pakket meteen op de server op (maximaal 2 GB; sta achter een reverse proxy
+uploads van die grootte toe, zie [reverse-proxy.md](reverse-proxy.md)):
+
+- **Een driver voor Windows**: een `.zip` of `.cab` met de `.inf` van de
+  driver (en de `.sys` en `.cat`). De agent pakt hem uit en installeert elke
+  `.inf` met `pnputil /add-driver /subdirs /install`.
+- **Een programma voor Windows** (`.exe`), zoals het driver- of
+  BIOS-installatieprogramma van een fabrikant, met de argumenten voor een
+  stille installatie (bijvoorbeeld `/s`). Het draait als SYSTEM; exitcodes 0,
+  3010 en 1641 betekenen geslaagd.
+- **Een firmwarecabinet voor Linux** (`.cab` voor fwupd), geïnstalleerd met
+  `fwupdmgr install`.
+
+Kies de apparaten met **Fabrikant bevat** en **Model bevat** (vergeleken met
+de inventaris, hoofdletters maken niet uit; leeg past op elk apparaat van het
+platform). Het pakket wordt aan die apparaten aangeboden en geïnstalleerd als
+een repository-update: in het patchvenster (drivers of firmware, volgens het
+beleid) of met **Nu installeren** op een apparaat. Geüploade pakketten zitten
+in de back-up, omdat ze niet opnieuw te downloaden zijn; ze staan onder
+`/var/lib/fleetwarden/driver-uploads`.
 
 ## Hoe het werkt
 
@@ -31,7 +89,7 @@ uploaden van eigen driverpakketten volgen in een latere update.
    scannen** op een apparaat scant meteen.
 2. Selecteer updates en kies **Toevoegen aan repository**. De server
    downloadt de bestanden bij de leverancier (alleen van de downloadservers
-   van Microsoft en LVFS), controleert de checksum van de leverancier als die
+   van Microsoft, LVFS, Dell, HP en Lenovo), controleert de checksum van de leverancier als die
    er is, en slaat ze op in `/var/lib/fleetwarden/repository`. Een mislukte
    download wordt drie keer geprobeerd; **Opnieuw proberen** begint opnieuw.
    **Afwijzen** verbergt een update die je niet wilt.
@@ -56,6 +114,9 @@ uploaden van eigen driverpakketten volgen in een latere update.
 - **Firmware op Windows** wordt klaargezet en door Windows tijdens de
   volgende herstart toegepast. De agent onderbreekt BitLocker voor die ene
   herstart, zodat het apparaat niet om de herstelsleutel vraagt.
+- **BIOS van Dell, HP en Lenovo**: de agent draait het hulpmiddel van de
+  fabrikant stil (zie de tabel hierboven), na het uitpakken van de SoftPaq of
+  het Lenovo-pakket.
 - **Linux**: de agent draait `fwupdmgr install` met het cab-bestand van de
   server op het apparaat waarvoor het werd aangeboden. UEFI-firmware wordt
   tijdens de volgende herstart toegepast.
@@ -80,7 +141,8 @@ met die checksum. Een aparte repository- of cachingserver (gepland na versie
 ## Rechten
 
 - **Drivers en firmware aan de repository toevoegen** (toevoegen, afwijzen,
-  verwijderen): beheerders.
+  verwijderen, pakketten uploaden, instellingen van de fabrikantcatalogi):
+  beheerders.
 - **Nu installeren** op een apparaat: iedereen die apparaten mag beheren.
 - De lijsten bekijken: iedereen die apparaten mag zien (beperkt tot hun
   groepen).
