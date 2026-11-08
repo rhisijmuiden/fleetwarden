@@ -45,3 +45,48 @@ func TestValidateDrivesAndPrinters(t *testing.T) {
 		t.Errorf("drives on Linux: %q", got)
 	}
 }
+
+func TestValidateWindowsSettings(t *testing.T) {
+	check := func(typ, settings, want string) store.Configuration {
+		t.Helper()
+		c := store.Configuration{Name: "x", Platform: "windows", Type: typ, Settings: json.RawMessage(settings)}
+		if got := validateConfig(&c); got != want {
+			t.Errorf("%s %s: %q, want %q", typ, settings, got, want)
+		}
+		return c
+	}
+	c := check("desktop", `{"wallpaper":"//srv/img/bg.jpg","lockMinutes":10}`, "")
+	if !strings.Contains(string(c.Settings), `"wallpaperStyle":"fill"`) {
+		t.Errorf("default style: %s", c.Settings)
+	}
+	check("desktop", `{}`, "nothing_configured")
+	check("desktop", `{"wallpaper":"C:\\img\\bg.exe"}`, "invalid_wallpaper")
+	check("desktop", `{"wallpaper":"bg.jpg"}`, "invalid_wallpaper")
+	check("desktop", `{"wallpaper":"C:\\img\\bg.png","wallpaperStyle":"zoom"}`, "invalid_wallpaper_style")
+	check("desktop", `{"lockMinutes":100000}`, "invalid_lock_minutes")
+
+	check("power", `{"monitorAc":10,"sleepAc":0}`, "")
+	check("power", `{}`, "nothing_configured")
+	check("power", `{"sleepDc":-1}`, "invalid_power_minutes")
+
+	c = check("admins", `{"members":[" CONTOSO/IT Support ","AzureAD\\anna@contoso.com","S-1-5-21-1-2-3-500",""]}`, "")
+	if !strings.Contains(string(c.Settings), `"CONTOSO\\IT Support"`) {
+		t.Errorf("admins: %s", c.Settings)
+	}
+	check("admins", `{"members":[]}`, "nothing_configured")
+	check("admins", `{"members":["a","A"]}`, "duplicate_member")
+	check("admins", `{"members":["bad\"name"]}`, "invalid_member")
+
+	c = check("firewall", `{"rules":[{"name":"Web","direction":"in","action":"allow","protocol":"tcp","localPorts":"80, 443,8000-8080",
+		"remoteAddresses":"192.168.1.0/24, localsubnet,10.0.0.1-10.0.0.9","profiles":["public","private","domain"]}]}`, "")
+	if s := string(c.Settings); !strings.Contains(s, `"localPorts":"80,443,8000-8080"`) || !strings.Contains(s, `LocalSubnet`) || strings.Contains(s, "profiles") {
+		t.Errorf("firewall: %s", s)
+	}
+	check("firewall", `{"rules":[{"name":"x","direction":"up","action":"allow"}]}`, "invalid_direction")
+	check("firewall", `{"rules":[{"name":"x","direction":"in","action":"allow","localPorts":"80"}]}`, "ports_need_tcp_udp")
+	check("firewall", `{"rules":[{"name":"x","direction":"in","action":"allow","protocol":"tcp","localPorts":"70000"}]}`, "invalid_ports")
+	check("firewall", `{"rules":[{"name":"x","direction":"in","action":"allow","remoteAddresses":"10.0.0.300"}]}`, "invalid_addresses")
+	check("firewall", `{"rules":[{"name":"x","direction":"in","action":"allow","program":"notepad"}]}`, "invalid_program")
+	check("firewall", `{"rules":[{"name":"x","direction":"in","action":"block","profiles":["home"]}]}`, "invalid_profile")
+	check("firewall", `{"rules":[{"name":"x","direction":"in","action":"block"},{"name":"X","direction":"out","action":"block"}]}`, "duplicate_rule")
+}

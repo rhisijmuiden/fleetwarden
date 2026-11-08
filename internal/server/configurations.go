@@ -106,6 +106,18 @@ func configItem(c store.Configuration) (agentproto.ConfigItem, error) {
 	case agentproto.ConfigPrinters:
 		it.Printers = &agentproto.PrinterSettings{}
 		err = json.Unmarshal(c.Settings, it.Printers)
+	case agentproto.ConfigDesktop:
+		it.Desktop = &agentproto.DesktopSettings{}
+		err = json.Unmarshal(c.Settings, it.Desktop)
+	case agentproto.ConfigPower:
+		it.Power = &agentproto.PowerSettings{}
+		err = json.Unmarshal(c.Settings, it.Power)
+	case agentproto.ConfigAdmins:
+		it.Admins = &agentproto.AdminSettings{}
+		err = json.Unmarshal(c.Settings, it.Admins)
+	case agentproto.ConfigFirewall:
+		it.Firewall = &agentproto.FirewallSettings{}
+		err = json.Unmarshal(c.Settings, it.Firewall)
 	default:
 		err = errors.New("unknown configuration type")
 	}
@@ -221,6 +233,30 @@ func validateConfig(c *store.Configuration) string {
 			return "invalid_settings"
 		}
 		bad, v = validPrinters(&p), p
+	case agentproto.ConfigDesktop:
+		var p agentproto.DesktopSettings
+		if dec.Decode(&p) != nil {
+			return "invalid_settings"
+		}
+		bad, v = validDesktop(&p), p
+	case agentproto.ConfigPower:
+		var p agentproto.PowerSettings
+		if dec.Decode(&p) != nil {
+			return "invalid_settings"
+		}
+		bad, v = validPower(&p), p
+	case agentproto.ConfigAdmins:
+		var p agentproto.AdminSettings
+		if dec.Decode(&p) != nil {
+			return "invalid_settings"
+		}
+		bad, v = validAdmins(&p), p
+	case agentproto.ConfigFirewall:
+		var p agentproto.FirewallSettings
+		if dec.Decode(&p) != nil {
+			return "invalid_settings"
+		}
+		bad, v = validFirewall(&p), p
 	}
 	if bad != "" {
 		return bad

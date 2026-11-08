@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Code2, Globe, HardDrive, ListTree, Printer, type LucideIcon } from "lucide-react";
+import { BatteryCharging, BrickWall, Code2, Globe, HardDrive, ListTree, Monitor, Printer, ShieldUser, type LucideIcon } from "lucide-react";
 import { get, type ConfigProfile, type ConfigState, type ConfigType, type Configuration, type DeviceConfigState } from "../../api";
 import { Badge } from "../../components/ui";
 
-export const typeIcons: Record<ConfigType, LucideIcon> = { browser: Globe, registry: ListTree, script: Code2, drives: HardDrive, printers: Printer };
+export const typeIcons: Record<ConfigType, LucideIcon> = { browser: Globe, registry: ListTree, script: Code2, drives: HardDrive, printers: Printer, desktop: Monitor, power: BatteryCharging, admins: ShieldUser, firewall: BrickWall };
 
 // TypeBadge shows the type of a configuration, or its name with the type's icon.
 export function TypeBadge({ type, label }: { type: ConfigType; label?: string }) {

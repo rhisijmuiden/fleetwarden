@@ -83,6 +83,9 @@ func (f *fakeConfig) PrinterStore(u *ConfigUser) (PolicyStore, error) {
 	}
 	return f.store("printers:" + u.SID), nil
 }
+func (f *fakeConfig) SystemStore(kind string) (PolicyStore, error) {
+	return f.store("system:" + kind), nil
+}
 func (f *fakeConfig) Users() []ConfigUser {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -401,6 +404,67 @@ func TestConfigDrivesAndPrinters(t *testing.T) {
 	for _, k := range []string{"drives:S-1", "drives:S-2", "printers:machine", "printers:S-1"} {
 		if len(be.stores[k]) != 0 {
 			t.Errorf("%s left: %v", k, be.stores[k])
+		}
+	}
+}
+
+func TestConfigSystemSettings(t *testing.T) {
+	be := newFakeConfig()
+	be.users = []ConfigUser{{Session: 2, Name: `PC\anna`, SID: "S-1"}}
+	a := testConfigAgent(t, be)
+	ten, zero := 10, 0
+	pol := agentproto.ConfigPolicy{Items: []agentproto.ConfigItem{
+		{ID: 1, Revision: 1, Type: agentproto.ConfigDesktop, Desktop: &agentproto.DesktopSettings{Wallpaper: `\\srv\img\bg.jpg`, WallpaperStyle: "fit", LockMinutes: 15}},
+		{ID: 2, Revision: 1, Type: agentproto.ConfigPower, Power: &agentproto.PowerSettings{MonitorAC: &ten, SleepAC: &zero}},
+		{ID: 3, Revision: 1, Type: agentproto.ConfigAdmins, Admins: &agentproto.AdminSettings{Members: []string{`CONTOSO\IT Support`}}},
+		{ID: 4, Revision: 1, Type: agentproto.ConfigFirewall, Firewall: &agentproto.FirewallSettings{Rules: []agentproto.FirewallRule{
+			{Name: "Web", Direction: "in", Action: "allow", Protocol: "tcp", LocalPorts: "80,443"}}}},
+	}}
+	ctx := context.Background()
+	a.applyConfig(ctx, pol, be.Users(), be.Users())
+	st := lastStatus(t, a)
+	for id := int64(1); id <= 4; id++ {
+		if s := itemState(st, id); s.State != "applied" {
+			t.Errorf("item %d: %+v", id, s)
+		}
+	}
+	if v, _ := be.get("HKCU:S-1", userPolicySystemKey+`\\WallpaperStyle`); !strings.Contains(v, `"Value":"3"`) {
+		t.Errorf("wallpaper style: %s (%v)", v, be.stores["HKCU:S-1"])
+	}
+	if v, _ := be.get("HKLM:", machinePolicySystemKey+`\\InactivityTimeoutSecs`); !strings.Contains(v, `"Value":"900"`) {
+		t.Errorf("lock: %s (%v)", v, be.stores["HKLM:"])
+	}
+	if v, _ := be.get("system:power", "monitor-ac"); v != "600" {
+		t.Errorf("monitor: %q", v)
+	}
+	if v, _ := be.get("system:power", "sleep-ac"); v != "0" {
+		t.Errorf("sleep: %q", v)
+	}
+	if _, ok := be.get("system:power", "monitor-dc"); ok {
+		t.Error("monitor on battery is not managed")
+	}
+	if _, ok := be.get("system:admins", `admin:contoso\it support`); !ok {
+		t.Errorf("admins: %v", be.stores["system:admins"])
+	}
+	if v, _ := be.get("system:firewall", "rule:web"); !strings.Contains(v, `"localPorts":"80,443"`) {
+		t.Errorf("firewall: %s", v)
+	}
+
+	a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
+	for _, k := range []string{"HKCU:S-1", "HKLM:", "system:power", "system:admins", "system:firewall"} {
+		if len(be.stores[k]) != 0 {
+			t.Errorf("%s left: %v", k, be.stores[k])
+		}
+	}
+}
+
+func TestParsePowerSettingName(t *testing.T) {
+	if ps, ac, ok := ParsePowerSettingName("sleep-dc"); !ok || ac || ps.Setting != powerSettings["sleep"].Setting {
+		t.Errorf("sleep-dc: %v %v %v", ps, ac, ok)
+	}
+	for _, bad := range []string{"sleep", "sleep-xx", "disk-ac"} {
+		if _, _, ok := ParsePowerSettingName(bad); ok {
+			t.Errorf("%s parsed", bad)
 		}
 	}
 }

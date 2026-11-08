@@ -295,7 +295,25 @@
     "multiple_default_printers": "Maar één printer kan de standaardprinter zijn.",
     "unknown_profile": "Dat profiel bestaat niet.",
     "unknown_configuration": "Die configuratie bestaat niet.",
-    "profile_exists": "Er bestaat al een profiel met deze naam."
+    "profile_exists": "Er bestaat al een profiel met deze naam.",
+    "invalid_wallpaper": "De achtergrond moet het volledige pad van een afbeelding zijn (C:\\... of \\\\server\\...; .jpg, .png, .bmp, .gif, .tif).",
+    "invalid_wallpaper_style": "Kies hoe de achtergrond op het scherm past.",
+    "invalid_lock_minutes": "Vergrendelen na moet tussen 0 en 9999 minuten liggen.",
+    "invalid_power_minutes": "Energie-instellingen moeten tussen 0 en 10080 minuten liggen.",
+    "invalid_member": "Een lid is geen geldige accountnaam of SID.",
+    "duplicate_member": "Een lid staat er twee keer in.",
+    "too_many_members": "Maximaal 50 leden.",
+    "too_many_rules": "Maximaal 50 firewallregels.",
+    "invalid_rule_name": "Elke firewallregel heeft een naam nodig (geen aanhalingstekens, | of \\).",
+    "duplicate_rule": "Twee firewallregels hebben dezelfde naam.",
+    "invalid_direction": "Kies inkomend of uitgaand.",
+    "invalid_protocol": "Kies een protocol.",
+    "invalid_ports": "Poorten zijn getallen van 1 tot 65535 of reeksen zoals 8000-8080, gescheiden door komma's.",
+    "ports_need_tcp_udp": "Poorten kunnen alleen voor TCP of UDP.",
+    "invalid_addresses": "Externe adressen zijn IP-adressen, subnetten (10.0.0.0/24), reeksen (10.0.0.1-10.0.0.9) of LocalSubnet.",
+    "invalid_program": "Het programma moet het volledige pad van een .exe zijn.",
+    "invalid_profile": "Onbekend netwerkprofiel.",
+    "invalid_firewall_action": "Kies toestaan of blokkeren."
   },
   "login": {
     "title": "Inloggen",
@@ -2235,16 +2253,23 @@
       "registry": "Register",
       "script": "Script",
       "drives": "Netwerkschijven",
-      "printers": "Printers"
+      "printers": "Printers",
+      "desktop": "Bureaublad",
+      "power": "Energie",
+      "admins": "Lokale beheerders",
+      "firewall": "Firewall"
     },
     "typeHints": {
       "browser": "Startpagina, startknop, wachtwoordmanager en verplichte extensies voor Chrome, Edge en Firefox.",
       "registry": "Registerwaarden voor de computer (HKLM) of voor elke gebruiker die zich aanmeldt (HKCU).",
       "script": "Een PowerShell-, cmd-, bash- of sh-script dat eenmalig, bij het opstarten, bij aanmelden of met een interval draait.",
       "drives": "Koppel netwerkschijven zoals H: voor elke gebruiker die zich aanmeldt, ook op pc's zonder domein.",
-      "printers": "Gedeelde printers van een printserver en TCP/IP-printers, met hun driver en de standaardprinter."
+      "printers": "Gedeelde printers van een printserver en TCP/IP-printers, met hun driver en de standaardprinter.",
+      "desktop": "Achtergrond voor elke gebruiker en de pc vergrendelen na een tijd zonder invoer.",
+      "power": "Wanneer het scherm uitgaat en de pc slaapt of in sluimerstand gaat, op netstroom en op de accu.",
+      "admins": "Accounts en groepen die aan de lokale groep Administrators worden toegevoegd.",
+      "firewall": "Windows Firewall-regels die verkeer toestaan of blokkeren op poort, adres of programma."
     },
-    "comingSoon": "Meer Windows-instellingen (achtergrond, vergrendelscherm, energie, lokale beheerders, firewall) volgen in een volgende update.",
     "cols": {
       "name": "Configuratie",
       "groups": "Groepen",
@@ -2473,6 +2498,65 @@
       "devices_other": "{{count}} apparaten",
       "colName": "Profiel",
       "search": "Profielen zoeken"
+    },
+    "desktop": {
+      "wallpaper": "Achtergrond",
+      "wallpaperHint": "Een afbeelding op de pc of op een share die elke gebruiker kan lezen. Leeg: niet beheerd.",
+      "style": "Positie",
+      "styles": {
+        "fill": "Opvullen",
+        "fit": "Passend",
+        "stretch": "Uitrekken",
+        "center": "Centreren",
+        "tile": "Naast elkaar",
+        "span": "Over schermen"
+      },
+      "lock": "Vergrendelen na (minuten)",
+      "lockHint": "Vergrendelt de pc na zoveel minuten zonder invoer. 0: niet beheerd.",
+      "hint": "Dit zijn Windows-beleidsregels: gebruikers kunnen ze niet wijzigen. Een nieuwe achtergrond verschijnt bij de volgende aanmelding."
+    },
+    "power": {
+      "setting": "Instelling",
+      "ac": "Op netstroom (minuten)",
+      "dc": "Op de accu (minuten)",
+      "monitor": "Scherm uitzetten",
+      "sleep": "Slaapstand",
+      "hibernate": "Sluimerstand",
+      "hint": "Leeg is niet beheerd, 0 is nooit. De instellingen gelden meteen en gebruikers kunnen ze niet wijzigen; zijn ze niet meer geconfigureerd, dan kunnen gebruikers ze weer aanpassen."
+    },
+    "admins": {
+      "members": "Leden",
+      "membersHint": "Eén per regel: DOMEIN\\naam, een lokaal account, AzureAD\\gebruiker@domein of een SID.",
+      "hint": "Leden die FleetWarden heeft toegevoegd worden weer verwijderd als ze niet meer geconfigureerd zijn. Andere leden van de groep blijven."
+    },
+    "firewall": {
+      "name": "Naam",
+      "namePlaceholder": "Naam van de regel",
+      "direction": "Richting",
+      "directions": {
+        "in": "Inkomend",
+        "out": "Uitgaand"
+      },
+      "action": "Actie",
+      "actions": {
+        "allow": "Toestaan",
+        "block": "Blokkeren"
+      },
+      "protocol": "Protocol",
+      "anyProtocol": "Elk protocol",
+      "localPorts": "Lokale poorten",
+      "remotePorts": "Externe poorten",
+      "remoteAddresses": "Externe adressen",
+      "any": "Alle",
+      "program": "Programma (optioneel)",
+      "profiles": "Netwerken",
+      "profileNames": {
+        "domain": "Domein",
+        "private": "Privé",
+        "public": "Openbaar"
+      },
+      "add": "Regel toevoegen",
+      "hint": "De regels staan in de Windows Firewall-groep \"FleetWarden\". Wie er een wijzigt of verwijdert krijgt hem terug; regels die niet meer geconfigureerd zijn worden verwijderd."
     }
   }
 }

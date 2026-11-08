@@ -2,13 +2,20 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Trash2 } from "lucide-react";
 import type {
+  AdminSettings,
   BrowserKey,
   BrowserSettings,
   ConfigSettings,
   ConfigType,
+  DesktopSettings,
   DriveMapping,
   DriveSettings,
+  FirewallProfile,
+  FirewallProtocol,
+  FirewallRule,
+  FirewallSettings,
   Platform,
+  PowerSettings,
   PrinterConfig,
   PrinterSettings,
   RegistrySettings,
@@ -18,11 +25,13 @@ import type {
   ScriptShell,
   ScriptTrigger,
   StartupMode,
+  WallpaperStyle,
 } from "../../api";
 import { Alert, Button, Field, Input, Select, Switch } from "../../components/ui";
 
 const newDrive = (letters: string[]): DriveMapping => ({ letter: "HIJKLMNOPQRSTUVWXYZDEFG".split("").find((l) => !letters.includes(l)) ?? "H", path: "", label: "" });
 const newPrinter = (): PrinterConfig => ({ kind: "shared", path: "", scope: "device" });
+const newRule = (): FirewallRule => ({ name: "", direction: "in", action: "allow", protocol: "tcp", localPorts: "" });
 
 export const browsers: BrowserKey[] = ["chrome", "edge", "firefox"];
 export const browserNames: Record<BrowserKey, string> = { chrome: "Google Chrome", edge: "Microsoft Edge", firefox: "Mozilla Firefox" };
@@ -45,6 +54,14 @@ export function defaultSettings(type: ConfigType, platform: Platform): ConfigSet
       return { drives: [newDrive([])] } satisfies DriveSettings;
     case "printers":
       return { printers: [newPrinter()] } satisfies PrinterSettings;
+    case "desktop":
+      return { wallpaper: "", wallpaperStyle: "fill", lockMinutes: 10 } satisfies DesktopSettings;
+    case "power":
+      return { monitorAc: 15, monitorDc: 5, sleepAc: 60, sleepDc: 15 } satisfies PowerSettings;
+    case "admins":
+      return { members: [] } satisfies AdminSettings;
+    case "firewall":
+      return { rules: [newRule()] } satisfies FirewallSettings;
   }
 }
 
@@ -469,6 +486,210 @@ export function PrintersForm({ value, onChange }: { value: PrinterSettings; onCh
         </Button>
       </div>
       <Alert tone="info">{t("configs.printers.hint")}</Alert>
+    </div>
+  );
+}
+
+const wallpaperStyles: WallpaperStyle[] = ["fill", "fit", "stretch", "center", "tile", "span"];
+
+export function DesktopForm({ value, onChange }: { value: DesktopSettings; onChange: (v: DesktopSettings) => void }) {
+  const { t } = useTranslation();
+  const set = (patch: Partial<DesktopSettings>) => onChange({ ...value, ...patch });
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-[1fr_200px]">
+        <Field label={t("configs.desktop.wallpaper")} hint={t("configs.desktop.wallpaperHint")}>
+          {(id) => <Input id={id} value={value.wallpaper ?? ""} onChange={(e) => set({ wallpaper: e.target.value })} placeholder="\\server\branding\wallpaper.jpg" className="font-mono text-xs" />}
+        </Field>
+        <Field label={t("configs.desktop.style")}>
+          {(id) => (
+            <Select id={id} value={value.wallpaperStyle ?? "fill"} onChange={(e) => set({ wallpaperStyle: e.target.value as WallpaperStyle })} disabled={!value.wallpaper}>
+              {wallpaperStyles.map((s) => (
+                <option key={s} value={s}>
+                  {t(`configs.desktop.styles.${s}`)}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      </div>
+      <Field label={t("configs.desktop.lock")} hint={t("configs.desktop.lockHint")} className="max-w-xs">
+        {(id) => (
+          <Input
+            id={id}
+            type="number"
+            min={0}
+            max={9999}
+            value={value.lockMinutes ?? 0}
+            onChange={(e) => set({ lockMinutes: Math.max(0, Math.min(9999, Number(e.target.value) || 0)) })}
+          />
+        )}
+      </Field>
+      <Alert tone="info">{t("configs.desktop.hint")}</Alert>
+    </div>
+  );
+}
+
+const powerRows: { key: "monitor" | "sleep" | "hibernate"; ac: keyof PowerSettings; dc: keyof PowerSettings }[] = [
+  { key: "monitor", ac: "monitorAc", dc: "monitorDc" },
+  { key: "sleep", ac: "sleepAc", dc: "sleepDc" },
+  { key: "hibernate", ac: "hibernateAc", dc: "hibernateDc" },
+];
+
+// MinutesOrUnmanaged edits a number of minutes; empty is "not managed".
+function MinutesOrUnmanaged({ id, value, onChange }: { id: string; value?: number | null; onChange: (v: number | null) => void }) {
+  const { t } = useTranslation();
+  return (
+    <Input
+      id={id}
+      type="number"
+      min={0}
+      max={10080}
+      placeholder={t("configs.notManaged")}
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value === "" ? null : Math.max(0, Math.min(10080, Number(e.target.value) || 0)))}
+    />
+  );
+}
+
+export function PowerForm({ value, onChange }: { value: PowerSettings; onChange: (v: PowerSettings) => void }) {
+  const { t } = useTranslation();
+  const set = (k: keyof PowerSettings, v: number | null) => {
+    const next = { ...value };
+    if (v === null) delete next[k];
+    else next[k] = v;
+    onChange(next);
+  };
+  return (
+    <div className="space-y-4">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[420px] text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wide text-muted">
+              <th className="py-2 pr-3 font-medium">{t("configs.power.setting")}</th>
+              <th className="py-2 pr-3 font-medium">{t("configs.power.ac")}</th>
+              <th className="py-2 font-medium">{t("configs.power.dc")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {powerRows.map((r) => (
+              <tr key={r.key} className="border-t border-line">
+                <td className="py-2 pr-3 font-medium">{t(`configs.power.${r.key}`)}</td>
+                <td className="py-2 pr-3">
+                  <MinutesOrUnmanaged id={`${r.key}-ac`} value={value[r.ac]} onChange={(v) => set(r.ac, v)} />
+                </td>
+                <td className="py-2">
+                  <MinutesOrUnmanaged id={`${r.key}-dc`} value={value[r.dc]} onChange={(v) => set(r.dc, v)} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Alert tone="info">{t("configs.power.hint")}</Alert>
+    </div>
+  );
+}
+
+export function AdminsForm({ value, onChange }: { value: AdminSettings; onChange: (v: AdminSettings) => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-4">
+      <Field label={t("configs.admins.members")} hint={t("configs.admins.membersHint")}>
+        {(id) => <ListInput id={id} value={value.members} onChange={(members) => onChange({ members })} placeholder={"CONTOSO\\IT Support\nAzureAD\\anna@contoso.com\nbeheer"} rows={5} />}
+      </Field>
+      <Alert tone="warning">{t("configs.admins.hint")}</Alert>
+    </div>
+  );
+}
+
+const protocols: FirewallProtocol[] = ["any", "tcp", "udp", "icmpv4", "icmpv6"];
+const fwProfiles: FirewallProfile[] = ["domain", "private", "public"];
+
+function RuleRow({ r, onChange, onRemove, canRemove }: { r: FirewallRule; onChange: (r: FirewallRule) => void; onRemove: () => void; canRemove: boolean }) {
+  const { t } = useTranslation();
+  const set = (patch: Partial<FirewallRule>) => onChange({ ...r, ...patch });
+  const hasPorts = r.protocol === "tcp" || r.protocol === "udp";
+  const profiles = r.profiles ?? [];
+  const toggle = (p: FirewallProfile) => set({ profiles: profiles.includes(p) ? profiles.filter((x) => x !== p) : [...profiles, p] });
+  return (
+    <div className="space-y-3 rounded-md border border-line p-3">
+      <div className="grid gap-2 sm:grid-cols-[1fr_150px_150px_150px_auto]">
+        <Input aria-label={t("configs.firewall.name")} placeholder={t("configs.firewall.namePlaceholder")} value={r.name} onChange={(e) => set({ name: e.target.value })} maxLength={100} />
+        <Select aria-label={t("configs.firewall.direction")} value={r.direction} onChange={(e) => set({ direction: e.target.value as "in" | "out" })}>
+          <option value="in">{t("configs.firewall.directions.in")}</option>
+          <option value="out">{t("configs.firewall.directions.out")}</option>
+        </Select>
+        <Select aria-label={t("configs.firewall.action")} value={r.action} onChange={(e) => set({ action: e.target.value as "allow" | "block" })}>
+          <option value="allow">{t("configs.firewall.actions.allow")}</option>
+          <option value="block">{t("configs.firewall.actions.block")}</option>
+        </Select>
+        <Select
+          aria-label={t("configs.firewall.protocol")}
+          value={r.protocol}
+          onChange={(e) => {
+            const protocol = e.target.value as FirewallProtocol;
+            set(protocol === "tcp" || protocol === "udp" ? { protocol } : { protocol, localPorts: "", remotePorts: "" });
+          }}
+        >
+          {protocols.map((p) => (
+            <option key={p} value={p}>
+              {p === "any" ? t("configs.firewall.anyProtocol") : p.toUpperCase().replace("ICMPV", "ICMPv")}
+            </option>
+          ))}
+        </Select>
+        <RemoveButton disabled={!canRemove} onClick={onRemove} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label={t("configs.firewall.localPorts")}>
+          {(id) => <Input id={id} value={r.localPorts ?? ""} onChange={(e) => set({ localPorts: e.target.value })} placeholder={hasPorts ? "80,443,8000-8080" : t("configs.firewall.any")} disabled={!hasPorts} className="font-mono text-xs" />}
+        </Field>
+        <Field label={t("configs.firewall.remotePorts")}>
+          {(id) => <Input id={id} value={r.remotePorts ?? ""} onChange={(e) => set({ remotePorts: e.target.value })} placeholder={t("configs.firewall.any")} disabled={!hasPorts} className="font-mono text-xs" />}
+        </Field>
+        <Field label={t("configs.firewall.remoteAddresses")}>
+          {(id) => <Input id={id} value={r.remoteAddresses ?? ""} onChange={(e) => set({ remoteAddresses: e.target.value })} placeholder="192.168.1.0/24, LocalSubnet" className="font-mono text-xs" />}
+        </Field>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+        <Field label={t("configs.firewall.program")}>
+          {(id) => <Input id={id} value={r.program ?? ""} onChange={(e) => set({ program: e.target.value })} placeholder="C:\Program Files\App\app.exe" className="font-mono text-xs" />}
+        </Field>
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium">{t("configs.firewall.profiles")}</p>
+          <div className="flex flex-wrap gap-2">
+            {fwProfiles.map((p) => (
+              <label key={p} className="flex cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-2 text-sm hover:bg-surface-muted">
+                <input type="checkbox" className="size-4 accent-primary" checked={profiles.length === 0 || profiles.includes(p)} onChange={() => toggle(p)} />
+                {t(`configs.firewall.profileNames.${p}`)}
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function FirewallForm({ value, onChange }: { value: FirewallSettings; onChange: (v: FirewallSettings) => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {value.rules.map((r, i) => (
+          <RuleRow
+            key={i}
+            r={r}
+            onChange={(nr) => onChange({ rules: value.rules.map((x, j) => (j === i ? nr : x)) })}
+            canRemove={value.rules.length > 1}
+            onRemove={() => onChange({ rules: value.rules.filter((_, j) => j !== i) })}
+          />
+        ))}
+        <Button variant="secondary" size="sm" icon={<Plus className="size-4" />} disabled={value.rules.length >= 50} onClick={() => onChange({ rules: [...value.rules, newRule()] })}>
+          {t("configs.firewall.add")}
+        </Button>
+      </div>
+      <Alert tone="info">{t("configs.firewall.hint")}</Alert>
     </div>
   );
 }

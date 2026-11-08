@@ -295,7 +295,25 @@
     "multiple_default_printers": "Only one printer can be the default.",
     "unknown_profile": "That profile does not exist.",
     "unknown_configuration": "That configuration does not exist.",
-    "profile_exists": "A profile with this name already exists."
+    "profile_exists": "A profile with this name already exists.",
+    "invalid_wallpaper": "The wallpaper must be the full path of an image (C:\\... or \\\\server\\...; .jpg, .png, .bmp, .gif, .tif).",
+    "invalid_wallpaper_style": "Pick how the wallpaper fits the screen.",
+    "invalid_lock_minutes": "Lock after must be between 0 and 9999 minutes.",
+    "invalid_power_minutes": "Power timeouts must be between 0 and 10080 minutes.",
+    "invalid_member": "A member is not a valid account name or SID.",
+    "duplicate_member": "A member is listed twice.",
+    "too_many_members": "At most 50 members.",
+    "too_many_rules": "At most 50 firewall rules.",
+    "invalid_rule_name": "Each firewall rule needs a name (no quotes, | or \\).",
+    "duplicate_rule": "Two firewall rules have the same name.",
+    "invalid_direction": "Pick inbound or outbound.",
+    "invalid_protocol": "Pick a protocol.",
+    "invalid_ports": "Ports are numbers from 1 to 65535 or ranges like 8000-8080, separated by commas.",
+    "ports_need_tcp_udp": "Ports can only be set for TCP or UDP.",
+    "invalid_addresses": "Remote addresses are IP addresses, subnets (10.0.0.0/24), ranges (10.0.0.1-10.0.0.9) or LocalSubnet.",
+    "invalid_program": "The program must be the full path of an .exe.",
+    "invalid_profile": "Unknown network profile.",
+    "invalid_firewall_action": "Pick allow or block."
   },
   "login": {
     "title": "Sign in",
@@ -2235,16 +2253,23 @@
       "registry": "Registry",
       "script": "Script",
       "drives": "Network drives",
-      "printers": "Printers"
+      "printers": "Printers",
+      "desktop": "Desktop",
+      "power": "Power",
+      "admins": "Local administrators",
+      "firewall": "Firewall"
     },
     "typeHints": {
       "browser": "Start page, home button, password manager and forced extensions for Chrome, Edge and Firefox.",
       "registry": "Registry values for the computer (HKLM) or for every user who logs on (HKCU).",
       "script": "A PowerShell, cmd, bash or sh script that runs once, at startup, at logon or on an interval.",
       "drives": "Map network drives such as H: for every user who logs on, also on PCs without a domain.",
-      "printers": "Shared printers from a print server and TCP/IP printers, with their driver and the default printer."
+      "printers": "Shared printers from a print server and TCP/IP printers, with their driver and the default printer.",
+      "desktop": "Wallpaper for every user and locking the PC after a time without input.",
+      "power": "When the screen turns off and the PC sleeps or hibernates, on mains power and on battery.",
+      "admins": "Accounts and groups that are added to the local Administrators group.",
+      "firewall": "Windows Firewall rules that allow or block traffic by port, address or program."
     },
-    "comingSoon": "More Windows settings (wallpaper, lock screen, power, local administrators, firewall) follow in a next update.",
     "cols": {
       "name": "Configuration",
       "groups": "Groups",
@@ -2473,6 +2498,65 @@
       "devices_other": "{{count}} devices",
       "colName": "Profile",
       "search": "Search profiles"
+    },
+    "desktop": {
+      "wallpaper": "Wallpaper",
+      "wallpaperHint": "An image on the PC or on a share every user can read. Empty: not managed.",
+      "style": "Position",
+      "styles": {
+        "fill": "Fill",
+        "fit": "Fit",
+        "stretch": "Stretch",
+        "center": "Center",
+        "tile": "Tile",
+        "span": "Span"
+      },
+      "lock": "Lock after (minutes)",
+      "lockHint": "Locks the PC after this many minutes without input. 0: not managed.",
+      "hint": "These are Windows policies: users cannot change them. A new wallpaper shows at the next sign-in."
+    },
+    "power": {
+      "setting": "Setting",
+      "ac": "Plugged in (minutes)",
+      "dc": "On battery (minutes)",
+      "monitor": "Turn off the screen",
+      "sleep": "Sleep",
+      "hibernate": "Hibernate",
+      "hint": "Empty is not managed, 0 is never. The settings apply at once and users cannot change them; when they are no longer configured, users can change them again."
+    },
+    "admins": {
+      "members": "Members",
+      "membersHint": "One per line: DOMAIN\\name, a local account, AzureAD\\user@domain or a SID.",
+      "hint": "Members that FleetWarden added are removed again when they are no longer configured. Other members of the group stay."
+    },
+    "firewall": {
+      "name": "Name",
+      "namePlaceholder": "Name of the rule",
+      "direction": "Direction",
+      "directions": {
+        "in": "Inbound",
+        "out": "Outbound"
+      },
+      "action": "Action",
+      "actions": {
+        "allow": "Allow",
+        "block": "Block"
+      },
+      "protocol": "Protocol",
+      "anyProtocol": "Any protocol",
+      "localPorts": "Local ports",
+      "remotePorts": "Remote ports",
+      "remoteAddresses": "Remote addresses",
+      "any": "Any",
+      "program": "Program (optional)",
+      "profiles": "Networks",
+      "profileNames": {
+        "domain": "Domain",
+        "private": "Private",
+        "public": "Public"
+      },
+      "add": "Add rule",
+      "hint": "The rules are in the Windows Firewall group \"FleetWarden\". Someone who changes or removes one gets it back; rules that are no longer configured are removed."
     }
   }
 }

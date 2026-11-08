@@ -978,7 +978,7 @@ export type FleetAlert = {
 
 // ---- configuration management ----
 
-export type ConfigType = "browser" | "registry" | "script" | "drives" | "printers";
+export type ConfigType = "browser" | "registry" | "script" | "drives" | "printers" | "desktop" | "power" | "admins" | "firewall";
 export type StartupMode = "" | "newtab" | "restore" | "urls";
 
 export type BrowserSettings = {
@@ -1026,7 +1026,41 @@ export type PrinterConfig = {
   default?: boolean;
 };
 export type PrinterSettings = { printers: PrinterConfig[] };
-export type ConfigSettings = BrowserSettings | RegistrySettings | ScriptSettings | DriveSettings | PrinterSettings;
+export type WallpaperStyle = "fill" | "fit" | "stretch" | "center" | "tile" | "span";
+export type DesktopSettings = { wallpaper?: string; wallpaperStyle?: WallpaperStyle; lockMinutes?: number };
+export type PowerSettings = {
+  monitorAc?: number | null;
+  monitorDc?: number | null;
+  sleepAc?: number | null;
+  sleepDc?: number | null;
+  hibernateAc?: number | null;
+  hibernateDc?: number | null;
+};
+export type AdminSettings = { members: string[] };
+export type FirewallProtocol = "any" | "tcp" | "udp" | "icmpv4" | "icmpv6";
+export type FirewallProfile = "domain" | "private" | "public";
+export type FirewallRule = {
+  name: string;
+  direction: "in" | "out";
+  action: "allow" | "block";
+  protocol: FirewallProtocol;
+  localPorts?: string;
+  remotePorts?: string;
+  remoteAddresses?: string;
+  program?: string;
+  profiles?: FirewallProfile[];
+};
+export type FirewallSettings = { rules: FirewallRule[] };
+export type ConfigSettings =
+  | BrowserSettings
+  | RegistrySettings
+  | ScriptSettings
+  | DriveSettings
+  | PrinterSettings
+  | DesktopSettings
+  | PowerSettings
+  | AdminSettings
+  | FirewallSettings;
 
 export type Configuration = {
   id: number;
