@@ -10,6 +10,17 @@ export function Dashboard() {
   const { can } = useAuth();
   const [stats, setStats] = useState<DeviceStats | null>(null);
   const [comp, setComp] = useState<ComplianceReport | null>(null);
+  const [alerts, setAlerts] = useState<number | null>(null);
+  useEffect(() => {
+    if (!can("devices.view")) return;
+    const load = () =>
+      get<{ open: number }>("/alerts/count")
+        .then((r) => setAlerts(r.open))
+        .catch(() => undefined);
+    load();
+    const id = setInterval(load, 60000);
+    return () => clearInterval(id);
+  }, []);
   useEffect(() => {
     if (!can("devices.view")) return;
     const load = () =>
@@ -64,6 +75,13 @@ export function Dashboard() {
       tone: comp?.software ? "text-warning" : "",
       to: "/reports?tab=software",
     },
+    {
+      label: t("dashboard.openAlerts"),
+      value: alerts ?? "–",
+      sub: alerts === 0 ? t("dashboard.noAlerts") : "",
+      tone: alerts ? "text-danger" : "",
+      to: "/alerts",
+    },
   ];
   return (
     <div className="space-y-6">
@@ -71,7 +89,7 @@ export function Dashboard() {
         <h1 className="text-2xl font-semibold tracking-tight">{t("dashboard.title")}</h1>
         <p className="mt-1 text-sm text-muted">{t("dashboard.subtitle")}</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         {tiles.map((s) => {
           const body = (
             <>

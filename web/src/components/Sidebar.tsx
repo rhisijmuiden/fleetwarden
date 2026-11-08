@@ -1,21 +1,44 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Info, PanelLeft, PanelLeftClose } from "lucide-react";
+import { get } from "../api";
 import { useAuth } from "../auth";
 import { useBranding } from "../branding";
 import { navigation } from "../nav";
 
 type Props = { collapsed: boolean; onToggle: () => void; onInfo: () => void };
 
+// useOpenAlerts polls the number of open, unacknowledged alerts.
+function useOpenAlerts(enabled: boolean) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    const load = () =>
+      get<{ open: number }>("/alerts/count")
+        .then((r) => setN(r.open))
+        .catch(() => {});
+    load();
+    const id = setInterval(load, 60_000);
+    window.addEventListener("fw:alerts", load);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("fw:alerts", load);
+    };
+  }, [enabled]);
+  return n;
+}
+
 export function Sidebar({ collapsed, onToggle, onInfo }: Props) {
   const { t } = useTranslation();
   const { can } = useAuth();
   const { branding, logoUrl } = useBranding();
+  const openAlerts = useOpenAlerts(can("devices.view"));
   const groups = navigation
     .map((g) => ({ ...g, items: g.items.filter((i) => !i.perm || can(i.perm)) }))
     .filter((g) => g.items.length > 0);
   const itemBase =
-    "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary";
+    "group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
   return (
     <aside
@@ -37,7 +60,7 @@ export function Sidebar({ collapsed, onToggle, onInfo }: Props) {
               </p>
             )}
             <ul className="space-y-1">
-              {group.items.map(({ path, label, icon: Icon, phase }) => (
+              {group.items.map(({ path, label, icon: Icon, phase, badge }) => (
                 <li key={path}>
                   <NavLink
                     to={path}
@@ -53,6 +76,13 @@ export function Sidebar({ collapsed, onToggle, onInfo }: Props) {
                       <>
                         <Icon className={`size-[18px] shrink-0 ${isActive ? "text-primary" : ""}`} strokeWidth={1.8} />
                         {!collapsed && <span className="flex-1 truncate">{t(label)}</span>}
+                        {badge === "alerts" && openAlerts > 0 && (
+                          <span
+                            className={`rounded-full bg-danger px-1.5 text-[11px] leading-[18px] font-semibold text-white tabular-nums ${collapsed ? "absolute top-1 right-1" : ""}`}
+                          >
+                            {openAlerts > 99 ? "99+" : openAlerts}
+                          </span>
+                        )}
                         {!collapsed && phase !== undefined && (
                           <span className="rounded-sm bg-white/5 px-1.5 py-0.5 text-[10px] text-sidebar-fg/60">
                             F{phase}

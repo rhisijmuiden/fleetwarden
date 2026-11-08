@@ -49,6 +49,7 @@ your own password at the first sign-in. Lost it? Run
 - Software deployment: [docs/software.md](docs/software.md)
 - Remote control: [docs/remote.md](docs/remote.md)
 - Reports and scheduled report mails: [docs/reports.md](docs/reports.md)
+- Alerts: [docs/alerts.md](docs/alerts.md)
 
 ## Development
 

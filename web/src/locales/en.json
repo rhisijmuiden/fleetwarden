@@ -46,7 +46,9 @@
     "compliance": "Compliance",
     "compliantOf": "{{count}} of {{total}} compliant",
     "securityDevices": "devices missing security updates",
-    "outdatedDevices": "devices with outdated software"
+    "outdatedDevices": "devices with outdated software",
+    "openAlerts": "Open alerts",
+    "noAlerts": "Nothing needs attention"
   },
   "placeholder": {
     "comingIn": "Coming in phase {{phase}}",
@@ -222,7 +224,9 @@
     "invalid_recipients": "Enter 1 to 20 e-mail addresses.",
     "invalid_report_settings": "These values are out of range.",
     "mail_not_configured": "Set up the mail server first (Administration > Mail server).",
-    "report_failed": "The report could not be made."
+    "report_failed": "The report could not be made.",
+    "invalid_threshold": "Enter a threshold within the allowed range.",
+    "invalid_kind": "Choose a valid type."
   },
   "login": {
     "title": "Sign in",
@@ -343,7 +347,7 @@
     "software_deploy": "Deploy and uninstall software",
     "remote_control": "Control devices remotely",
     "reports_manage": "Manage report schedules and compliance rules",
-    "alerts_manage": "Acknowledge alerts"
+    "alerts_manage": "Acknowledge alerts and manage alert rules"
   },
   "auth": {
     "title": "Authentication",
@@ -1756,5 +1760,58 @@
     "hours_other": "{{count}} hours",
     "days_one": "{{count}} day",
     "days_other": "{{count}} days"
+  },
+  "alerts": {
+    "title": "Alerts",
+    "subtitle": "Devices that have been offline too long or are running out of disk space. Alerts close by themselves once the problem is gone.",
+    "tabs": {
+      "open": "Open",
+      "history": "History",
+      "rules": "Rules"
+    },
+    "openTitle_one": "{{count}} open alert",
+    "openTitle_other": "{{count}} open alerts",
+    "historyTitle": "Recent alerts",
+    "none": "No open alerts. Everything looks fine.",
+    "noHistory": "No alerts yet.",
+    "opened": "Opened {{when}} ({{date}})",
+    "resolved": "resolved {{date}}",
+    "acknowledged": "Acknowledged",
+    "acknowledgedBy": "acknowledged by {{user}} on {{date}}",
+    "acknowledge": "Acknowledge",
+    "kinds": {
+      "all": "All devices",
+      "workstation": "Workstations",
+      "server": "Servers",
+      "hypervisor": "Hypervisors"
+    },
+    "rules": {
+      "title": "Alert rules",
+      "subtitle": "When an alert opens, and who gets an e-mail about it.",
+      "new": "New alert rule",
+      "edit": "Edit alert rule",
+      "empty": "No alert rules yet.",
+      "paused": "Paused",
+      "open_one": "{{count}} open",
+      "open_other": "{{count}} open",
+      "offlineFor": "Offline for {{time}} or longer",
+      "diskBelow": "Less than {{percent}}% free space on a disk",
+      "noRecipients": "no e-mail, only shown here",
+      "confirmDelete": "Delete the alert rule \"{{name}}\" and its alerts?",
+      "name": "Name",
+      "namePlaceholder": "Servers offline",
+      "kind": "Alert when",
+      "kindOffline": "A device is offline",
+      "kindDisk": "A disk is almost full",
+      "offlineAfter": "Offline for",
+      "offlineHint": "At least 5 minutes. Agents check in every minute.",
+      "diskPercent": "Free space below (%)",
+      "diskHint": "Disks smaller than 2 GB are left out.",
+      "deviceKinds": "Devices",
+      "recipients": "Recipients",
+      "recipientsHint": "Up to 20 addresses, separated by commas. Leave empty to only show alerts here.",
+      "notifyResolved": "Also mail when an alert is resolved",
+      "enabled": "Rule is active"
+    }
   }
 }

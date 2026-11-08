@@ -34,6 +34,7 @@ eerste login kies je je eigen wachtwoord. Kwijt? Voer
 - Software uitrollen: [docs/software.nl.md](docs/software.nl.md)
 - Overnemen op afstand: [docs/remote.nl.md](docs/remote.nl.md)
 - Rapporten en geplande rapportmails: [docs/reports.nl.md](docs/reports.nl.md)
+- Meldingen: [docs/alerts.nl.md](docs/alerts.nl.md)
 
 ## Licentie
 
