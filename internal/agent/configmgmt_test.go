@@ -74,6 +74,15 @@ func (f *fakeConfig) BrowserInstalled(b string) bool             { return b != a
 func (f *fakeConfig) RegistryStore(hive, sid string) (PolicyStore, error) {
 	return f.store(hive + ":" + sid), nil
 }
+func (f *fakeConfig) DriveStore(u ConfigUser) (PolicyStore, error) {
+	return f.store("drives:" + u.SID), nil
+}
+func (f *fakeConfig) PrinterStore(u *ConfigUser) (PolicyStore, error) {
+	if u == nil {
+		return f.store("printers:machine"), nil
+	}
+	return f.store("printers:" + u.SID), nil
+}
 func (f *fakeConfig) Users() []ConfigUser {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -319,5 +328,79 @@ func TestConfigPolicyIsKept(t *testing.T) {
 	b.StateDir = a.StateDir
 	if got := b.loadConfigPolicy(); got.Hash() != p.Hash() {
 		t.Errorf("loaded policy: %+v", got)
+	}
+}
+
+func TestExpandUser(t *testing.T) {
+	u := ConfigUser{Name: `CONTOSO\anna`}
+	for in, want := range map[string]string{
+		`\\srv\home\%USERNAME%`:           `\\srv\home\anna`,
+		`\\srv\%userdomain%\%UserName%\x`: `\\srv\CONTOSO\anna\x`,
+		`\\srv\%OTHER%\%USERNAME%`:        `\\srv\%OTHER%\anna`,
+		`\\srv\100%\%USERNAME%`:           `\\srv\100%\anna`,
+		`\\srv\share`:                     `\\srv\share`,
+	} {
+		if got := expandUser(in, u); got != want {
+			t.Errorf("%s: %s, want %s", in, got, want)
+		}
+	}
+	if got := expandUser(`\\srv\%USERNAME%`, ConfigUser{Name: "bob"}); got != `\\srv\bob` {
+		t.Errorf("local user: %s", got)
+	}
+}
+
+func TestConfigDrivesAndPrinters(t *testing.T) {
+	be := newFakeConfig()
+	a := testConfigAgent(t, be)
+	pol := agentproto.ConfigPolicy{Items: []agentproto.ConfigItem{
+		{ID: 1, Revision: 1, Type: agentproto.ConfigDrives, Drives: &agentproto.DriveSettings{Drives: []agentproto.DriveMapping{
+			{Letter: "H", Path: `\\srv\home\%USERNAME%`, Label: "Home"},
+			{Letter: "S", Path: `\\srv\shared`},
+		}}},
+		{ID: 2, Revision: 1, Type: agentproto.ConfigPrinters, Printers: &agentproto.PrinterSettings{Printers: []agentproto.Printer{
+			{Kind: "ip", Name: "Floor 2", Address: "10.0.0.20", Protocol: "raw", Port: 9100, Driver: "Microsoft IPP Class Driver"},
+			{Kind: "shared", Path: `\\srv\Reception`, Scope: "user", Default: true},
+		}}},
+	}}
+	ctx := context.Background()
+	a.applyConfig(ctx, pol, nil, nil)
+	st := lastStatus(t, a)
+	if s := itemState(st, 1); s.State != "waiting" {
+		t.Errorf("drives without users: %+v", s)
+	}
+	if _, ok := be.get("printers:machine", "ip:floor 2"); !ok {
+		t.Errorf("the TCP/IP printer is added for the device: %v", be.stores)
+	}
+
+	be.users = []ConfigUser{{Session: 2, Name: `PC\anna`, SID: "S-1"}, {Session: 3, Name: `PC\bob`, SID: "S-2"}}
+	a.applyConfig(ctx, pol, be.Users(), be.Users())
+	st = lastStatus(t, a)
+	for _, id := range []int64{1, 2} {
+		if s := itemState(st, id); s.State != "applied" {
+			t.Errorf("item %d: %+v", id, s)
+		}
+	}
+	if v, _ := be.get("drives:S-2", "H"); !strings.Contains(v, `\\\\srv\\home\\bob`) || !strings.Contains(v, "Home") {
+		t.Errorf("bob's H: %s", v)
+	}
+	if _, ok := be.get("printers:S-1", `shared:\\srv\reception`); !ok {
+		t.Errorf("anna's printer: %v", be.stores["printers:S-1"])
+	}
+	if v, _ := be.get("printers:S-1", defaultPrinterName); v != `"\\\\srv\\Reception"` {
+		t.Errorf("anna's default printer: %s", v)
+	}
+
+	// Anna removes her drive: it comes back.
+	_ = be.store("drives:S-1").Delete("S")
+	a.applyConfig(ctx, pol, be.Users(), nil)
+	if s := itemState(lastStatus(t, a), 1); s.Repaired != 1 {
+		t.Errorf("repair: %+v", s)
+	}
+
+	a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
+	for _, k := range []string{"drives:S-1", "drives:S-2", "printers:machine", "printers:S-1"} {
+		if len(be.stores[k]) != 0 {
+			t.Errorf("%s left: %v", k, be.stores[k])
+		}
 	}
 }

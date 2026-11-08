@@ -4,8 +4,11 @@ package agent
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/sys/windows/registry"
 
@@ -147,5 +150,148 @@ func TestConfigWindowsScripts(t *testing.T) {
 	run = be.RunScript(tctx, agentproto.ScriptConfig{Shell: "powershell", Content: "Start-Sleep 30"}, nil)
 	if run.Error == "" {
 		t.Errorf("timeout: %+v", run)
+	}
+}
+
+func powershell(t *testing.T, script string) string {
+	t.Helper()
+	out, err := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script).CombinedOutput()
+	if err != nil {
+		t.Logf("powershell %q: %v\n%s", script, err, out)
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// TestConfigWindowsDrives maps a network drive for the current user, puts it
+// back after it is removed, and removes it with the configuration.
+func TestConfigWindowsDrives(t *testing.T) {
+	cleanup := func() {
+		_ = exec.Command("net", "use", "W:", "/delete", "/y").Run()
+		_ = deleteKeyTree(registry.CURRENT_USER, `Network\W`)
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+	be := NewWindowsTestConfigBackend(`Software\FleetWardenTest`, t.TempDir())
+	a := testConfigAgent(t, be)
+	pol := agentproto.ConfigPolicy{Items: []agentproto.ConfigItem{{ID: 1, Revision: 1, Type: agentproto.ConfigDrives,
+		Drives: &agentproto.DriveSettings{Drives: []agentproto.DriveMapping{{Letter: "W", Path: `\\localhost\C$`, Label: "FleetWarden test"}}}}}}
+	ctx := context.Background()
+	a.applyConfig(ctx, pol, be.Users(), nil)
+	if s := itemState(lastStatus(t, a), 1); s.State != "applied" {
+		t.Fatalf("status: %+v", s)
+	}
+	remote := func() string {
+		k, err := registry.OpenKey(registry.CURRENT_USER, `Network\W`, registry.QUERY_VALUE)
+		if err != nil {
+			return ""
+		}
+		defer k.Close()
+		v, _, _ := k.GetStringValue("RemotePath")
+		return v
+	}
+	if r := remote(); !strings.EqualFold(r, `\\localhost\C$`) {
+		t.Errorf("RemotePath: %q", r)
+	}
+	out, _ := exec.Command("net", "use").CombinedOutput()
+	t.Logf("net use:\n%s", out)
+	if !strings.Contains(string(out), "W:") {
+		t.Errorf("W: is not connected")
+	}
+
+	_ = exec.Command("net", "use", "W:", "/delete", "/y").Run()
+	_ = deleteKeyTree(registry.CURRENT_USER, `Network\W`)
+	a.applyConfig(ctx, pol, be.Users(), nil)
+	if s := itemState(lastStatus(t, a), 1); s.Repaired != 1 {
+		t.Errorf("repair: %+v", s)
+	}
+	if remote() == "" {
+		t.Error("W: was not mapped again")
+	}
+
+	a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
+	if r := remote(); r != "" {
+		t.Errorf("W: still mapped: %q", r)
+	}
+}
+
+// TestConfigWindowsPrinters adds a TCP/IP printer with its driver, makes it
+// the default, connects a shared printer for the user and removes them.
+func TestConfigWindowsPrinters(t *testing.T) {
+	if s := powershell(t, "(Get-Service Spooler).Status"); s != "Running" {
+		t.Skipf("the print spooler is not running: %q", s)
+	}
+	const name = "FleetWarden Test"
+	cleanup := func() {
+		powershell(t, "Get-Printer | Where-Object { $_.Name -like '*fwtest*' -or $_.Name -eq '"+name+"' } | Remove-Printer -ErrorAction SilentlyContinue; Remove-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction SilentlyContinue; exit 0")
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+	be := NewWindowsTestConfigBackend(`Software\FleetWardenTest`, t.TempDir())
+	a := testConfigAgent(t, be)
+	ip := agentproto.Printer{Kind: "ip", Name: name, Address: "127.0.0.1", Protocol: "raw", Port: 9100, Driver: "Generic / Text Only", Default: true}
+	pol := agentproto.ConfigPolicy{Items: []agentproto.ConfigItem{{ID: 1, Revision: 1, Type: agentproto.ConfigPrinters,
+		Printers: &agentproto.PrinterSettings{Printers: []agentproto.Printer{ip}}}}}
+	ctx := context.Background()
+	a.applyConfig(ctx, pol, be.Users(), nil)
+	if s := itemState(lastStatus(t, a), 1); s.State != "applied" {
+		t.Fatalf("status: %+v", s)
+	}
+	if got := powershell(t, "(Get-Printer -Name '"+name+"').PortName"); got != "FW_127.0.0.1_9100" {
+		t.Errorf("port: %q", got)
+	}
+	if dev, _ := regPathString(registry.CURRENT_USER, windowsKey, "Device"); !strings.HasPrefix(dev, name+",") {
+		t.Errorf("default printer: %q", dev)
+	}
+
+	// Someone removes it: it comes back.
+	powershell(t, "Remove-Printer -Name '"+name+"'")
+	a.applyConfig(ctx, pol, be.Users(), nil)
+	if s := itemState(lastStatus(t, a), 1); s.Repaired != 1 || s.State != "applied" {
+		t.Errorf("repair: %+v", s)
+	}
+
+	a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
+	if got := powershell(t, "@(Get-Printer | Where-Object { $_.Name -eq '"+name+"' -or $_.Name -like '*fwtest*' }).Count"); got != "0" {
+		t.Errorf("printers left: %q", got)
+	}
+	// The spooler may still hold the port right after the printer goes; the
+	// next pass sweeps it up.
+	portLeft := func() bool {
+		return powershell(t, "@(Get-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction SilentlyContinue).Count") != "0"
+	}
+	for i := 0; i < 5 && portLeft(); i++ {
+		time.Sleep(2 * time.Second)
+		a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
+	}
+	if portLeft() {
+		t.Errorf("port left: %s", powershell(t, "Get-Printer | Format-Table Name,PortName,PrinterStatus -AutoSize | Out-String; try { Remove-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction Stop } catch { $_.Exception.Message }; exit 0"))
+	}
+}
+
+// TestConfigWindowsSharedPrinter connects a shared printer for the user,
+// makes it the default and removes it. Windows does not connect to a printer
+// that the same computer shares (HRESULT 0x8007007b), so it needs a printer
+// shared by another computer: FW_TEST_PRINT_SHARE=\\server\printer.
+func TestConfigWindowsSharedPrinter(t *testing.T) {
+	path := os.Getenv("FW_TEST_PRINT_SHARE")
+	if path == "" {
+		t.Skip("set FW_TEST_PRINT_SHARE to a printer shared by another computer")
+	}
+	be := NewWindowsTestConfigBackend(`Software\FleetWardenTest`, t.TempDir())
+	a := testConfigAgent(t, be)
+	shared := agentproto.Printer{Kind: "shared", Path: path, Scope: "user", Default: true}
+	pol := agentproto.ConfigPolicy{Items: []agentproto.ConfigItem{{ID: 1, Revision: 1, Type: agentproto.ConfigPrinters,
+		Printers: &agentproto.PrinterSettings{Printers: []agentproto.Printer{shared}}}}}
+	ctx := context.Background()
+	a.applyConfig(ctx, pol, be.Users(), nil)
+	if s := itemState(lastStatus(t, a), 1); s.State != "applied" {
+		t.Fatalf("status: %+v", s)
+	}
+	if !regKeyExists(registry.CURRENT_USER, `Printers\Connections\`+connKey(shared.Path)) {
+		t.Errorf("no connection to %s", shared.Path)
+	}
+	a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
+	if regKeyExists(registry.CURRENT_USER, `Printers\Connections\`+connKey(shared.Path)) {
+		t.Errorf("the connection to %s is still there", shared.Path)
 	}
 }

@@ -275,7 +275,24 @@
     "invalid_trigger": "This moment is not available on this platform.",
     "invalid_interval": "The interval must be between 5 minutes and 7 days.",
     "configuration_exists": "A configuration with this name already exists.",
-    "type_cannot_change": "The type and platform of a configuration cannot change."
+    "type_cannot_change": "The type and platform of a configuration cannot change.",
+    "invalid_drive_letter": "Pick a drive letter from D to Z.",
+    "invalid_drive_path": "A share path is not valid. Use \\\\server\\share, optionally with %USERNAME%.",
+    "duplicate_drive": "Each drive letter can be used once.",
+    "too_many_printers": "At most 50 printers per configuration.",
+    "invalid_driver": "A driver name is not valid.",
+    "invalid_driver_inf": "The driver file must be a path to an .inf file, and needs the driver name.",
+    "invalid_printer_path": "A shared printer must look like \\\\server\\printer (no commas).",
+    "invalid_printer_scope": "Unknown choice for who gets the printer.",
+    "invalid_printer_name": "A printer name is not valid (no \\, /, comma, quote or !).",
+    "invalid_printer_address": "A printer address is not valid. Use an IP address or host name.",
+    "driver_required": "A TCP/IP printer needs a driver name.",
+    "invalid_printer_port": "The port must be between 1 and 65535.",
+    "invalid_printer_queue": "An LPR printer needs a queue name (letters, digits, . _ -).",
+    "invalid_printer_protocol": "Unknown printer protocol.",
+    "invalid_printer_kind": "Unknown printer type.",
+    "duplicate_printer": "Each printer can be added once.",
+    "multiple_default_printers": "Only one printer can be the default."
   },
   "login": {
     "title": "Sign in",
@@ -2213,12 +2230,16 @@
     "types": {
       "browser": "Browser policy",
       "registry": "Registry",
-      "script": "Script"
+      "script": "Script",
+      "drives": "Network drives",
+      "printers": "Printers"
     },
     "typeHints": {
       "browser": "Start page, home button, password manager and forced extensions for Chrome, Edge and Firefox.",
       "registry": "Registry values for the computer (HKLM) or for every user who logs on (HKCU).",
-      "script": "A PowerShell, cmd, bash or sh script that runs once, at startup, at logon or on an interval."
+      "script": "A PowerShell, cmd, bash or sh script that runs once, at startup, at logon or on an interval.",
+      "drives": "Map network drives such as H: for every user who logs on, also on PCs without a domain.",
+      "printers": "Shared printers from a print server and TCP/IP printers, with their driver and the default printer."
     },
     "comingSoon": "Network drives, printers and more Windows settings follow in the next update.",
     "cols": {
@@ -2378,6 +2399,46 @@
       "timeout": "Time limit (minutes)",
       "content": "Script",
       "contentHint": "Exit code 0 means success. The last 8,000 characters of the output are kept in the job log."
+    },
+    "drives": {
+      "letter": "Drive letter",
+      "path": "Share path",
+      "label": "Name in Explorer",
+      "labelPlaceholder": "Name in Explorer (optional)",
+      "add": "Add drive",
+      "hint": "The agent maps the drives in the session of every user who logs on and puts them back when they are removed. %USERNAME% and %USERDOMAIN% are filled in per user. Windows connects with the user's own sign-in: on a PC without a domain, Windows asks for the password once when the drive is opened, unless the user has the same account on the server."
+    },
+    "printers": {
+      "kind": "Type",
+      "path": "Printer path",
+      "name": "Printer name",
+      "namePlaceholder": "Name on the PC, e.g. Floor 2",
+      "scope": "Who gets it",
+      "address": "IP address or host name",
+      "protocol": "Protocol",
+      "port": "Port",
+      "queue": "Queue",
+      "driver": "Driver",
+      "driverOptional": "Driver (optional)",
+      "driverHint": "The exact name of the driver, as Windows shows it. Built in: Microsoft IPP Class Driver, Generic / Text Only.",
+      "sharedDriverHint": "Install this driver first, so users who are no administrator can connect (Windows blocks drivers from print servers for them).",
+      "driverInf": "Driver file (.inf, optional)",
+      "driverInfHint": "For a driver that is not in Windows yet. A path on the PC or on a share the computer can read.",
+      "default": "Make this the default printer of every user",
+      "add": "Add printer",
+      "hint": "The agent adds the printers and their drivers, and adds them again when they are removed. Printers it added are removed when the configuration no longer applies.",
+      "kinds": {
+        "shared": "Shared printer (print server)",
+        "ip": "Network printer (TCP/IP)"
+      },
+      "scopes": {
+        "device": "Every user of the device",
+        "user": "Added per user at logon"
+      },
+      "scopeHints": {
+        "device": "Windows adds it to the printers of every user the next time they log on.",
+        "user": "Added right away in the session of each logged-on user."
+      }
     }
   }
 }

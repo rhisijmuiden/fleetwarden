@@ -1,9 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { Code2, Globe, ListTree, type LucideIcon } from "lucide-react";
+import { Code2, Globe, HardDrive, ListTree, Printer, type LucideIcon } from "lucide-react";
 import type { ConfigState, ConfigType, Configuration, DeviceConfigState } from "../../api";
 import { Badge } from "../../components/ui";
 
-export const typeIcons: Record<ConfigType, LucideIcon> = { browser: Globe, registry: ListTree, script: Code2 };
+export const typeIcons: Record<ConfigType, LucideIcon> = { browser: Globe, registry: ListTree, script: Code2, drives: HardDrive, printers: Printer };
 
 export function TypeBadge({ type }: { type: ConfigType }) {
   const { t } = useTranslation();

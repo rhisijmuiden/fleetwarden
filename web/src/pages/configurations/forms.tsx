@@ -6,7 +6,11 @@ import type {
   BrowserSettings,
   ConfigSettings,
   ConfigType,
+  DriveMapping,
+  DriveSettings,
   Platform,
+  PrinterConfig,
+  PrinterSettings,
   RegistrySettings,
   RegistryType,
   RegistryValue,
@@ -16,6 +20,9 @@ import type {
   StartupMode,
 } from "../../api";
 import { Alert, Button, Field, Input, Select, Switch } from "../../components/ui";
+
+const newDrive = (letters: string[]): DriveMapping => ({ letter: "HIJKLMNOPQRSTUVWXYZDEFG".split("").find((l) => !letters.includes(l)) ?? "H", path: "", label: "" });
+const newPrinter = (): PrinterConfig => ({ kind: "shared", path: "", scope: "device" });
 
 export const browsers: BrowserKey[] = ["chrome", "edge", "firefox"];
 export const browserNames: Record<BrowserKey, string> = { chrome: "Google Chrome", edge: "Microsoft Edge", firefox: "Mozilla Firefox" };
@@ -34,6 +41,10 @@ export function defaultSettings(type: ConfigType, platform: Platform): ConfigSet
         trigger: "once",
         timeoutMinutes: 10,
       } satisfies ScriptSettings;
+    case "drives":
+      return { drives: [newDrive([])] } satisfies DriveSettings;
+    case "printers":
+      return { printers: [newPrinter()] } satisfies PrinterSettings;
   }
 }
 
@@ -327,6 +338,137 @@ export function ScriptForm({ value, onChange, platform, shells }: { value: Scrip
           />
         )}
       </Field>
+    </div>
+  );
+}
+
+function RemoveButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+  const { t } = useTranslation();
+  return <Button variant="ghost" aria-label={t("common.delete")} icon={<Trash2 className="size-4" />} disabled={disabled} onClick={onClick} />;
+}
+
+export function DrivesForm({ value, onChange }: { value: DriveSettings; onChange: (v: DriveSettings) => void }) {
+  const { t } = useTranslation();
+  const setRow = (i: number, patch: Partial<DriveMapping>) => onChange({ drives: value.drives.map((d, j) => (j === i ? { ...d, ...patch } : d)) });
+  const used = value.drives.map((d) => d.letter);
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {value.drives.map((d, i) => (
+          <div key={i} className="grid items-start gap-2 rounded-md border border-line p-3 sm:grid-cols-[90px_1fr_200px_auto]">
+            <Select aria-label={t("configs.drives.letter")} value={d.letter} onChange={(e) => setRow(i, { letter: e.target.value })}>
+              {"DEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => (
+                <option key={l} value={l} disabled={l !== d.letter && used.includes(l)}>
+                  {l}:
+                </option>
+              ))}
+            </Select>
+            <Input aria-label={t("configs.drives.path")} placeholder="\\server\home\%USERNAME%" value={d.path} onChange={(e) => setRow(i, { path: e.target.value })} className="font-mono text-xs" />
+            <Input aria-label={t("configs.drives.label")} placeholder={t("configs.drives.labelPlaceholder")} value={d.label ?? ""} onChange={(e) => setRow(i, { label: e.target.value })} maxLength={64} />
+            <RemoveButton disabled={value.drives.length === 1} onClick={() => onChange({ drives: value.drives.filter((_, j) => j !== i) })} />
+          </div>
+        ))}
+        <Button variant="secondary" size="sm" icon={<Plus className="size-4" />} disabled={value.drives.length >= 23} onClick={() => onChange({ drives: [...value.drives, newDrive(used)] })}>
+          {t("configs.drives.add")}
+        </Button>
+      </div>
+      <Alert tone="info">{t("configs.drives.hint")}</Alert>
+    </div>
+  );
+}
+
+function PrinterRow({ p, onChange, onRemove, canRemove }: { p: PrinterConfig; onChange: (p: PrinterConfig) => void; onRemove: () => void; canRemove: boolean }) {
+  const { t } = useTranslation();
+  const set = (patch: Partial<PrinterConfig>) => onChange({ ...p, ...patch });
+  return (
+    <div className="space-y-3 rounded-md border border-line p-3">
+      <div className="grid gap-2 sm:grid-cols-[280px_1fr_auto]">
+        <Select aria-label={t("configs.printers.kind")} value={p.kind} onChange={(e) => set(e.target.value === "ip" ? { kind: "ip", protocol: p.protocol ?? "raw", port: p.port ?? 9100 } : { kind: "shared", scope: p.scope ?? "device" })}>
+          <option value="shared">{t("configs.printers.kinds.shared")}</option>
+          <option value="ip">{t("configs.printers.kinds.ip")}</option>
+        </Select>
+        {p.kind === "shared" ? (
+          <Input aria-label={t("configs.printers.path")} placeholder="\\printserver\Reception" value={p.path ?? ""} onChange={(e) => set({ path: e.target.value })} className="font-mono text-xs" />
+        ) : (
+          <Input aria-label={t("configs.printers.name")} placeholder={t("configs.printers.namePlaceholder")} value={p.name ?? ""} onChange={(e) => set({ name: e.target.value })} maxLength={100} />
+        )}
+        <RemoveButton disabled={!canRemove} onClick={onRemove} />
+      </div>
+      {p.kind === "shared" ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label={t("configs.printers.scope")} hint={t(`configs.printers.scopeHints.${p.scope ?? "device"}`)}>
+            {(id) => (
+              <Select id={id} value={p.scope ?? "device"} onChange={(e) => set({ scope: e.target.value as "device" | "user" })}>
+                <option value="device">{t("configs.printers.scopes.device")}</option>
+                <option value="user">{t("configs.printers.scopes.user")}</option>
+              </Select>
+            )}
+          </Field>
+          <Field label={t("configs.printers.driverOptional")} hint={t("configs.printers.sharedDriverHint")}>
+            {(id) => <Input id={id} value={p.driver ?? ""} onChange={(e) => set({ driver: e.target.value })} placeholder="HP Universal Printing PCL 6" />}
+          </Field>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-[1fr_160px_140px]">
+          <Field label={t("configs.printers.address")}>
+            {(id) => <Input id={id} value={p.address ?? ""} onChange={(e) => set({ address: e.target.value })} placeholder="192.168.1.50" className="font-mono text-xs" />}
+          </Field>
+          <Field label={t("configs.printers.protocol")}>
+            {(id) => (
+              <Select id={id} value={p.protocol ?? "raw"} onChange={(e) => set({ protocol: e.target.value as "raw" | "lpr" })}>
+                <option value="raw">RAW (9100)</option>
+                <option value="lpr">LPR</option>
+              </Select>
+            )}
+          </Field>
+          {p.protocol === "lpr" ? (
+            <Field label={t("configs.printers.queue")}>{(id) => <Input id={id} value={p.queue ?? ""} onChange={(e) => set({ queue: e.target.value })} placeholder="lp" />}</Field>
+          ) : (
+            <Field label={t("configs.printers.port")}>
+              {(id) => <Input id={id} type="number" min={1} max={65535} value={p.port ?? 9100} onChange={(e) => set({ port: Number(e.target.value) })} />}
+            </Field>
+          )}
+          <div className="sm:col-span-3">
+            <Field label={t("configs.printers.driver")} hint={t("configs.printers.driverHint")}>
+              {(id) => <Input id={id} value={p.driver ?? ""} onChange={(e) => set({ driver: e.target.value })} placeholder="Microsoft IPP Class Driver" />}
+            </Field>
+          </div>
+        </div>
+      )}
+      {(p.kind === "ip" || p.driver) && (
+        <Field label={t("configs.printers.driverInf")} hint={t("configs.printers.driverInfHint")}>
+          {(id) => <Input id={id} value={p.driverInf ?? ""} onChange={(e) => set({ driverInf: e.target.value })} placeholder="\\server\drivers\hp\hpcu270u.inf" className="font-mono text-xs" />}
+        </Field>
+      )}
+      <label className="flex cursor-pointer items-center gap-2 text-sm">
+        <input type="checkbox" className="size-4 accent-primary" checked={!!p.default} onChange={(e) => set({ default: e.target.checked })} />
+        {t("configs.printers.default")}
+      </label>
+    </div>
+  );
+}
+
+export function PrintersForm({ value, onChange }: { value: PrinterSettings; onChange: (v: PrinterSettings) => void }) {
+  const { t } = useTranslation();
+  const setRow = (i: number, p: PrinterConfig) =>
+    onChange({ printers: value.printers.map((x, j) => (j === i ? p : p.default ? { ...x, default: false } : x)) });
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {value.printers.map((p, i) => (
+          <PrinterRow
+            key={i}
+            p={p}
+            onChange={(np) => setRow(i, np)}
+            canRemove={value.printers.length > 1}
+            onRemove={() => onChange({ printers: value.printers.filter((_, j) => j !== i) })}
+          />
+        ))}
+        <Button variant="secondary" size="sm" icon={<Plus className="size-4" />} disabled={value.printers.length >= 50} onClick={() => onChange({ printers: [...value.printers, newPrinter()] })}>
+          {t("configs.printers.add")}
+        </Button>
+      </div>
+      <Alert tone="info">{t("configs.printers.hint")}</Alert>
     </div>
   );
 }
