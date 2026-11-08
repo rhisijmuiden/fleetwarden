@@ -2,19 +2,24 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Monitor, Plus } from "lucide-react";
-import { get, type DeviceStats } from "../api";
+import { get, type DeviceStats, type PatchSummary } from "../api";
 import { useAuth } from "../auth";
 
 export function Dashboard() {
   const { t } = useTranslation();
   const { can } = useAuth();
   const [stats, setStats] = useState<DeviceStats | null>(null);
+  const [patches, setPatches] = useState<PatchSummary | null>(null);
   useEffect(() => {
     if (!can("devices.view")) return;
-    const load = () =>
+    const load = () => {
       get<DeviceStats>("/devices/stats")
         .then(setStats)
         .catch(() => undefined);
+      get<PatchSummary>("/patches/summary")
+        .then(setPatches)
+        .catch(() => undefined);
+    };
     load();
     const id = setInterval(load, 30000);
     return () => clearInterval(id);
@@ -32,7 +37,12 @@ export function Dashboard() {
       sub: stats?.total ? `${Math.round(((stats.online ?? 0) / stats.total) * 100)}%` : "",
       to: "/devices?status=online",
     },
-    { label: t("dashboard.missingPatches"), value: "–", sub: t("dashboard.phase", { phase: 4 }) },
+    {
+      label: t("dashboard.missingPatches"),
+      value: patches ? patches.stats.missing : "–",
+      sub: patches ? t("dashboard.missingPatchesSub", { security: patches.stats.security, reboot: patches.stats.rebootPending }) : "",
+      to: "/patches",
+    },
     { label: t("dashboard.outdatedSoftware"), value: "–", sub: t("dashboard.phase", { phase: 7 }) },
   ];
   return (
