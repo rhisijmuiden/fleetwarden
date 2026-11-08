@@ -2,6 +2,7 @@ package agentproto
 
 import (
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,6 +26,30 @@ const PathRepository = "/agent/v1/repository/"
 const (
 	DriverSourceWindowsUpdate = "windows-update"
 	DriverSourceFwupd         = "fwupd"
+	// Vendor BIOS catalogs, matched by the server on the device's model.
+	DriverSourceDell   = "dell"
+	DriverSourceHP     = "hp"
+	DriverSourceLenovo = "lenovo"
+	// A package an administrator uploaded.
+	DriverSourceUpload = "upload"
+)
+
+// How the agent installs a repository update (DriverInstall.Installer).
+const (
+	// InstallerINF unpacks the files (.cab, .zip) and adds the drivers
+	// with pnputil. The default on Windows.
+	InstallerINF = "inf"
+	// InstallerFwupd installs a firmware cabinet with fwupdmgr. The default
+	// on Linux.
+	InstallerFwupd = "fwupd"
+	// InstallerDell runs a Dell Update Package silently (/s).
+	InstallerDell = "dell"
+	// InstallerHP extracts an HP SoftPaq and runs its silent command.
+	InstallerHP = "hp"
+	// InstallerLenovo extracts a Lenovo package and runs its command.
+	InstallerLenovo = "lenovo"
+	// InstallerExe runs an uploaded program with the given arguments.
+	InstallerExe = "exe"
 )
 
 // Driver update kinds.
@@ -85,7 +110,56 @@ type DriverInstall struct {
 	Title    string     `json:"title"`
 	DeviceID string     `json:"deviceId,omitempty"` // fwupd device to flash
 	Files    []RepoFile `json:"files"`
+	// Installer is how to install it (Installer* constants); empty means
+	// the platform default (inf on Windows, fwupd on Linux).
+	Installer string `json:"installer,omitempty"`
+	// Command is the vendor's silent install command inside the extracted
+	// package (HP, Lenovo), or the arguments for an uploaded program.
+	Command string `json:"command,omitempty"`
+	// ExitCodes are the exit codes that mean success (besides the usual
+	// restart codes); empty means 0.
+	ExitCodes []int `json:"exitCodes,omitempty"`
 }
 
 // DriverResultID is the result ID of a repository update in a patch job.
 func DriverResultID(repoID int64) string { return "driver:" + strconv.FormatInt(repoID, 10) }
+
+// SplitCommand splits a command line on spaces outside double quotes and
+// removes the quotes: `"Hp Upd.exe" -s` -> [Hp Upd.exe, -s].
+func SplitCommand(cmd string) []string {
+	var out []string
+	var cur strings.Builder
+	quoted, has := false, false
+	for _, r := range cmd {
+		switch {
+		case r == '"':
+			quoted = !quoted
+			has = true
+		case (r == ' ' || r == '\t') && !quoted:
+			if has {
+				out = append(out, cur.String())
+				cur.Reset()
+				has = false
+			}
+		default:
+			cur.WriteRune(r)
+			has = true
+		}
+	}
+	if has {
+		out = append(out, cur.String())
+	}
+	return out
+}
+
+// JoinCommand quotes the arguments that need it and joins them.
+func JoinCommand(args []string) string {
+	q := make([]string, len(args))
+	for i, a := range args {
+		if a == "" || strings.ContainsAny(a, " \t") {
+			a = `"` + a + `"`
+		}
+		q[i] = a
+	}
+	return strings.Join(q, " ")
+}

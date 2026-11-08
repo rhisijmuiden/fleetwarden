@@ -173,3 +173,51 @@ func makeCab(t *testing.T, dir, dst string) string {
 	}
 	return filepath.Join(dst, "package.cab")
 }
+
+// TestDriverWindowsPlatform checks the hardware details the vendor BIOS
+// catalogs are matched on.
+func TestDriverWindowsPlatform(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	inv, err := collectInventory(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hw := inv.Hardware
+	t.Logf("manufacturer %q model %q sku %q baseboard %q bios %q (%q)", hw.Manufacturer, hw.Model, hw.SystemSKU, hw.Baseboard,
+		hw.BIOSVersion, hw.BIOS)
+	if hw.BIOSVersion == "" || !strings.Contains(hw.BIOS, hw.BIOSVersion) {
+		t.Errorf("BIOS version %q, BIOS %q", hw.BIOSVersion, hw.BIOS)
+	}
+}
+
+// TestDriverWindowsVendorExe runs an uploaded program the way a vendor
+// installer is run, with its arguments, and reads its exit code.
+func TestDriverWindowsVendorExe(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "00")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	exe := filepath.Join(dir, "setup.exe")
+	raw, err := os.ReadFile(system32("cmd.exe"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(exe, raw, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	job := agentproto.DriverInstall{ID: "driver:1", Kind: agentproto.DriverKindDriver, Installer: agentproto.InstallerExe}
+	job.Command = "/c exit 3010"
+	if reboot, _, err := (windowsDrivers{}).Install(ctx, job, []string{exe}); err != nil || !reboot {
+		t.Errorf("3010: %v %v", reboot, err)
+	}
+	job.Command = "/c exit 0"
+	if reboot, _, err := (windowsDrivers{}).Install(ctx, job, []string{exe}); err != nil || reboot {
+		t.Errorf("0: %v %v", reboot, err)
+	}
+	job.Command = "/c exit 5"
+	if _, _, err := (windowsDrivers{}).Install(ctx, job, []string{exe}); err == nil || !strings.Contains(err.Error(), "exit code 5") {
+		t.Errorf("5: %v", err)
+	}
+}

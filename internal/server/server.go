@@ -88,6 +88,7 @@ type Server struct {
 	restore    restorePrep
 	gateways   gatewayManager
 	drivers    driverRepo
+	vendors    vendorSync
 	appOnce    sync.Once
 	app        http.Handler
 	trusted    atomic.Pointer[[]netip.Prefix] // FW_TRUSTED_PROXIES plus the web interface list

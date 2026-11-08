@@ -107,12 +107,13 @@ func loggedInUser() string {
 
 // inventoryScript asks CIM for the hardware in one PowerShell run.
 const inventoryScript = `$ErrorActionPreference='SilentlyContinue'
-$cs=Get-CimInstance Win32_ComputerSystem; $os=Get-CimInstance Win32_OperatingSystem; $bios=Get-CimInstance Win32_BIOS
+$cs=Get-CimInstance Win32_ComputerSystem; $os=Get-CimInstance Win32_OperatingSystem; $bios=Get-CimInstance Win32_BIOS; $bb=Get-CimInstance Win32_BaseBoard
 $cpu=@(Get-CimInstance Win32_Processor); $pd=@{}; foreach($d in @(Get-PhysicalDisk)){ $pd[[string]$d.DeviceId]=[string]$d.MediaType }
 [pscustomobject]@{
  manufacturer=$cs.Manufacturer; model=$cs.Model; domain=$cs.Domain; partOfDomain=[bool]$cs.PartOfDomain; memory=[int64]$cs.TotalPhysicalMemory
  hypervisor=[bool]$cs.HypervisorPresent; osName=$os.Caption; osBuild=$os.BuildNumber; productType=[int]$os.ProductType
  serial=$bios.SerialNumber; bios=($bios.Manufacturer+' '+$bios.SMBIOSBIOSVersion)
+ sku=$cs.SystemSKUNumber; baseboard=$bb.Product; biosVersion=$bios.SMBIOSBIOSVersion
  cpu=$cpu[0].Name; cores=($cpu|Measure-Object NumberOfCores -Sum).Sum; threads=($cpu|Measure-Object NumberOfLogicalProcessors -Sum).Sum
  disks=@(Get-CimInstance Win32_DiskDrive|ForEach-Object{[pscustomobject]@{name=$_.DeviceID;model=$_.Model;size=[int64]$_.Size;media=$pd[[string]$_.Index];iface=$_.InterfaceType}})
  volumes=@(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3'|ForEach-Object{[pscustomobject]@{mount=$_.DeviceID;fs=$_.FileSystem;size=[int64]$_.Size;free=[int64]$_.FreeSpace}})
@@ -131,6 +132,9 @@ type cimInventory struct {
 	ProductType  int    `json:"productType"`
 	Serial       string `json:"serial"`
 	BIOS         string `json:"bios"`
+	SKU          string `json:"sku"`
+	Baseboard    string `json:"baseboard"`
+	BIOSVersion  string `json:"biosVersion"`
 	CPU          string `json:"cpu"`
 	Cores        int    `json:"cores"`
 	Threads      int    `json:"threads"`
@@ -196,7 +200,8 @@ func collectOS(cim cimInventory) agentproto.OSInfo {
 
 func collectHardware(cim cimInventory) agentproto.Hardware {
 	hw := agentproto.Hardware{Manufacturer: strings.TrimSpace(cim.Manufacturer), Model: strings.TrimSpace(cim.Model), Serial: strings.TrimSpace(cim.Serial),
-		BIOS: strings.TrimSpace(cim.BIOS), CPU: strings.TrimSpace(cim.CPU), CPUCores: cim.Cores, CPUThreads: cim.Threads, MemoryBytes: cim.Memory,
+		BIOS: strings.TrimSpace(cim.BIOS), SystemSKU: strings.TrimSpace(cim.SKU), Baseboard: strings.TrimSpace(cim.Baseboard),
+		BIOSVersion: strings.TrimSpace(cim.BIOSVersion), CPU: strings.TrimSpace(cim.CPU), CPUCores: cim.Cores, CPUThreads: cim.Threads, MemoryBytes: cim.Memory,
 		GPUs: cim.GPUs, Network: networkInterfaces()}
 	for _, v := range []string{"virtual", "vmware", "kvm", "qemu", "xen", "parallels"} {
 		if strings.Contains(strings.ToLower(hw.Manufacturer+" "+hw.Model), v) {

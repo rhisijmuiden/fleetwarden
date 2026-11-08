@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -71,7 +72,16 @@ func (a *Agent) scanDrivers(ctx context.Context, res *agentproto.PatchScanResult
 var repoFileNameRE = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9 ._()+~-]{0,150}$`)
 
 func validDriverJob(d agentproto.DriverInstall) bool {
-	if !patchIDRE.MatchString(d.ID) || len(d.Files) == 0 || len(d.Files) > 20 {
+	if !patchIDRE.MatchString(d.ID) || len(d.Files) == 0 || len(d.Files) > 20 || len(d.Command) > 1000 {
+		return false
+	}
+	switch d.Installer {
+	case "", agentproto.InstallerINF, agentproto.InstallerFwupd, agentproto.InstallerExe:
+	case agentproto.InstallerDell, agentproto.InstallerHP, agentproto.InstallerLenovo:
+		if len(d.Files) != 1 {
+			return false
+		}
+	default:
 		return false
 	}
 	for _, f := range d.Files {
@@ -164,4 +174,54 @@ func pnputilOutcome(code int, out string) (bool, string, error) {
 		return reboot, "added to the driver store; the devices keep their current driver", nil
 	}
 	return false, "", fmt.Errorf("pnputil failed (exit code %d): %s", code, lastLine(out))
+}
+
+// packageCommand turns a vendor's install command ("HpFirmwareUpdRec.exe
+// -b -s", "%PACKAGEPATH%\winuptp.exe -s") into the program inside the
+// extracted package dir and its arguments. The program must lie inside dir.
+func packageCommand(dir, command string) (string, []string, error) {
+	command = strings.NewReplacer("%PACKAGEPATH%", dir, "%packagepath%", dir).Replace(command)
+	f := agentproto.SplitCommand(command)
+	if len(f) == 0 {
+		return "", nil, errors.New("the package has no install command")
+	}
+	exe := f[0]
+	if !filepath.IsAbs(exe) {
+		exe = filepath.Join(dir, exe)
+	}
+	exe = filepath.Clean(exe)
+	rel, err := filepath.Rel(dir, exe)
+	if err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+		return "", nil, fmt.Errorf("the install command runs a program outside the package: %s", f[0])
+	}
+	return exe, f[1:], nil
+}
+
+// exitOutcome reads the exit code of a vendor installer. Besides the codes
+// the vendor lists, 3010 and 1641 mean installed with a restart needed.
+func exitOutcome(code int, ok []int) (bool, string, error) {
+	switch {
+	case code == 3010 || code == 1641:
+		return true, "installed; a restart is needed", nil
+	case len(ok) == 0 && code == 0, slices.Contains(ok, code):
+		return false, "installed", nil
+	}
+	return false, "", fmt.Errorf("the installer failed (exit code %d)", code)
+}
+
+// dellOutcome reads the exit code of a Dell Update Package.
+func dellOutcome(code int) (bool, string, error) {
+	switch code {
+	case 0:
+		return false, "installed", nil
+	case 2, 6, 9:
+		return true, "installed; a restart is needed", nil
+	case 3:
+		return false, "nothing to do: the same or a newer version is installed", nil
+	case 7:
+		return false, "", errors.New("Dell Update Package: the BIOS has a setup password (exit code 7)")
+	case 8:
+		return false, "", errors.New("Dell Update Package: downgrades are not allowed (exit code 8)")
+	}
+	return false, "", fmt.Errorf("Dell Update Package failed (exit code %d)", code)
 }

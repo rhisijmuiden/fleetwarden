@@ -318,7 +318,12 @@
     "invalid_state": "Unknown status.",
     "invalid_ids": "Select between 1 and 500 updates.",
     "invalid_driver_action": "Unknown action.",
-    "driver_not_ready": "Only updates that are in the repository can be installed."
+    "driver_not_ready": "Only updates that are in the repository can be installed.",
+    "unsupported_driver_file": "Upload a .zip or .cab with a driver (.inf), a program (.exe) or a fwupd firmware cabinet (.cab).",
+    "no_inf_in_zip": "The ZIP file holds no driver (.inf).",
+    "upload_missing": "The uploaded file is gone. Upload it again.",
+    "driver_already_uploaded": "This package was uploaded already.",
+    "title_required": "Give the package a name."
   },
   "login": {
     "title": "Sign in",
@@ -2578,7 +2583,9 @@
     "tabs": {
       "available": "Available",
       "repository": "Repository",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "uploads": "Own packages",
+      "vendors": "Vendor catalogs"
     },
     "lists": {
       "available": "Available updates",
@@ -2586,7 +2593,7 @@
       "rejected": "Rejected updates"
     },
     "listHints": {
-      "available": "Offered by Windows Update or fwupd to at least one of your devices. Add an update to the repository to let the server download it.",
+      "available": "Offered to at least one of your devices by Windows Update, fwupd or a vendor BIOS catalog. Add an update to the repository to let the server download it.",
       "repository": "Stored on this server. Devices install these in the patch window of their policy, or right away from a device's Drivers tab.",
       "rejected": "Hidden from the available list. Restore one to see it again."
     },
@@ -2613,7 +2620,11 @@
     },
     "sources": {
       "windows-update": "Windows Update",
-      "fwupd": "fwupd (LVFS)"
+      "fwupd": "fwupd (LVFS)",
+      "dell": "Dell catalog",
+      "hp": "HP catalog",
+      "lenovo": "Lenovo catalog",
+      "upload": "Uploaded"
     },
     "states": {
       "available": "Available",
@@ -2666,6 +2677,70 @@
     "policyDriversOff": "Drivers: not automatically",
     "policyFirmwareOn": "Firmware: installed in the window",
     "policyFirmwareOff": "Firmware: not automatically",
-    "deviceNoPolicy": "The device's group has no patch policy, so nothing is installed automatically. You can still install repository updates by hand."
+    "deviceNoPolicy": "The device's group has no patch policy, so nothing is installed automatically. You can still install repository updates by hand.",
+    "critical": "Critical",
+    "installer": "Installed with",
+    "command": "Install command",
+    "installers": {
+      "inf": "pnputil (driver .inf)",
+      "fwupd": "fwupd",
+      "dell": "Dell Update Package",
+      "hp": "HP SoftPaq",
+      "lenovo": "Lenovo package",
+      "exe": "Program with arguments"
+    },
+    "vendors": {
+      "title": "BIOS from the vendor catalogs",
+      "hint": "Once a day the server reads the BIOS catalogs of Dell, HP and Lenovo for the models among your Windows devices. Only the catalogs are read: a BIOS update is offered under Available and only downloaded after you add it to the repository.",
+      "about": {
+        "dell": "Matched on the system ID (SKU) and the BIOS version. Installed with the Dell Update Package, silently.",
+        "hp": "Matched on the platform ID (baseboard) and the ROM family. Installed with HP's flash tool from the SoftPaq, silently.",
+        "lenovo": "Matched on the machine type and the BIOS level. Installed with Lenovo's BIOS update utility, silently."
+      },
+      "status": "Status",
+      "syncNow": "Read catalogs now",
+      "lastRun": "Last read",
+      "notYet": "Not yet since the server started",
+      "models": "Models with a catalog",
+      "daily": "Catalogs are read again after 24 hours, and right away for a new model.",
+      "unmatched": "Some devices do not report their system ID or baseboard yet ({{list}}). They are matched once their agent is updated and has sent a new inventory.",
+      "catalogs": "Models",
+      "catalogsHint": "The vendor catalogs read for the models of your devices.",
+      "none": "No Dell, HP or Lenovo Windows devices with a known model yet.",
+      "model": "Model ID",
+      "biosReleases": "BIOS releases",
+      "fetched": "Read"
+    },
+    "uploads": {
+      "title": "Own driver packages",
+      "hint": "Packages you upload yourself: a driver as a .zip or .cab with its .inf, a vendor program (.exe) with silent arguments, or a firmware cabinet for fwupd. They are stored right away and offered to the devices the target matches.",
+      "add": "Upload package",
+      "empty": "No packages uploaded yet.",
+      "target": "Devices",
+      "edit": "Edit",
+      "delete": "Delete package",
+      "confirmDelete": "Delete \"{{title}}\"? Devices no longer get it.",
+      "allDevices": "all devices of the platform",
+      "drop": "Drop a .zip, .cab or .exe here (at most 2 GB)",
+      "choose": "Choose file",
+      "other": "Choose another file",
+      "name": "Name",
+      "platform": "Platform",
+      "platformHint": "A .zip or .exe is for Windows; a .cab is a Windows driver or a fwupd firmware cabinet.",
+      "manufacturer": "Manufacturer contains",
+      "manufacturerHint": "Empty for every manufacturer. Compared with the device's inventory, ignoring case.",
+      "model": "Model contains",
+      "modelHint": "Empty for every model, e.g. \"Latitude 7450\" or \"20XW\".",
+      "arguments": "Silent install arguments",
+      "argumentsHint": "Passed to the program, e.g. /s for a Dell Update Package. Exit codes 0, 3010 and 1641 mean success.",
+      "description": "Description",
+      "reboot": "Needs a restart",
+      "how": {
+        "inf": "The agent unpacks the package and installs every .inf in it with pnputil.",
+        "exe": "The agent runs the program as SYSTEM with the arguments above.",
+        "fwupd": "The agent installs the cabinet with fwupdmgr on the devices it fits."
+      },
+      "uploadedBy": "Uploaded by {{user}} on {{date}}"
+    }
   }
 }

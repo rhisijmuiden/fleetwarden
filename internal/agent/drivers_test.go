@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -180,5 +181,56 @@ func TestValidDriverJob(t *testing.T) {
 		if validDriverJob(bad) {
 			t.Errorf("accepted %+v", bad)
 		}
+	}
+}
+
+func TestPackageCommand(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "x")
+	exe, args, err := packageCommand(dir, `"HpFirmwareUpdRec.exe" -b -s`)
+	if err != nil || exe != filepath.Join(dir, "HpFirmwareUpdRec.exe") || len(args) != 2 || args[1] != "-s" {
+		t.Errorf("hp: %s %v %v", exe, args, err)
+	}
+	exe, args, err = packageCommand(dir, `%PACKAGEPATH%`+string(filepath.Separator)+`winuptp.exe -s`)
+	if err != nil || exe != filepath.Join(dir, "winuptp.exe") || len(args) != 1 {
+		t.Errorf("lenovo: %s %v %v", exe, args, err)
+	}
+	for _, bad := range []string{"", `..` + string(filepath.Separator) + `evil.exe`, filepath.Join(t.TempDir(), "other.exe")} {
+		if _, _, err := packageCommand(dir, bad); err == nil {
+			t.Errorf("accepted %q", bad)
+		}
+	}
+}
+
+func TestInstallerOutcomes(t *testing.T) {
+	if r, _, err := dellOutcome(2); !r || err != nil {
+		t.Error("dell 2")
+	}
+	if r, _, err := dellOutcome(0); r || err != nil {
+		t.Error("dell 0")
+	}
+	if _, _, err := dellOutcome(7); err == nil || !strings.Contains(err.Error(), "password") {
+		t.Errorf("dell 7: %v", err)
+	}
+	if _, _, err := exitOutcome(1, []int{0, 1}); err != nil {
+		t.Error("lenovo 1")
+	}
+	if _, _, err := exitOutcome(1, nil); err == nil {
+		t.Error("exe 1")
+	}
+	if r, _, err := exitOutcome(3010, []int{0}); !r || err != nil {
+		t.Error("3010")
+	}
+}
+
+func TestValidDriverJobInstaller(t *testing.T) {
+	f := []agentproto.RepoFile{{Name: "a.exe", SHA256: strings.Repeat("a", 64), Size: 1}}
+	if !validDriverJob(agentproto.DriverInstall{ID: "driver:1", Files: f, Installer: agentproto.InstallerDell}) {
+		t.Error("dell job refused")
+	}
+	if validDriverJob(agentproto.DriverInstall{ID: "driver:1", Files: f, Installer: "shell"}) {
+		t.Error("unknown installer accepted")
+	}
+	if validDriverJob(agentproto.DriverInstall{ID: "driver:1", Files: append(f, f...), Installer: agentproto.InstallerHP}) {
+		t.Error("two files for an HP SoftPaq accepted")
 	}
 }

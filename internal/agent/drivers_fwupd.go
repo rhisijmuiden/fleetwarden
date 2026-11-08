@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html"
 	"net/url"
 	"os/exec"
@@ -216,6 +217,9 @@ func firstLine(v string) string {
 
 // Install flashes the cabinet file on the device it was offered for.
 func (b fwupdBackend) Install(ctx context.Context, job agentproto.DriverInstall, files []string) (bool, string, error) {
+	if job.Installer != "" && job.Installer != agentproto.InstallerFwupd {
+		return false, "", fmt.Errorf("installer %q is not supported on Linux", job.Installer)
+	}
 	if len(files) != 1 {
 		return false, "", errors.New("a firmware update needs exactly one cabinet file")
 	}

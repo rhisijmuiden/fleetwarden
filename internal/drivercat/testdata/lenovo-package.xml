@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package name="BIOS_N3BUJ" id="n3buj24w" version="1.48/1.28" hide="False" pcdDescriptor="0230">
+  <Title default="EN">
+    <Desc id="EN">BIOS Update Utility - 10/11</Desc>
+  </Title>
+  <DetectVersion type="File" show="False">
+    <File>%WINDOWS%\explorer.exe</File>
+  </DetectVersion>
+  <Summary default="EN" />
+  <Severity type="2" />
+  <Vendor>Lenovo</Vendor>
+  <ExtractCommand>n3buj24w.exe /VERYSILENT /DIR=%PACKAGEPATH% /EXTRACT="YES"</ExtractCommand>
+  <ReleaseDate>2026-07-06</ReleaseDate>
+  <DiskSpaceNeeded>118614232</DiskSpaceNeeded>
+  <Reboot type="5" />
+  <Brand type="2" />
+  <PackageType type="3" />
+  <Install rc="0,1" rccancel="-1,-10" type="cmd" default="EN">
+    <Cmdline id="EN">%PACKAGEPATH%\winuptp.exe -s</Cmdline>
+  </Install>
+  <Uninstall />
+  <DetectInstall>
+    <Or>
+      <_Bios>
+        <Level>N3BET70*</Level>
+      </_Bios>
+      <_Bios>
+        <Level>N3MET29*</Level>
+      </_Bios>
+    </Or>
+  </DetectInstall>
+  <Dependencies>
+    <And>
+      <Or>
+        <And>
+          <_OS>
+            <OS>WIN10</OS>
+            <OS>WIN10.*</OS>
+            <OS>WIN10-ENT</OS>
+            <OS>WIN10-ENT.*</OS>
+            <OS>WIN10-PRO</OS>
+            <OS>WIN10-PRO.*</OS>
+          </_OS>
+          <_CPUAddressWidth>
+            <AddressWidth>64</AddressWidth>
+          </_CPUAddressWidth>
+        </And>
+        <And>
+          <_OS>
+            <OS>WIN11</OS>
+          </_OS>
+        </And>
+      </Or>
+      <Or>
+        <_Bios>
+          <Level>N3BET28*</Level>
+          <Level>N3BET29*</Level>
+          <Level>N3BET3*</Level>
+          <Level>N3BET4*</Level>
+          <Level>N3BET5*</Level>
+          <Level>N3BET6*</Level>
+        </_Bios>
+        <_Bios>
+          <Level>N3MET04*</Level>
+          <Level>N3MET05*</Level>
+          <Level>N3MET06*</Level>
+          <Level>N3MET07*</Level>
+          <Level>N3MET08*</Level>
+          <Level>N3MET09*</Level>
+          <Level>N3MET1*</Level>
+          <Level>N3MET20*</Level>
+          <Level>N3MET21*</Level>
+          <Level>N3MET22*</Level>
+          <Level>N3MET23*</Level>
+          <Level>N3MET24*</Level>
+          <Level>N3MET25*</Level>
+          <Level>N3MET26*</Level>
+          <Level>N3MET27*</Level>
+          <Level>N3MET28*</Level>
+        </_Bios>
+      </Or>
+    </And>
+  </Dependencies>
+  <Files>
+    <Installer>
+      <File>
+        <Name>n3buj24w.exe</Name>
+        <CRC>A543F2117885CBE515F2E749A26F460B0547CAF382A866918FB11E35E4079765</CRC>
+        <Size>22561432</Size>
+      </File>
+    </Installer>
+    <Readme default="EN">
+      <File id="EN">
+        <Name>n3buj24w.html</Name>
+        <CRC>6CA81BCFEEA9C239EB6546798A1BA804A2AB821CC6FEB9AC256D52FB76307F26</CRC>
+        <Size>173797</Size>
+      </File>
+    </Readme>
+  </Files>
+</Package>

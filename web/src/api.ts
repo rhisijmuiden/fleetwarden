@@ -63,7 +63,11 @@ export type Branding = {
   revision: number;
 };
 
-export type AuthConfig = { ssoEnabled: boolean; localLoginAllowed: boolean; productName: string };
+export type AuthConfig = {
+  ssoEnabled: boolean;
+  localLoginAllowed: boolean;
+  productName: string;
+};
 
 export type AuthSettings = {
   ssoEnabled: boolean;
@@ -76,7 +80,15 @@ export type AuthSettings = {
   clientIp: string;
 };
 
-export type RoleMapping = { id: number; claim: "group" | "role"; value: string; role: Role; createdAt: string; scoped: boolean; groups: number[] };
+export type RoleMapping = {
+  id: number;
+  claim: "group" | "role";
+  value: string;
+  role: Role;
+  createdAt: string;
+  scoped: boolean;
+  groups: number[];
+};
 
 export type Channel = "production" | "test";
 
@@ -99,12 +111,22 @@ export type DeviceGroup = {
 };
 
 /** ScanSettings are the server-wide agent scan intervals, in minutes. */
-export type ScanSettings = { inventoryMinutes: number; patchScanMinutes: number };
+export type ScanSettings = {
+  inventoryMinutes: number;
+  patchScanMinutes: number;
+};
 
 export type Platform = "windows" | "linux";
 
 export type RemoteConsentSetting = "auto" | "direct" | "notify" | "ask";
-export type RemoteState = "pending" | "consent" | "connecting" | "active" | "ended" | "denied" | "failed";
+export type RemoteState =
+  | "pending"
+  | "consent"
+  | "connecting"
+  | "active"
+  | "ended"
+  | "denied"
+  | "failed";
 
 export type RemoteSession = {
   id: string;
@@ -127,8 +149,18 @@ export type RemoteSession = {
 
 export type RemoteSessionList = { items: RemoteSession[]; total: number };
 
-export type Disk = { name: string; model: string; sizeBytes: number; media: string };
-export type Volume = { mount: string; fileSystem: string; sizeBytes: number; freeBytes: number };
+export type Disk = {
+  name: string;
+  model: string;
+  sizeBytes: number;
+  media: string;
+};
+export type Volume = {
+  mount: string;
+  fileSystem: string;
+  sizeBytes: number;
+  freeBytes: number;
+};
 export type NetIface = { name: string; mac: string; ips: string[] | null };
 export type Hardware = {
   manufacturer: string;
@@ -191,9 +223,20 @@ export type Device = {
 };
 
 export type DeviceList = { items: Device[]; total: number };
-export type DeviceStats = { total: number; online: number; platform: Record<string, number> };
+export type DeviceStats = {
+  total: number;
+  online: number;
+  platform: Record<string, number>;
+};
 
-export type SoftwareRow = { name: string; version: string; publisher: string; installedOn: string | null; source: string; sizeBytes: number };
+export type SoftwareRow = {
+  name: string;
+  version: string;
+  publisher: string;
+  installedOn: string | null;
+  source: string;
+  sizeBytes: number;
+};
 
 export type EnrollmentToken = {
   id: number;
@@ -210,9 +253,22 @@ export type EnrollmentToken = {
   lastUsedAt: string | null;
 };
 
-export type InstallPackage = { platform: Platform; arch: string; kind: "msi" | "deb"; version: string; url: string; name: string };
+export type InstallPackage = {
+  platform: Platform;
+  arch: string;
+  kind: "msi" | "deb";
+  version: string;
+  url: string;
+  name: string;
+};
 
-export type UpdateState = "sent" | "downloading" | "installing" | "completed" | "failed" | "rolled-back";
+export type UpdateState =
+  | "sent"
+  | "downloading"
+  | "installing"
+  | "completed"
+  | "failed"
+  | "rolled-back";
 
 export type AgentPackage = {
   version: string;
@@ -236,9 +292,22 @@ export type AgentRelease = {
   devices: number;
 };
 
-export type RolloutStatus = "active" | "paused" | "completed" | "cancelled" | "superseded";
+export type RolloutStatus =
+  | "active"
+  | "paused"
+  | "completed"
+  | "cancelled"
+  | "superseded";
 
-export type RingStats = { ring: number; groups: string[]; devices: number; updated: number; inProgress: number; failed: number; pending: number };
+export type RingStats = {
+  ring: number;
+  groups: string[];
+  devices: number;
+  updated: number;
+  inProgress: number;
+  failed: number;
+  pending: number;
+};
 
 export type Rollout = {
   id: number;
@@ -272,7 +341,15 @@ export type AgentUpdates = {
   channel: Channel;
   releases: AgentRelease[];
   rollouts: Rollout[];
-  problems: { deviceId: string; hostname: string; from: string; version: string; state: UpdateState; message: string; at: string | null }[];
+  problems: {
+    deviceId: string;
+    hostname: string;
+    from: string;
+    version: string;
+    state: UpdateState;
+    message: string;
+    at: string | null;
+  }[];
   versions: Record<string, number>;
 };
 
@@ -286,7 +363,14 @@ export type InstallInfo = {
   downloads: InstallPackage[];
 };
 
-export type PatchCategory = "security" | "critical" | "cumulative" | "definition" | "driver" | "feature" | "other";
+export type PatchCategory =
+  | "security"
+  | "critical"
+  | "cumulative"
+  | "definition"
+  | "driver"
+  | "feature"
+  | "other";
 export type ApprovalMode = "auto" | "manual" | "never";
 export type Approval = { mode: ApprovalMode; delayDays: number };
 export type RebootPolicy = "never" | "automatic" | "prompt";
@@ -317,7 +401,12 @@ export type PatchPolicy = {
   windowOpen: boolean;
 };
 
-export type PatchPolicies = { policies: PatchPolicy[]; defaults: PatchPolicy; categories: PatchCategory[]; serverTimeZone: string };
+export type PatchPolicies = {
+  policies: PatchPolicy[];
+  defaults: PatchPolicy;
+  categories: PatchCategory[];
+  serverTimeZone: string;
+};
 
 export type PatchRow = {
   updateId: string;
@@ -336,7 +425,14 @@ export type PatchRow = {
   approvedFrom: string | null;
 };
 
-export type PatchState = "sent" | "waiting-user" | "postponed" | "installing" | "rebooting" | "completed" | "failed";
+export type PatchState =
+  | "sent"
+  | "waiting-user"
+  | "postponed"
+  | "installing"
+  | "rebooting"
+  | "completed"
+  | "failed";
 
 export type PatchRun = {
   id: number;
@@ -398,7 +494,11 @@ export type PatchStats = {
   runsFailed: number;
 };
 
-export type PatchSummary = { stats: PatchStats; runs: PatchRun[]; policies: number };
+export type PatchSummary = {
+  stats: PatchStats;
+  runs: PatchRun[];
+  policies: number;
+};
 
 export type MailConfig = {
   enabled: boolean;
@@ -443,11 +543,26 @@ export type AuditEntry = {
   details: Record<string, unknown>;
 };
 
-export type Release = { version: string; channel: string; publishedAt: string; url: string; notes: string };
+export type Release = {
+  version: string;
+  channel: string;
+  publishedAt: string;
+  url: string;
+  notes: string;
+};
 
 export type UpdateStatus = {
   id: string;
-  state: "" | "downloading" | "backup" | "installing" | "verifying" | "rolling-back" | "completed" | "rolled-back" | "failed";
+  state:
+    | ""
+    | "downloading"
+    | "backup"
+    | "installing"
+    | "verifying"
+    | "rolling-back"
+    | "completed"
+    | "rolled-back"
+    | "failed";
   fromVersion: string;
   toVersion: string;
   message: string;
@@ -513,14 +628,31 @@ export type BackupLocation = {
 export type LocationTest = {
   ok: boolean;
   error?: string;
-  trust?: { kind: "ssh" | "tls"; fingerprint: string; value: string; mismatch: boolean };
+  trust?: {
+    kind: "ssh" | "tls";
+    fingerprint: string;
+    value: string;
+    mismatch: boolean;
+  };
   repository: "none" | "ok" | "wrong_passphrase" | "unknown";
   snapshots: number;
 };
 
-export type BackupSchedule = { enabled: boolean; intervalHours: number; startTime: string; fullEveryDays: number; keepFull: number };
+export type BackupSchedule = {
+  enabled: boolean;
+  intervalHours: number;
+  startTime: string;
+  fullEveryDays: number;
+  keepFull: number;
+};
 
-export type BackupConfig = { passphraseSet: boolean; schedule: BackupSchedule; nextRun: string | null; timeZone: string; instanceId: string };
+export type BackupConfig = {
+  passphraseSet: boolean;
+  schedule: BackupSchedule;
+  nextRun: string | null;
+  timeZone: string;
+  instanceId: string;
+};
 
 export type LocationProgress = {
   name: string;
@@ -539,9 +671,22 @@ export type BackupProgress = {
   locations: Record<string, LocationProgress> | null;
 };
 
-export type Snapshot = { chain: string; id: string; kind: "full" | "incremental"; time: string; instance: string };
+export type Snapshot = {
+  chain: string;
+  id: string;
+  kind: "full" | "incremental";
+  time: string;
+  instance: string;
+};
 
-export type SnapshotDetails = Snapshot & { host: string; version: string; size: number; chunks: number; newChunks: number; restorable: boolean };
+export type SnapshotDetails = Snapshot & {
+  host: string;
+  version: string;
+  size: number;
+  chunks: number;
+  newChunks: number;
+  restorable: boolean;
+};
 
 export type RestoreStatus = {
   id: string;
@@ -566,7 +711,14 @@ export type RestoreView = {
 // ---- software deployment ----
 
 export type PackageSource = "winget" | "upload" | "apt";
-export type InstallerKind = "msi" | "exe" | "inno" | "nullsoft" | "burn" | "apt" | "deb";
+export type InstallerKind =
+  | "msi"
+  | "exe"
+  | "inno"
+  | "nullsoft"
+  | "burn"
+  | "apt"
+  | "deb";
 
 export type SoftwarePackage = {
   id: number;
@@ -593,7 +745,12 @@ export type SoftwarePackage = {
   installed: number;
 };
 
-export type CatalogStatus = { packages: number; updatedAt: string | null; checkedAt: string | null; error: string };
+export type CatalogStatus = {
+  packages: number;
+  updatedAt: string | null;
+  checkedAt: string | null;
+  error: string;
+};
 
 export type PackagesView = {
   packages: SoftwarePackage[];
@@ -603,7 +760,12 @@ export type PackagesView = {
   maxUploadMiB: number;
 };
 
-export type CatalogHit = { id: string; name: string; moniker?: string; version: string };
+export type CatalogHit = {
+  id: string;
+  name: string;
+  moniker?: string;
+  version: string;
+};
 export type CatalogSearch = { status: CatalogStatus; results: CatalogHit[] };
 
 export type CatalogPackage = {
@@ -616,17 +778,33 @@ export type CatalogPackage = {
   version: string;
   versions: string[];
   choice: {
-    installer: { kind: InstallerKind; url: string; sha256: string; args?: string; fileName?: string };
+    installer: {
+      kind: InstallerKind;
+      url: string;
+      sha256: string;
+      args?: string;
+      fileName?: string;
+    };
     detect: { name: string; productCode?: string; version?: string };
     type: string;
     architecture: string;
     scope: string;
   } | null;
   choiceError: string;
-  installers: { architecture: string; type: string; scope: string; locale: string }[];
+  installers: {
+    architecture: string;
+    type: string;
+    scope: string;
+    locale: string;
+  }[];
 };
 
-export type UploadResult = { sha256: string; size: number; name: string; kind: InstallerKind };
+export type UploadResult = {
+  sha256: string;
+  size: number;
+  name: string;
+  kind: InstallerKind;
+};
 
 export type JobCounts = {
   total: number;
@@ -695,12 +873,23 @@ export type SoftwareJob = {
   finishedAt: string | null;
 };
 
-export type DeploymentView = { deployment: Deployment; package: SoftwarePackage | null; jobs: SoftwareJob[] };
+export type DeploymentView = {
+  deployment: Deployment;
+  package: SoftwarePackage | null;
+  jobs: SoftwareJob[];
+};
 
 export type BrowserKey = "chrome" | "edge" | "firefox";
 export type BrowserReport = {
   catalog: CatalogStatus;
-  browsers: { key: BrowserKey; name: string; latest: string; esr?: string; devices: number; upToDate: number }[];
+  browsers: {
+    key: BrowserKey;
+    name: string;
+    latest: string;
+    esr?: string;
+    devices: number;
+    upToDate: number;
+  }[];
   devices: {
     deviceId: string;
     hostname: string;
@@ -709,7 +898,12 @@ export type BrowserReport = {
     lastSeen: string | null;
     online: boolean;
     outdated: boolean;
-    browsers: Partial<Record<BrowserKey, { version: string; edition?: string; upToDate: boolean }>>;
+    browsers: Partial<
+      Record<
+        BrowserKey,
+        { version: string; edition?: string; upToDate: boolean }
+      >
+    >;
   }[];
 };
 
@@ -717,9 +911,18 @@ export type BrowserReport = {
 
 export type ReportKind = "compliance" | "patches" | "software";
 
-export type ReportSettings = { offlineDays: number; patchGraceDays: number; diskFreePercent: number; ignoredSoftware: string[] };
+export type ReportSettings = {
+  offlineDays: number;
+  patchGraceDays: number;
+  diskFreePercent: number;
+  ignoredSoftware: string[];
+};
 
-export type LowVolume = { mount: string; freePercent: number; freeBytes: number };
+export type LowVolume = {
+  mount: string;
+  freePercent: number;
+  freeBytes: number;
+};
 
 export type ComplianceDevice = {
   id: string;
@@ -778,11 +981,37 @@ export type PatchesReport = {
   devicesMissing: number;
   devicesSecurity: number;
   rebootPending: number;
-  updates: { updateId: string; title: string; kb: string; category: PatchCategory; severity: string; releasedAt: string | null; firstSeenAt: string; devices: number }[];
-  rows: { id: string; hostname: string; groupName: string; platform: Platform; online: boolean; missing: number; security: number; rebootPending: boolean; patchScanAt: string | null }[];
+  updates: {
+    updateId: string;
+    title: string;
+    kb: string;
+    category: PatchCategory;
+    severity: string;
+    releasedAt: string | null;
+    firstSeenAt: string;
+    devices: number;
+  }[];
+  rows: {
+    id: string;
+    hostname: string;
+    groupName: string;
+    platform: Platform;
+    online: boolean;
+    missing: number;
+    security: number;
+    rebootPending: boolean;
+    patchScanAt: string | null;
+  }[];
 };
 
-export type OutdatedProgram = { name: string; version: string; publisher: string; packageId: string; package: string; latest: string };
+export type OutdatedProgram = {
+  name: string;
+  version: string;
+  publisher: string;
+  packageId: string;
+  package: string;
+  latest: string;
+};
 
 export type SoftwareReport = {
   generated: string;
@@ -793,8 +1022,21 @@ export type SoftwareReport = {
   installs: number;
   matched: number;
   ignored: string[];
-  packages: { packageId: string; libraryId: number | null; name: string; latest: string; versions: string[]; devices: number }[];
-  rows: { id: string; hostname: string; groupName: string; online: boolean; programs: OutdatedProgram[] }[];
+  packages: {
+    packageId: string;
+    libraryId: number | null;
+    name: string;
+    latest: string;
+    versions: string[];
+    devices: number;
+  }[];
+  rows: {
+    id: string;
+    hostname: string;
+    groupName: string;
+    online: boolean;
+    programs: OutdatedProgram[];
+  }[];
 };
 
 export type ReportSchedule = {
@@ -817,8 +1059,20 @@ export type ReportSchedule = {
   createdBy: string;
 };
 
-export type InstalledSoftware = { name: string; publisher: string; platform: Platform; source: string; versions: string[]; devices: number };
-export type InstalledDevice = { deviceId: string; hostname: string; groupId: number; version: string };
+export type InstalledSoftware = {
+  name: string;
+  publisher: string;
+  platform: Platform;
+  source: string;
+  versions: string[];
+  devices: number;
+};
+export type InstalledDevice = {
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  version: string;
+};
 
 export type GatewayState = "connected" | "connecting" | "error" | "disabled";
 export type GatewayStatus = {
@@ -833,7 +1087,13 @@ export type GatewayStatus = {
   activeSockets: number;
   rejected: number;
   updatable: boolean;
-  update?: { state: "downloading" | "installing" | "completed" | "failed"; message: string; fromVersion: string; toVersion: string; updatedAt: string };
+  update?: {
+    state: "downloading" | "installing" | "completed" | "failed";
+    message: string;
+    fromVersion: string;
+    toVersion: string;
+    updatedAt: string;
+  };
 };
 export type Gateway = {
   id: number;
@@ -863,7 +1123,12 @@ export type GatewaysView = {
   version: string;
   channel: string;
 };
-export type GatewayCheck = { name: "tunnel" | "publicUrl"; ok: boolean; code?: string; detail?: string };
+export type GatewayCheck = {
+  name: "tunnel" | "publicUrl";
+  ok: boolean;
+  code?: string;
+  detail?: string;
+};
 export type GatewayOption = { id: number; name: string; publicUrl: string };
 
 export class ApiError extends Error {
@@ -882,7 +1147,12 @@ export function setUnauthenticatedHandler(fn: (() => void) | null) {
   onUnauthenticated = fn;
 }
 
-export async function api<T = unknown>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+export async function api<T = unknown>(
+  method: string,
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
   const headers: Record<string, string> = { "X-Requested-With": "fleetwarden" };
   let payload: BodyInit | undefined;
   if (body instanceof FormData) {
@@ -894,21 +1164,40 @@ export async function api<T = unknown>(method: string, path: string, body?: unkn
     payload = JSON.stringify(body);
     headers["Content-Type"] = "application/json";
   }
-  const res = await fetch(`/api/v1${path}`, { method, headers, body: payload, signal, credentials: "same-origin" });
+  const res = await fetch(`/api/v1${path}`, {
+    method,
+    headers,
+    body: payload,
+    signal,
+    credentials: "same-origin",
+  });
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = new ApiError(res.status, data.error ?? `http_${res.status}`, data.detail);
-    if (res.status === 401 && err.code === "unauthenticated" && !path.startsWith("/auth/")) onUnauthenticated?.();
+    const err = new ApiError(
+      res.status,
+      data.error ?? `http_${res.status}`,
+      data.detail,
+    );
+    if (
+      res.status === 401 &&
+      err.code === "unauthenticated" &&
+      !path.startsWith("/auth/")
+    )
+      onUnauthenticated?.();
     throw err;
   }
   return data as T;
 }
 
-export const get = <T>(path: string, signal?: AbortSignal) => api<T>("GET", path, undefined, signal);
-export const post = <T>(path: string, body?: unknown) => api<T>("POST", path, body ?? {});
-export const put = <T>(path: string, body?: unknown) => api<T>("PUT", path, body ?? {});
-export const patch = <T>(path: string, body?: unknown) => api<T>("PATCH", path, body ?? {});
+export const get = <T>(path: string, signal?: AbortSignal) =>
+  api<T>("GET", path, undefined, signal);
+export const post = <T>(path: string, body?: unknown) =>
+  api<T>("POST", path, body ?? {});
+export const put = <T>(path: string, body?: unknown) =>
+  api<T>("PUT", path, body ?? {});
+export const patch = <T>(path: string, body?: unknown) =>
+  api<T>("PATCH", path, body ?? {});
 export const del = <T>(path: string) => api<T>("DELETE", path);
 
 export async function fetchVersion(signal?: AbortSignal): Promise<VersionInfo> {
@@ -917,7 +1206,11 @@ export async function fetchVersion(signal?: AbortSignal): Promise<VersionInfo> {
 
 // uploadFile sends a file as the raw request body (name in X-File-Name) and
 // reports the progress from 0 to 1.
-export function uploadFile<T>(path: string, file: File, onProgress?: (p: number) => void): Promise<T> {
+export function uploadFile<T>(
+  path: string,
+  file: File,
+  onProgress?: (p: number) => void,
+): Promise<T> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `/api/v1${path}`);
@@ -937,8 +1230,16 @@ export function uploadFile<T>(path: string, file: File, onProgress?: (p: number)
         /* empty body */
       }
       if (xhr.status >= 200 && xhr.status < 300) resolve(data as T);
-      else if (xhr.status === 413) reject(new ApiError(413, "installer_too_large"));
-      else reject(new ApiError(xhr.status, data.error ?? `http_${xhr.status}`, data.detail));
+      else if (xhr.status === 413)
+        reject(new ApiError(413, "installer_too_large"));
+      else
+        reject(
+          new ApiError(
+            xhr.status,
+            data.error ?? `http_${xhr.status}`,
+            data.detail,
+          ),
+        );
     };
     xhr.send(file);
   });
@@ -981,7 +1282,16 @@ export type FleetAlert = {
 
 // ---- configuration management ----
 
-export type ConfigType = "browser" | "registry" | "script" | "drives" | "printers" | "desktop" | "power" | "admins" | "firewall";
+export type ConfigType =
+  | "browser"
+  | "registry"
+  | "script"
+  | "drives"
+  | "printers"
+  | "desktop"
+  | "power"
+  | "admins"
+  | "firewall";
 export type StartupMode = "" | "newtab" | "restore" | "urls";
 
 export type BrowserSettings = {
@@ -997,8 +1307,20 @@ export type BrowserSettings = {
   extra?: Partial<Record<BrowserKey, Record<string, unknown>>>;
 };
 
-export type RegistryType = "string" | "expandstring" | "multistring" | "dword" | "qword" | "delete";
-export type RegistryValue = { hive: "HKLM" | "HKCU"; key: string; name: string; type: RegistryType; value?: string };
+export type RegistryType =
+  | "string"
+  | "expandstring"
+  | "multistring"
+  | "dword"
+  | "qword"
+  | "delete";
+export type RegistryValue = {
+  hive: "HKLM" | "HKCU";
+  key: string;
+  name: string;
+  type: RegistryType;
+  value?: string;
+};
 export type RegistrySettings = { values: RegistryValue[]; keep?: boolean };
 
 export type ScriptShell = "powershell" | "cmd" | "bash" | "sh";
@@ -1029,8 +1351,18 @@ export type PrinterConfig = {
   default?: boolean;
 };
 export type PrinterSettings = { printers: PrinterConfig[] };
-export type WallpaperStyle = "fill" | "fit" | "stretch" | "center" | "tile" | "span";
-export type DesktopSettings = { wallpaper?: string; wallpaperStyle?: WallpaperStyle; lockMinutes?: number };
+export type WallpaperStyle =
+  | "fill"
+  | "fit"
+  | "stretch"
+  | "center"
+  | "tile"
+  | "span";
+export type DesktopSettings = {
+  wallpaper?: string;
+  wallpaperStyle?: WallpaperStyle;
+  lockMinutes?: number;
+};
 export type PowerSettings = {
   monitorAc?: number | null;
   monitorDc?: number | null;
@@ -1108,7 +1440,13 @@ export type ConfigList = {
   shells: Record<Platform, ScriptShell[]>;
 };
 
-export type ConfigState = "pending" | "applied" | "failed" | "waiting" | "unsupported" | "disabled";
+export type ConfigState =
+  | "pending"
+  | "applied"
+  | "failed"
+  | "waiting"
+  | "unsupported"
+  | "disabled";
 
 export type DeviceConfigState = {
   deviceId: string;
@@ -1133,7 +1471,10 @@ export type DeviceConfigState = {
   runError: string;
 };
 
-export type ConfigView = { configuration: Configuration; devices: DeviceConfigState[] };
+export type ConfigView = {
+  configuration: Configuration;
+  devices: DeviceConfigState[];
+};
 
 export type ConfigRun = {
   id: number;
@@ -1149,18 +1490,51 @@ export type ConfigRun = {
   durationMs: number;
 };
 
-export type DeviceConfigsView = { items: DeviceConfigState[]; runs: ConfigRun[] };
+export type DeviceConfigsView = {
+  items: DeviceConfigState[];
+  runs: ConfigRun[];
+};
 
 // ---- drivers and firmware ----
 
-export type DriverState = "available" | "queued" | "downloading" | "ready" | "failed" | "rejected";
+export type DriverState =
+  | "available"
+  | "queued"
+  | "downloading"
+  | "ready"
+  | "failed"
+  | "rejected";
 export type DriverKind = "driver" | "firmware";
 
-export type DriverFile = { name: string; url: string; size?: number; sha256?: string; sha1?: string; stored?: string };
+export type DriverSource =
+  | "windows-update"
+  | "fwupd"
+  | "dell"
+  | "hp"
+  | "lenovo"
+  | "upload";
+export type DriverInstaller =
+  | ""
+  | "inf"
+  | "fwupd"
+  | "dell"
+  | "hp"
+  | "lenovo"
+  | "exe";
+export type DriverTarget = { manufacturer: string; model: string };
+
+export type DriverFile = {
+  name: string;
+  url: string;
+  size?: number;
+  sha256?: string;
+  sha1?: string;
+  stored?: string;
+};
 
 export type DriverUpdate = {
   id: number;
-  source: "windows-update" | "fwupd";
+  source: DriverSource;
   sourceId: string;
   kind: DriverKind;
   platform: Platform;
@@ -1183,7 +1557,45 @@ export type DriverUpdate = {
   storedAt: string | null;
   firstSeenAt: string;
   lastSeenAt: string;
+  installer: DriverInstaller;
+  command: string;
+  exitCodes: number[];
+  critical: boolean;
+  target: DriverTarget;
   devices: number;
+};
+
+export type VendorCatalog = {
+  vendor: "dell" | "hp" | "lenovo";
+  key: string;
+  fetchedAt: string | null;
+  error: string;
+  items: number;
+  devices: number;
+};
+
+export type VendorStatus = {
+  settings: { dell: boolean; hp: boolean; lenovo: boolean };
+  running: boolean;
+  lastRun: string | null;
+  lastError: string;
+  catalogs: VendorCatalog[];
+  unmatched: Record<string, number>;
+};
+
+export type DriverUploadReq = {
+  sha256?: string;
+  name?: string;
+  platform: Platform;
+  kind: DriverKind;
+  title: string;
+  version: string;
+  vendor: string;
+  description: string;
+  reboot: boolean;
+  command: string;
+  manufacturer: string;
+  model: string;
 };
 
 export type DriverDevice = {
@@ -1200,12 +1612,25 @@ export type DriverDevice = {
 export type DriverDetail = DriverUpdate & { deviceList: DriverDevice[] };
 
 export type DriverSummary = {
-  stats: { available: number; queued: number; ready: number; failed: number; storedBytes: number; devices: number; scanned: number };
+  stats: {
+    available: number;
+    queued: number;
+    ready: number;
+    failed: number;
+    storedBytes: number;
+    devices: number;
+    scanned: number;
+  };
   freeBytes: number | null;
   downloading: boolean;
 };
 
-export type DeviceDriverRow = DriverUpdate & { deviceName: string; fwDeviceId: string; currentVersion: string; seenAt: string };
+export type DeviceDriverRow = DriverUpdate & {
+  deviceName: string;
+  fwDeviceId: string;
+  currentVersion: string;
+  seenAt: string;
+};
 
 export type DeviceDrivers = {
   scanAt: string | null;

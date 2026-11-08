@@ -210,6 +210,98 @@ func (windowsDrivers) Install(ctx context.Context, job agentproto.DriverInstall,
 	if len(files) == 0 {
 		return false, "", errors.New("no files")
 	}
+	switch job.Installer {
+	case "", agentproto.InstallerINF:
+		return installINF(ctx, job, files)
+	case agentproto.InstallerDell, agentproto.InstallerHP, agentproto.InstallerLenovo, agentproto.InstallerExe:
+		return installVendor(ctx, job, files[0])
+	}
+	return false, "", fmt.Errorf("unknown installer %q", job.Installer)
+}
+
+// installVendor runs a vendor package silently: a Dell Update Package
+// directly, an HP SoftPaq or Lenovo package after extracting it, an
+// uploaded program with its arguments.
+func installVendor(ctx context.Context, job agentproto.DriverInstall, file string) (bool, string, error) {
+	firmware := job.Kind == agentproto.DriverKindFirmware
+	if firmware {
+		suspendBitLocker(ctx)
+	}
+	work, err := os.MkdirTemp(filepath.Dir(filepath.Dir(file)), "package-")
+	if err != nil {
+		return false, "", err
+	}
+	defer os.RemoveAll(work)
+	var reboot bool
+	var note string
+	switch job.Installer {
+	case agentproto.InstallerDell:
+		code, out, err := runExit(ctx, file, "/s", "/l="+filepath.Join(work, "dup.log"))
+		if err != nil {
+			return false, "", err
+		}
+		reboot, note, err = dellOutcome(code)
+		if err != nil {
+			return false, "", fmt.Errorf("%w %s", err, lastLine(out))
+		}
+	case agentproto.InstallerExe:
+		code, out, err := runExit(ctx, file, agentproto.SplitCommand(job.Command)...)
+		if err != nil {
+			return false, "", err
+		}
+		if reboot, note, err = exitOutcome(code, job.ExitCodes); err != nil {
+			return false, "", fmt.Errorf("%w %s", err, lastLine(out))
+		}
+	default:
+		dir := filepath.Join(work, "x")
+		var args []string
+		if job.Installer == agentproto.InstallerHP {
+			args = []string{"/s", "/e", "/f", dir}
+		} else {
+			args = []string{"/VERYSILENT", "/DIR=" + dir, "/EXTRACT=YES"}
+		}
+		if code, out, err := runExit(ctx, file, args...); err != nil || code != 0 {
+			return false, "", fmt.Errorf("extract the package (exit code %d): %v %s", code, err, lastLine(out))
+		}
+		exe, cargs, err := packageCommand(dir, job.Command)
+		if err != nil {
+			return false, "", err
+		}
+		if !fileExists(exe) {
+			return false, "", fmt.Errorf("the package has no %s", filepath.Base(exe))
+		}
+		code, out, err := runExitIn(ctx, dir, exe, cargs...)
+		if err != nil {
+			return false, "", err
+		}
+		if reboot, note, err = exitOutcome(code, job.ExitCodes); err != nil {
+			return false, "", fmt.Errorf("%w %s", err, lastLine(out))
+		}
+	}
+	return reboot || firmware, note, nil
+}
+
+func runExit(ctx context.Context, exe string, args ...string) (int, string, error) {
+	return runExitIn(ctx, filepath.Dir(exe), exe, args...)
+}
+
+// runExitIn runs a program hidden and returns its exit code.
+func runExitIn(ctx context.Context, dir, exe string, args ...string) (int, string, error) {
+	cmd := hiddenCommand(ctx, exe, args...)
+	cmd.Dir = dir
+	raw, err := cmd.CombinedOutput()
+	var ee *exec.ExitError
+	if errors.As(err, &ee) {
+		return ee.ExitCode(), string(raw), nil
+	}
+	if err != nil {
+		return -1, string(raw), fmt.Errorf("run %s: %w", filepath.Base(exe), err)
+	}
+	return 0, string(raw), nil
+}
+
+// installINF unpacks the files and adds the drivers with pnputil.
+func installINF(ctx context.Context, job agentproto.DriverInstall, files []string) (bool, string, error) {
 	dir, err := os.MkdirTemp(filepath.Dir(filepath.Dir(files[0])), "unpacked-")
 	if err != nil {
 		return false, "", err
@@ -221,7 +313,7 @@ func (windowsDrivers) Install(ctx context.Context, job agentproto.DriverInstall,
 			return false, "", err
 		}
 		switch strings.ToLower(filepath.Ext(f)) {
-		case ".cab":
+		case ".cab", ".zip":
 			if err := unpackCab(ctx, f, sub); err != nil {
 				return false, "", err
 			}

@@ -318,7 +318,12 @@
     "invalid_state": "Onbekende status.",
     "invalid_ids": "Selecteer tussen 1 en 500 updates.",
     "invalid_driver_action": "Onbekende actie.",
-    "driver_not_ready": "Alleen updates die in de repository staan kunnen worden geïnstalleerd."
+    "driver_not_ready": "Alleen updates die in de repository staan kunnen worden geïnstalleerd.",
+    "unsupported_driver_file": "Upload een .zip of .cab met een driver (.inf), een programma (.exe) of een fwupd-firmwarecabinet (.cab).",
+    "no_inf_in_zip": "Het ZIP-bestand bevat geen driver (.inf).",
+    "upload_missing": "Het geüploade bestand is weg. Upload het opnieuw.",
+    "driver_already_uploaded": "Dit pakket is al geüpload.",
+    "title_required": "Geef het pakket een naam."
   },
   "login": {
     "title": "Inloggen",
@@ -2578,7 +2583,9 @@
     "tabs": {
       "available": "Beschikbaar",
       "repository": "Repository",
-      "rejected": "Afgewezen"
+      "rejected": "Afgewezen",
+      "uploads": "Eigen pakketten",
+      "vendors": "Fabrikantcatalogi"
     },
     "lists": {
       "available": "Beschikbare updates",
@@ -2586,7 +2593,7 @@
       "rejected": "Afgewezen updates"
     },
     "listHints": {
-      "available": "Aangeboden door Windows Update of fwupd aan minstens één van je apparaten. Voeg een update toe aan de repository om de server hem te laten downloaden.",
+      "available": "Aangeboden aan minstens één van je apparaten door Windows Update, fwupd of een BIOS-catalogus van de fabrikant. Voeg een update toe aan de repository om de server hem te laten downloaden.",
       "repository": "Opgeslagen op deze server. Apparaten installeren deze in het patchvenster van hun beleid, of meteen vanaf het tabblad Drivers van een apparaat.",
       "rejected": "Verborgen in de lijst met beschikbare updates. Zet er een terug om hem weer te zien."
     },
@@ -2613,7 +2620,11 @@
     },
     "sources": {
       "windows-update": "Windows Update",
-      "fwupd": "fwupd (LVFS)"
+      "fwupd": "fwupd (LVFS)",
+      "dell": "Dell-catalogus",
+      "hp": "HP-catalogus",
+      "lenovo": "Lenovo-catalogus",
+      "upload": "Geüpload"
     },
     "states": {
       "available": "Beschikbaar",
@@ -2666,6 +2677,70 @@
     "policyDriversOff": "Drivers: niet automatisch",
     "policyFirmwareOn": "Firmware: in het venster geïnstalleerd",
     "policyFirmwareOff": "Firmware: niet automatisch",
-    "deviceNoPolicy": "De groep van dit apparaat heeft geen patchbeleid, dus er wordt niets automatisch geïnstalleerd. Je kunt repository-updates wel met de hand installeren."
+    "deviceNoPolicy": "De groep van dit apparaat heeft geen patchbeleid, dus er wordt niets automatisch geïnstalleerd. Je kunt repository-updates wel met de hand installeren.",
+    "critical": "Kritiek",
+    "installer": "Geïnstalleerd met",
+    "command": "Installatieopdracht",
+    "installers": {
+      "inf": "pnputil (driver-.inf)",
+      "fwupd": "fwupd",
+      "dell": "Dell Update Package",
+      "hp": "HP SoftPaq",
+      "lenovo": "Lenovo-pakket",
+      "exe": "Programma met argumenten"
+    },
+    "vendors": {
+      "title": "BIOS uit de fabrikantcatalogi",
+      "hint": "Eén keer per dag leest de server de BIOS-catalogi van Dell, HP en Lenovo voor de modellen onder je Windows-apparaten. Alleen de catalogi worden gelezen: een BIOS-update verschijnt onder Beschikbaar en wordt pas gedownload nadat je hem aan de repository toevoegt.",
+      "about": {
+        "dell": "Gekoppeld op het systeem-ID (SKU) en de BIOS-versie. Stil geïnstalleerd met het Dell Update Package.",
+        "hp": "Gekoppeld op het platform-ID (moederbord) en de ROM-familie. Stil geïnstalleerd met HP's flashtool uit de SoftPaq.",
+        "lenovo": "Gekoppeld op het machinetype en het BIOS-niveau. Stil geïnstalleerd met Lenovo's BIOS-updatehulpmiddel."
+      },
+      "status": "Status",
+      "syncNow": "Catalogi nu lezen",
+      "lastRun": "Laatst gelezen",
+      "notYet": "Nog niet sinds de server is gestart",
+      "models": "Modellen met een catalogus",
+      "daily": "Catalogi worden na 24 uur opnieuw gelezen, en meteen voor een nieuw model.",
+      "unmatched": "Sommige apparaten melden hun systeem-ID of moederbord nog niet ({{list}}). Ze worden gekoppeld zodra hun agent is bijgewerkt en een nieuwe inventaris heeft gestuurd.",
+      "catalogs": "Modellen",
+      "catalogsHint": "De fabrikantcatalogi die voor de modellen van je apparaten zijn gelezen.",
+      "none": "Nog geen Windows-apparaten van Dell, HP of Lenovo met een bekend model.",
+      "model": "Model-ID",
+      "biosReleases": "BIOS-versies",
+      "fetched": "Gelezen"
+    },
+    "uploads": {
+      "title": "Eigen driverpakketten",
+      "hint": "Pakketten die je zelf uploadt: een driver als .zip of .cab met de .inf erin, een fabrikantprogramma (.exe) met stille argumenten, of een firmwarecabinet voor fwupd. Ze worden meteen opgeslagen en aangeboden aan de apparaten waar het doel op past.",
+      "add": "Pakket uploaden",
+      "empty": "Nog geen pakketten geüpload.",
+      "target": "Apparaten",
+      "edit": "Bewerken",
+      "delete": "Pakket verwijderen",
+      "confirmDelete": "\"{{title}}\" verwijderen? Apparaten krijgen het dan niet meer.",
+      "allDevices": "alle apparaten van het platform",
+      "drop": "Sleep hier een .zip, .cab of .exe heen (maximaal 2 GB)",
+      "choose": "Bestand kiezen",
+      "other": "Ander bestand kiezen",
+      "name": "Naam",
+      "platform": "Platform",
+      "platformHint": "Een .zip of .exe is voor Windows; een .cab is een Windows-driver of een fwupd-firmwarecabinet.",
+      "manufacturer": "Fabrikant bevat",
+      "manufacturerHint": "Leeg voor elke fabrikant. Vergeleken met de inventaris van het apparaat, hoofdletters maken niet uit.",
+      "model": "Model bevat",
+      "modelHint": "Leeg voor elk model, bijvoorbeeld \"Latitude 7450\" of \"20XW\".",
+      "arguments": "Argumenten voor stille installatie",
+      "argumentsHint": "Worden aan het programma meegegeven, bijvoorbeeld /s voor een Dell Update Package. Exitcodes 0, 3010 en 1641 betekenen geslaagd.",
+      "description": "Omschrijving",
+      "reboot": "Herstart nodig",
+      "how": {
+        "inf": "De agent pakt het pakket uit en installeert elke .inf erin met pnputil.",
+        "exe": "De agent voert het programma uit als SYSTEM met de argumenten hierboven.",
+        "fwupd": "De agent installeert het cabinet met fwupdmgr op de apparaten waar het op past."
+      },
+      "uploadedBy": "Geüpload door {{user}} op {{date}}"
+    }
   }
 }
