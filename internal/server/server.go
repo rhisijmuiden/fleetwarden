@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rhisijmuiden/fleetwarden/internal/auth"
@@ -88,6 +89,9 @@ type Server struct {
 	gateways   gatewayManager
 	appOnce    sync.Once
 	app        http.Handler
+	trusted    atomic.Pointer[[]netip.Prefix] // FW_TRUSTED_PROXIES plus the web interface list
+	hsts       atomic.Bool
+	probes     probeSet
 	bgCtx      context.Context // ends when RunWorkers' context ends
 	bgCancel   context.CancelFunc
 	bgWG       sync.WaitGroup
@@ -127,7 +131,7 @@ func New(cfg config.Server, d Deps) *Server {
 		d.Log.Warn("winget catalog", "err", err)
 	}
 	bgCtx, bgCancel := context.WithCancel(context.Background())
-	return &Server{winget: d.Winget,
+	s := &Server{winget: d.Winget,
 		agentKey: d.AgentKey, hub: newAgentHub(), agentFails: auth.NewLimiter(30, 15*time.Minute),
 		bgCtx: bgCtx, bgCancel: bgCancel,
 		cfg: cfg, db: d.DB, st: d.Store, box: d.Secrets, log: d.Log, mailer: d.Mailer, sso: d.SSO, updates: d.Updates, backupOpts: d.Backup,
@@ -135,6 +139,12 @@ func New(cfg config.Server, d Deps) *Server {
 		usrFails: auth.NewLimiter(8, 15*time.Minute),
 		now:      time.Now,
 	}
+	if s.st != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		s.applyProxySettings(s.loadProxySettings(ctx))
+		cancel()
+	}
+	return s
 }
 
 // Handler returns the root HTTP handler.
@@ -187,6 +197,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.reportRoutes(mux)
 	s.alertRoutes(mux)
 	s.gatewayRoutes(mux)
+	s.proxyRoutes(mux)
 
 	// Signed in. allowPending lets a user with a forced password change reach these.
 	mux.Handle("GET /api/v1/auth/me", s.authed("", allowPending, s.handleMe))
@@ -319,27 +330,35 @@ func ClientIP(r *http.Request) string {
 }
 
 // withClientIP resolves the real client IP, scheme and host. X-Forwarded-*
-// headers are only honoured when the direct peer is a configured trusted proxy.
+// headers are only honoured when the direct peer is a trusted proxy.
 func (s *Server) withClientIP(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := resolveClientIP(r, s.cfg.TrustedProxies)
-		scheme, host := "http", r.Host
-		if r.TLS != nil {
-			scheme = "https"
+		ctx := s.withProxyContext(r)
+		if scheme, _ := ctx.Value(schemeKey).(string); scheme == "https" && s.hsts.Load() {
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000")
 		}
-		if peerTrusted(r, s.cfg.TrustedProxies) {
-			if p := strings.ToLower(firstHeaderValue(r.Header.Get("X-Forwarded-Proto"))); p == "https" || p == "http" {
-				scheme = p
-			}
-			if h := firstHeaderValue(r.Header.Get("X-Forwarded-Host")); h != "" {
-				host = h
-			}
-		}
-		ctx := context.WithValue(r.Context(), clientIPKey, ip)
-		ctx = context.WithValue(ctx, schemeKey, scheme)
-		ctx = context.WithValue(ctx, hostKey, host)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func (s *Server) withProxyContext(r *http.Request) context.Context {
+	trusted := s.trustedProxies()
+	ip := resolveClientIP(r, trusted)
+	scheme, host := "http", r.Host
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	if peerTrusted(r, trusted) {
+		if p := strings.ToLower(firstHeaderValue(r.Header.Get("X-Forwarded-Proto"))); p == "https" || p == "http" {
+			scheme = p
+		}
+		if h := firstHeaderValue(r.Header.Get("X-Forwarded-Host")); h != "" {
+			host = h
+		}
+	}
+	ctx := context.WithValue(r.Context(), clientIPKey, ip)
+	ctx = context.WithValue(ctx, schemeKey, scheme)
+	return context.WithValue(ctx, hostKey, host)
 }
 
 func firstHeaderValue(v string) string {

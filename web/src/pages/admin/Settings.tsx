@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
+import { Network } from "lucide-react";
 import { get, put, type ScanSettings } from "../../api";
 import { IntervalInput } from "../../components/IntervalInput";
 import { Updates } from "../../components/Updates";
-import { Alert, Button, Card, Field, Input, PageHeader, Spinner, useErrorText } from "../../components/ui";
+import { Alert, Button, Card, Field, PageHeader, Spinner, useErrorText } from "../../components/ui";
 
 type General = { publicUrl: string; detectedUrl: string };
 
@@ -16,33 +18,26 @@ export function Settings() {
     get<General>("/settings/general").then(setG).catch((e) => setMsg({ tone: "danger", text: errorText(e) }));
   }, []);
 
-  const save = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!g) return;
-    setMsg(null);
-    try {
-      setG(await put<General>("/settings/general", { publicUrl: g.publicUrl }));
-      setMsg({ tone: "success", text: t("common.saved") });
-    } catch (err) {
-      setMsg({ tone: "danger", text: errorText(err) });
-    }
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader title={t("settings.title")} description={t("settings.subtitle")} />
       <Card title={t("settings.general")}>
         {!g ? (
-          <Spinner />
+          !msg && <Spinner />
         ) : (
-          <form onSubmit={save} className="max-w-xl space-y-4">
-            {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
-            <Field label={t("settings.publicUrl")} hint={t("settings.publicUrlHint", { url: g.detectedUrl })}>
-              {(id) => <Input id={id} type="url" value={g.publicUrl} placeholder={g.detectedUrl} onChange={(e) => setG({ ...g, publicUrl: e.target.value })} />}
-            </Field>
-            <Button type="submit">{t("common.save")}</Button>
-          </form>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0 text-sm">
+              <p className="font-medium">{t("settings.publicUrl")}</p>
+              <p className="font-mono break-all text-muted">{g.publicUrl || t("settings.publicUrlDetected", { url: g.detectedUrl })}</p>
+              <p className="mt-1 text-xs text-muted">{t("settings.proxyHint")}</p>
+            </div>
+            <Link to="/admin/reverse-proxy" className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-surface px-4 text-sm font-medium hover:bg-surface-muted">
+              <Network className="size-4" />
+              {t("settings.openProxy")}
+            </Link>
+          </div>
         )}
+        {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       </Card>
       <AgentScans />
       <Card title={t("updates.title")} description={t("updates.subtitle")}>

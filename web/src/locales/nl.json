@@ -33,6 +33,7 @@
     "info": "Over",
     "audit": "Auditlog",
     "agentUpdates": "Agent-updates",
+    "reverseProxy": "Reverse proxy",
     "gateways": "Secure gateway"
   },
   "dashboard": {
@@ -228,6 +229,8 @@
     "report_failed": "Het rapport kon niet gemaakt worden.",
     "invalid_threshold": "Vul een drempel binnen het toegestane bereik in.",
     "invalid_kind": "Kies een geldig type.",
+    "network_too_wide": "Als je elk adres vertrouwt, kan iedereen zijn IP-adres vervalsen. Vul het adres of netwerk van de proxy zelf in.",
+    "invalid_upstream": "Vul de upstream in als host:poort, bijvoorbeeld 127.0.0.1:8080.",
     "gateway_bad_pairing_code": "De koppelcode klopt niet. Voer \"sudo fleetwarden-gateway pairing-code\" uit op de gateway om hem te zien.",
     "gateway_unreachable": "De gateway is niet bereikbaar op dit adres. Controleer het adres, de poort en de firewall tussen de server en de DMZ.",
     "gateway_already_paired": "Deze gateway is al gekoppeld aan een server. Voer \"sudo fleetwarden-gateway reset-pairing\" uit op de gateway voor een nieuwe code.",
@@ -503,14 +506,17 @@
     "subtitle": "Algemene serverinstellingen, agentscans en updates.",
     "general": "Algemeen",
     "publicUrl": "Publieke URL",
-    "publicUrlHint": "Het adres dat mensen via je reverse proxy gebruiken, voor SSO en links in e-mails. Leeg: gedetecteerd als {{url}}.",
     "scans": "Agentscans",
     "scansSubtitle": "Hoe vaak agents hun software-inventaris sturen en scannen op ontbrekende Windows- en Linux-updates. Apparaatgroepen kunnen deze standaard overschrijven.",
     "inventoryInterval": "Software-inventaris elke",
     "inventoryHint": "Hardware, geïnstalleerde software en aangemelde gebruiker. 15 minuten tot 7 dagen.",
     "patchScanInterval": "Updatescan elke",
     "patchScanHint": "Windows Update of apt. Alleen voor apparaten in een groep met een patchbeleid. 1 uur tot 7 dagen.",
-    "scansApplied": "Online agents gebruiken het nieuwe interval binnen een minuut."
+    "scansApplied": "Online agents gebruiken het nieuwe interval binnen een minuut.",
+    "publicUrlDetected": "Niet ingesteld, gedetecteerd als {{url}}",
+    "proxyHint": "De publieke URL, vertrouwde proxy's, configuratievoorbeelden en een verbindingstest staan op de pagina Reverse proxy.",
+    "openProxy": "Reverse proxy-instellingen",
+    "publicUrlHint": "Het adres dat mensen via je reverse proxy gebruiken, voor SSO en links in e-mails. Leeg: gedetecteerd als {{url}}."
   },
   "audit": {
     "title": "Auditlog",
@@ -1838,6 +1844,210 @@
       "recipientsHint": "Maximaal 20 adressen, gescheiden door komma's. Laat leeg om meldingen alleen hier te tonen.",
       "notifyResolved": "Ook mailen als een melding is opgelost",
       "enabled": "Regel is actief"
+    }
+  },
+  "proxy": {
+    "title": "Reverse proxy",
+    "subtitle": "FleetWarden achter nginx, Caddy, HAProxy of Zoraxy: wat de server ziet, welke proxy's hij vertrouwt, kant-en-klare configuratie en een end-to-end test.",
+    "statusTitle": "Hoe deze browser de server bereikt",
+    "statusSubtitle": "Wat de server ziet van het verzoek waarmee deze pagina is geladen.",
+    "peer": "Directe verbinding vanaf",
+    "trusted": "vertrouwde proxy",
+    "notTrusted": "niet vertrouwd",
+    "clientIp": "Client-IP (na proxy)",
+    "scheme": "Schema",
+    "host": "Host",
+    "listen": "Server luistert op",
+    "serverAddresses": "Adressen van deze server",
+    "untrustedTitle": "Een proxy op {{peer}} stuurt verzoeken door, maar wordt niet vertrouwd",
+    "untrustedText": "De server negeert dan de X-Forwarded-*-headers. Auditlog en rate limits zien de proxy in plaats van de gebruiker, cookies worden niet als veilig gemarkeerd en links wijzen naar http. Voeg dit adres toe aan de vertrouwde proxy's en sla op.",
+    "trustPeer": "{{peer}} vertrouwen",
+    "localOnlyTitle": "De server luistert alleen op {{listen}}",
+    "localOnlyText": "Alleen een proxy op deze zelfde machine kan hem bereiken. Draait je proxy op een andere host (bijvoorbeeld Zoraxy op een aparte machine)? Laat de server dan op het netwerk luisteren met dit commando op de server en voeg hieronder het adres van de proxy toe. De instelling staat in {{file}}.",
+    "openTitle": "De server luistert op {{listen}}",
+    "openText": "Andere machines kunnen de server direct bereiken. Sta met een firewall alleen de proxy toe op deze poort, zodat iedereen via de proxy en zijn TLS gaat.",
+    "settingsTitle": "Proxy-instellingen",
+    "settingsSubtitle": "Direct actief, geen herstart nodig.",
+    "publicUrl": "Externe basis-URL",
+    "publicUrlHint": "Het adres dat gebruikers en agents gebruiken, zoals https://fleet.example.com. Wordt gebruikt voor SSO, agent-installers en links in e-mails. Leeg: gedetecteerd als {{url}}.",
+    "trustedProxies": "Vertrouwde proxy's",
+    "trustedHint": "Eén IP-adres of netwerk per regel (CIDR). Alleen deze mogen X-Forwarded-For, -Proto en -Host zetten. Altijd vertrouwd vanuit de serverconfiguratie: {{env}} (FW_TRUSTED_PROXIES in {{file}}).",
+    "hsts": "HSTS-header sturen",
+    "hstsHint": "Laat browsers een jaar lang alleen HTTPS gebruiken voor dit domein. Zet aan zodra HTTPS werkt.",
+    "examplesTitle": "Configuratievoorbeelden",
+    "examplesSubtitle": "Ingevuld met het adres van deze server. Kies je proxy, kopieer de configuratie en voer hieronder de test uit.",
+    "rememberChoices": "Keuzes onthouden",
+    "proxyType": "Proxy",
+    "domain": "Domein",
+    "domainHint": "Uit de externe basis-URL.",
+    "upstream": "FleetWarden-adres (upstream)",
+    "upstreamHint": "Waar de proxy deze server bereikt: host:poort.",
+    "tlsMode": "Certificaat",
+    "tlsAcme": "Let's Encrypt (automatisch)",
+    "tlsOwn": "Eigen certificaatbestanden",
+    "upstreamLocalOnly": "De server luistert alleen op {{listen}}, dus een proxy op een andere host kan deze upstream niet bereiken. Pas eerst FW_LISTEN aan (zie boven).",
+    "copied": "Gekopieerd",
+    "download": "Downloaden",
+    "reqTitle": "Wat de proxy moet doen voor alle functies",
+    "req": {
+      "web": {
+        "title": "Webinterface en API",
+        "text": "Stuur alles onder / door naar FleetWarden: de webinterface, /api/ en /healthz."
+      },
+      "agents": {
+        "title": "Agents",
+        "text": "/agent/ (inschrijven, installers, downloads) moet vanaf internet bereikbaar zijn op poort 443 voor agents buiten kantoor."
+      },
+      "websocket": {
+        "title": "WebSockets",
+        "text": "Agents (/agent/v1/ws), overname op afstand en live updates gebruiken WebSockets: stuur de Upgrade- en Connection-headers door."
+      },
+      "headers": {
+        "title": "Doorgestuurde headers",
+        "text": "Stuur X-Forwarded-For, X-Forwarded-Proto en X-Forwarded-Host (of behoud Host) en voeg de proxy toe aan de vertrouwde proxy's."
+      },
+      "tls": {
+        "title": "TLS",
+        "text": "De proxy verzorgt HTTPS met een geldig certificaat; agents weigeren onbetrouwbare certificaten. Stuur http:// door naar https://."
+      },
+      "uploads": {
+        "title": "Grote uploads",
+        "text": "Softwarepakketten en agent-installers tot {{gib}} GiB: verhoog de limiet voor de request-grootte en stream uploads."
+      },
+      "timeouts": {
+        "title": "Lange verbindingen",
+        "text": "Agents blijven verbonden en sessies op afstand kunnen uren duren: idle-timeouts van minstens een uur (FleetWarden pingt elke 30 seconden)."
+      }
+    },
+    "zoraxy": {
+      "s1": "Ingress (in oudere Zoraxy-versies Status)",
+      "s1a": "Inbound / Proxy Listening Port: 443, met \"Use TLS to serve proxy request\" aan.",
+      "s1b": "\"Enable HTTP server on port 80\" aan, en \"Force redirect HTTP request to HTTPS\" aan.",
+      "s1c": "Poort 80 en 443 in je router doorgestuurd naar Zoraxy.",
+      "s2": "HTTP Proxy > Create Proxy Rule",
+      "matching": "Matching Keyword / Domain",
+      "target": "Target IP Address or Domain Name with port",
+      "s2c": "Laat \"Proxy Target require TLS Connection\" uit: FleetWarden praat gewoon HTTP achter de proxy.",
+      "s3": "Advance Settings van de regel (ook via HTTP Proxy > Edit)",
+      "s3a": "Laat \"Disable WebSocket\" uit: agents en overname op afstand hebben WebSockets nodig.",
+      "wsTimeout": "WebSocket Timeout (seconden)",
+      "s3c": "Zet \"Refresh timeout on activity\" aan, zodat de timeout een idle-timeout is en geen maximale duur van 5 minuten.",
+      "s3d": "Laat \"Block Common Exploits\" uit voor deze regel: dat kan agentverkeer en installer-uploads blokkeren.",
+      "s4acme": "TLS / SSL certificates > ACME Client",
+      "s4a": "Stel een ACME-e-mailadres in, kies Let's Encrypt en vraag een certificaat aan voor {{domain}}.",
+      "s4b": "Zet \"Enable Certificate Auto Renew\" aan.",
+      "s4own": "TLS / SSL certificates",
+      "s4ownA": "Upload het certificaat (volledige keten) en de private key voor {{domain}}.",
+      "s5": "Hier in FleetWarden",
+      "s5a": "Zoraxy stuurt zelf X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host en X-Real-Ip mee; eigen headers zijn niet nodig. Er is geen uploadlimiet.",
+      "s5b": "Voeg het IP-adres van Zoraxy toe aan de vertrouwde proxy's hierboven, sla op en voer de test uit."
+    },
+    "testTitle": "Configuratie testen",
+    "testSubtitle": "Controleert het hele pad: vanaf de server via de externe URL (zoals een agent) en vanuit deze browser.",
+    "testIntro": "Sla eerst je instellingen op. De test bereikt deze server via de externe basis-URL, controleert het certificaat, de doorgestuurde headers, het agent-endpoint en WebSockets, en test daarna WebSockets en een upload van 16 MB vanuit deze browser.",
+    "runTest": "Test uitvoeren",
+    "summaryPass": "Alles werkt: webinterface, agents, WebSockets en uploads gaan goed via de proxy.",
+    "summaryFail": "{{n}} controle(s) mislukt. Zie de uitleg per controle.",
+    "summaryWarn": "Werkt, met {{n}} waarschuwing(en).",
+    "skipped": "Overgeslagen omdat een eerdere controle mislukte of niet van toepassing is.",
+    "side": {
+      "server": "Vanaf de server via de externe URL (pad van de agents)",
+      "browser": "Vanuit deze browser"
+    },
+    "status": {
+      "pass": "Geslaagd",
+      "warn": "Waarschuwing",
+      "fail": "Mislukt",
+      "skip": "Overgeslagen"
+    },
+    "check": {
+      "listen": {
+        "title": "Luisteradres van de server",
+        "pass": "Luistert op {{detail}}."
+      },
+      "public_url": {
+        "title": "Externe basis-URL",
+        "pass": "{{detail}}",
+        "warn": "{{detail}} gebruikt http://. Agents en inloggen gaan dan onversleuteld; gebruik https:// via de proxy.",
+        "fail": "Geen externe basis-URL ingesteld. Vul hem hierboven in en sla op, zodat agents en links het adres van de proxy gebruiken."
+      },
+      "dns": {
+        "title": "DNS",
+        "pass": "Verwijst naar {{detail}}.",
+        "fail": "Het domein is vanaf de server niet op te zoeken. Maak het DNS-record aan, of zet het voor intern gebruik in /etc/hosts."
+      },
+      "tls": {
+        "title": "TLS-certificaat",
+        "pass": "Geldig (uitgever, protocol, dagen over): {{detail}}.",
+        "warn": "Geldig maar verloopt binnenkort (uitgever, protocol, dagen over): {{detail}}. Controleer het automatisch vernieuwen.",
+        "fail": "Niet geldig: {{detail}}. Agents weigeren dan te verbinden. Gebruik Let's Encrypt of een certificaat van een vertrouwde CA, uitgegeven voor dit domein."
+      },
+      "reach": {
+        "title": "Server bereikbaar via de proxy",
+        "pass": "De proxy stuurt door naar deze FleetWarden-server.",
+        "fail": "Niet bereikbaar: {{detail}}. Controleer of de proxy draait, doorstuurt naar de upstream hierboven, en of de server zijn eigen externe URL kan bereiken (bij NAT heb je soms hairpin-NAT of een intern DNS-record nodig)."
+      },
+      "peer_trusted": {
+        "title": "Proxy wordt vertrouwd",
+        "pass": "De proxy verbindt vanaf {{detail}} en wordt vertrouwd.",
+        "fail": "De proxy verbindt vanaf {{detail}}, en dat adres wordt niet vertrouwd. Voeg het toe aan de vertrouwde proxy's en sla op."
+      },
+      "forwarded_proto": {
+        "title": "X-Forwarded-Proto",
+        "pass": "De proxy geeft het schema goed door ({{detail}}).",
+        "fail": "Ontbreekt of klopt niet ({{detail}}). Laat de proxy X-Forwarded-Proto: https sturen, anders zijn cookies niet veilig en gebruiken links http."
+      },
+      "forwarded_host": {
+        "title": "Host / X-Forwarded-Host",
+        "pass": "De server ziet de externe host {{detail}}.",
+        "warn": "De server ziet host {{detail}} in plaats van het externe domein. Laat de proxy de Host-header behouden of X-Forwarded-Host sturen."
+      },
+      "forwarded_for": {
+        "title": "X-Forwarded-For",
+        "pass": "Clientadres doorgestuurd ({{detail}}).",
+        "fail": "Wordt niet meegestuurd. Auditlog en rate limits zien dan de proxy in plaats van de echte gebruiker."
+      },
+      "agent_hello": {
+        "title": "Agent-endpoint",
+        "pass": "Agents kunnen zich inschrijven en verbinden (server {{detail}}).",
+        "fail": "/agent/v1/hello antwoordt niet goed: {{detail}}. Stuur ook /agent/ door naar FleetWarden."
+      },
+      "websocket": {
+        "title": "WebSocket (agents, overname op afstand)",
+        "pass": "WebSocket-upgrade en berichten werken via de proxy.",
+        "fail": "De upgrade mislukte: {{detail}}. Stuur de Upgrade- en Connection-headers door (nginx: proxy_set_header Upgrade/Connection; Zoraxy: WebSocket niet uitschakelen)."
+      },
+      "http_redirect": {
+        "title": "http:// naar https://",
+        "pass": "Doorgestuurd of poort 80 dicht ({{detail}}).",
+        "warn": "http:// antwoordt met status {{detail}} in plaats van door te sturen naar https://."
+      },
+      "browser_https": {
+        "title": "Deze browser gebruikt HTTPS",
+        "pass": "Verbonden via https.",
+        "warn": "Deze pagina is geladen via {{detail}}. Open FleetWarden via https:// door de proxy."
+      },
+      "browser_origin": {
+        "title": "Geopend via de externe URL",
+        "pass": "Deze pagina is geopend via de externe basis-URL.",
+        "warn": "Deze pagina is geopend via {{detail}}, niet via de externe basis-URL. De browsertests hieronder testen dan dat pad."
+      },
+      "browser_headers": {
+        "title": "Doorgestuurde headers voor deze browser",
+        "pass": "Proxy en client herkend: {{detail}}.",
+        "warn": "Deze browser verbindt direct ({{detail}}), niet via een proxy.",
+        "fail": "Niet herkend als verzoek via een vertrouwde proxy met HTTPS ({{detail}}). Controleer de vertrouwde proxy's en of de proxy X-Forwarded-Proto meestuurt."
+      },
+      "browser_websocket": {
+        "title": "WebSocket vanuit deze browser (overname op afstand, live updates)",
+        "pass": "Werkt.",
+        "fail": "Mislukt ({{detail}}). Controleer het doorsturen van WebSockets en de Host/Origin-header in de proxy."
+      },
+      "browser_upload": {
+        "title": "Upload van 16 MB (installers)",
+        "pass": "Geaccepteerd ({{detail}}). Zorg dat de limiet van de proxy minstens 2 GiB is.",
+        "fail": "Geweigerd ({{detail}}). Status 413 betekent dat de limiet voor de request-grootte in de proxy te laag is (nginx: client_max_body_size; Caddy: request_body max_size)."
+      }
     }
   },
   "gateways": {
