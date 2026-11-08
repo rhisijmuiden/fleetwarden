@@ -18,7 +18,8 @@ export type Permission =
   | "software.deploy"
   | "remote.control"
   | "reports.manage"
-  | "alerts.manage";
+  | "alerts.manage"
+  | "config.manage";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -974,3 +975,109 @@ export type FleetAlert = {
   acknowledgedAt: string | null;
   acknowledgedBy: string;
 };
+
+// ---- configuration management ----
+
+export type ConfigType = "browser" | "registry" | "script";
+export type StartupMode = "" | "newtab" | "restore" | "urls";
+
+export type BrowserSettings = {
+  browsers: BrowserKey[];
+  homepage?: string;
+  showHomeButton?: boolean | null;
+  startupMode?: StartupMode;
+  startupUrls?: string[];
+  passwordManager?: boolean | null;
+  chromeExtensions?: string[];
+  edgeExtensions?: string[];
+  firefoxExtensions?: string[];
+  extra?: Partial<Record<BrowserKey, Record<string, unknown>>>;
+};
+
+export type RegistryType = "string" | "expandstring" | "multistring" | "dword" | "qword" | "delete";
+export type RegistryValue = { hive: "HKLM" | "HKCU"; key: string; name: string; type: RegistryType; value?: string };
+export type RegistrySettings = { values: RegistryValue[]; keep?: boolean };
+
+export type ScriptShell = "powershell" | "cmd" | "bash" | "sh";
+export type ScriptTrigger = "once" | "startup" | "logon" | "interval";
+export type ScriptSettings = {
+  shell: ScriptShell;
+  content: string;
+  runAs: "system" | "user";
+  trigger: ScriptTrigger;
+  intervalMinutes?: number;
+  timeoutMinutes: number;
+};
+
+export type ConfigSettings = BrowserSettings | RegistrySettings | ScriptSettings;
+
+export type Configuration = {
+  id: number;
+  name: string;
+  description: string;
+  type: ConfigType;
+  platform: Platform;
+  settings: ConfigSettings | null; // null for users who may not see them
+  enabled: boolean;
+  groupIds: number[];
+  priority: number;
+  revision: number;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  devices: number;
+  applied: number;
+  failed: number;
+  repaired: number;
+};
+
+export type ConfigList = {
+  items: Configuration[];
+  reapplyMinutes: number;
+  types: Record<Platform, ConfigType[]>;
+  shells: Record<Platform, ScriptShell[]>;
+};
+
+export type ConfigState = "pending" | "applied" | "failed" | "waiting" | "unsupported" | "disabled";
+
+export type DeviceConfigState = {
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  domainJoined: boolean;
+  online: boolean;
+  configurationId: number;
+  configurationName: string;
+  type: ConfigType;
+  currentRevision: number;
+  revision: number;
+  state: ConfigState;
+  message: string;
+  repairedTotal: number;
+  repairedAt: string | null;
+  appliedAt: string | null;
+  reportedAt: string | null;
+  runAt: string | null;
+  runExitCode: number | null;
+  runOutput: string;
+  runError: string;
+};
+
+export type ConfigView = { configuration: Configuration; devices: DeviceConfigState[] };
+
+export type ConfigRun = {
+  id: number;
+  deviceId: string;
+  hostname: string;
+  configurationId: number;
+  revision: number;
+  at: string;
+  user: string;
+  exitCode: number;
+  output: string;
+  error: string;
+  durationMs: number;
+};
+
+export type DeviceConfigsView = { items: DeviceConfigState[]; runs: ConfigRun[] };

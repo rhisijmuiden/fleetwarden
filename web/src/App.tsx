@@ -31,6 +31,7 @@ import { Remote } from "./pages/remote/Remote";
 import { RemoteViewer } from "./pages/remote/Viewer";
 import { Reports } from "./pages/reports/Reports";
 import { Alerts } from "./pages/alerts/Alerts";
+import { ConfigDetail, ConfigEditor, Configurations } from "./pages/configurations/Configurations";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
@@ -43,6 +44,10 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/software", perm: "devices.view", element: <Software /> },
   { path: "/deployments", perm: "devices.view", element: <Deployments /> },
   { path: "/deployments/:id", perm: "devices.view", element: <DeploymentDetail /> },
+  { path: "/configurations", perm: "devices.view", element: <Configurations /> },
+  { path: "/configurations/new", perm: "config.manage", element: <ConfigEditor /> },
+  { path: "/configurations/:id", perm: "devices.view", element: <ConfigDetail /> },
+  { path: "/configurations/:id/edit", perm: "config.manage", element: <ConfigEditor key="edit" /> },
   { path: "/remote", perm: "remote.control", element: <Remote /> },
   { path: "/reports", perm: "devices.view", element: <Reports /> },
   { path: "/alerts", perm: "devices.view", element: <Alerts /> },

@@ -1,3 +1,5 @@
+//go:build linux
+
 package server
 
 import (
@@ -5,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -15,9 +16,6 @@ import (
 )
 
 func TestConfigurations(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		t.Skip("uses the Linux configuration backend")
-	}
 	e := newEnv(t)
 	admin, _ := e.signedInAdmin()
 	var grp, other store.DeviceGroup
