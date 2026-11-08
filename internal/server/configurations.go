@@ -184,8 +184,8 @@ func validateConfig(c *store.Configuration) string {
 	case len(c.Settings) > maxConfigSettings:
 		return "settings_too_large"
 	}
-	slices.Sort(c.GroupIDs)
-	c.GroupIDs = slices.Compact(c.GroupIDs)
+	slices.Sort(c.ProfileIDs)
+	c.ProfileIDs = slices.Compact(c.ProfileIDs)
 	dec := json.NewDecoder(bytes.NewReader(c.Settings))
 	dec.DisallowUnknownFields()
 	var v any
@@ -594,6 +594,11 @@ func (s *Server) configRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/v1/configurations/{id}/apply", manage(s.handleApplyConfig))
 	mux.Handle("GET /api/v1/configurations/{id}/runs", view(s.handleConfigRuns))
 	mux.Handle("GET /api/v1/devices/{id}/configurations", view(s.handleDeviceConfigs))
+	mux.Handle("GET /api/v1/config-profiles", view(s.handleListProfiles))
+	mux.Handle("POST /api/v1/config-profiles", manage(s.handleCreateProfile))
+	mux.Handle("GET /api/v1/config-profiles/{id}", view(s.handleGetProfile))
+	mux.Handle("PUT /api/v1/config-profiles/{id}", manage(s.handleUpdateProfile))
+	mux.Handle("DELETE /api/v1/config-profiles/{id}", manage(s.handleDeleteProfile))
 	mux.Handle("POST /api/v1/devices/{id}/configurations/apply", s.authed(auth.PermDevicesManage, 0, s.handleApplyDeviceConfigs))
 }
 
@@ -639,12 +644,17 @@ type configReq struct {
 	Platform    string          `json:"platform"`
 	Settings    json.RawMessage `json:"settings"`
 	Enabled     *bool           `json:"enabled"`
-	GroupIDs    []int64         `json:"groupIds"`
-	Priority    *int            `json:"priority"`
+	// ProfileIDs are the profiles the configuration is in; left out, they
+	// stay as they are.
+	ProfileIDs *[]int64 `json:"profileIds"`
+	Priority   *int     `json:"priority"`
 }
 
 func (s *Server) configFromReq(w http.ResponseWriter, r *http.Request, req configReq, c *store.Configuration) bool {
-	c.Name, c.Description, c.Settings, c.GroupIDs = req.Name, req.Description, req.Settings, req.GroupIDs
+	c.Name, c.Description, c.Settings = req.Name, req.Description, req.Settings
+	if req.ProfileIDs != nil {
+		c.ProfileIDs = *req.ProfileIDs
+	}
 	if req.Enabled != nil {
 		c.Enabled = *req.Enabled
 	}
@@ -655,9 +665,9 @@ func (s *Server) configFromReq(w http.ResponseWriter, r *http.Request, req confi
 		apiError(w, http.StatusBadRequest, bad)
 		return false
 	}
-	for _, g := range c.GroupIDs {
-		if _, err := s.st.GroupByID(r.Context(), g); err != nil {
-			apiError(w, http.StatusBadRequest, "unknown_group")
+	for _, id := range c.ProfileIDs {
+		if _, err := s.st.ConfigProfileByID(r.Context(), id, store.Scope{All: true}); err != nil {
+			apiError(w, http.StatusBadRequest, "unknown_profile")
 			return false
 		}
 	}
@@ -684,7 +694,7 @@ func (s *Server) handleCreateConfig(w http.ResponseWriter, r *http.Request) {
 		s.internalError(w, r, err)
 		return
 	}
-	s.audit(r, "config.create", c.Name, true, map[string]any{"type": c.Type, "platform": c.Platform, "groups": c.GroupIDs})
+	s.audit(r, "config.create", c.Name, true, map[string]any{"type": c.Type, "platform": c.Platform, "profiles": c.ProfileIDs})
 	s.pushConfigsSoon()
 	writeJSON(w, http.StatusCreated, c)
 }
@@ -764,7 +774,7 @@ func (s *Server) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		s.internalError(w, r, err)
 		return
 	}
-	s.audit(r, "config.update", c.Name, true, map[string]any{"id": c.ID, "revision": c.Revision, "enabled": c.Enabled, "groups": c.GroupIDs})
+	s.audit(r, "config.update", c.Name, true, map[string]any{"id": c.ID, "revision": c.Revision, "enabled": c.Enabled, "profiles": c.ProfileIDs})
 	s.pushConfigsSoon()
 	writeJSON(w, http.StatusOK, c)
 }

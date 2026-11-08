@@ -1,16 +1,19 @@
+import { useEffect, useState } from "react";
+import { NavLink } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Code2, Globe, HardDrive, ListTree, Printer, type LucideIcon } from "lucide-react";
-import type { ConfigState, ConfigType, Configuration, DeviceConfigState } from "../../api";
+import { get, type ConfigProfile, type ConfigState, type ConfigType, type Configuration, type DeviceConfigState } from "../../api";
 import { Badge } from "../../components/ui";
 
 export const typeIcons: Record<ConfigType, LucideIcon> = { browser: Globe, registry: ListTree, script: Code2, drives: HardDrive, printers: Printer };
 
-export function TypeBadge({ type }: { type: ConfigType }) {
+// TypeBadge shows the type of a configuration, or its name with the type's icon.
+export function TypeBadge({ type, label }: { type: ConfigType; label?: string }) {
   const { t } = useTranslation();
   const Icon = typeIcons[type];
   return (
-    <span className="inline-flex items-center gap-1 rounded-sm bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
-      <Icon className="size-3.5" /> {t(`configs.types.${type}`)}
+    <span className="inline-flex max-w-full items-center gap-1 rounded-sm bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+      <Icon className="size-3.5 shrink-0" /> <span className="truncate">{label ?? t(`configs.types.${type}`)}</span>
     </span>
   );
 }
@@ -52,5 +55,32 @@ export function ConfigProgress({ c }: { c: Configuration }) {
         {c.failed > 0 && <span className="text-danger"> · {t("configs.failedCount", { count: c.failed })}</span>}
       </p>
     </div>
+  );
+}
+
+export function useProfiles(): ConfigProfile[] | null {
+  const [profiles, setProfiles] = useState<ConfigProfile[] | null>(null);
+  useEffect(() => {
+    get<ConfigProfile[]>("/config-profiles")
+      .then(setProfiles)
+      .catch(() => setProfiles([]));
+  }, []);
+  return profiles;
+}
+
+// ConfigTabs switches between configurations and profiles.
+export function ConfigTabs() {
+  const { t } = useTranslation();
+  const tab = ({ isActive }: { isActive: boolean }) =>
+    `-mb-px border-b-2 px-1 pb-2.5 text-sm font-medium ${isActive ? "border-primary text-primary" : "border-transparent text-muted hover:text-fg"}`;
+  return (
+    <nav className="flex gap-6 border-b border-line">
+      <NavLink to="/configurations" end className={tab}>
+        {t("configs.tabs.items")}
+      </NavLink>
+      <NavLink to="/configurations/profiles" className={tab}>
+        {t("configs.tabs.profiles")}
+      </NavLink>
+    </nav>
   );
 }

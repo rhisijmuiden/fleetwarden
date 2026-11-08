@@ -27,7 +27,7 @@ import { useGroups } from "../../components/GroupScope";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Switch, formatDate, useErrorText } from "../../components/ui";
 import { PlatformBadge, StatusDot, timeAgo } from "../devices/util";
 import { BrowserForm, DrivesForm, PrintersForm, RegistryForm, ScriptForm, defaultSettings } from "./forms";
-import { ConfigProgress, ConfigStateBadge, TypeBadge, effectiveState, typeIcons } from "./util";
+import { ConfigProgress, ConfigStateBadge, ConfigTabs, TypeBadge, effectiveState, typeIcons, useProfiles } from "./util";
 
 function EmptyState({ onNew, canManage }: { onNew: () => void; canManage: boolean }) {
   const { t } = useTranslation();
@@ -114,6 +114,8 @@ export function Configurations() {
     const id = setInterval(load, 15000);
     return () => clearInterval(id);
   }, [load]);
+  const profiles = useProfiles();
+  const profileName = (id: number) => profiles?.find((p) => p.id === id)?.name ?? `#${id}`;
   const groupName = (id: number) => groups?.find((g) => g.id === id)?.name ?? `#${id}`;
   const items = useMemo(() => {
     const f = filter.trim().toLowerCase();
@@ -133,6 +135,7 @@ export function Configurations() {
           )
         }
       />
+      <ConfigTabs />
       {error && <Alert tone="danger">{error}</Alert>}
       <Card>
         {!list ? (
@@ -150,7 +153,7 @@ export function Configurations() {
                 <thead className="border-y border-line text-left text-xs text-muted uppercase">
                   <tr>
                     <th className="px-5 py-3 font-medium">{t("configs.cols.name")}</th>
-                    <th className="px-3 py-3 font-medium">{t("configs.cols.groups")}</th>
+                    <th className="px-3 py-3 font-medium">{t("configs.cols.profiles")}</th>
                     <th className="px-3 py-3 font-medium">{t("configs.cols.state")}</th>
                     <th className="px-3 py-3 font-medium">{t("configs.cols.order")}</th>
                     <th className="px-5 py-3 font-medium">{t("configs.cols.changed")}</th>
@@ -174,7 +177,8 @@ export function Configurations() {
                         </div>
                       </td>
                       <td className="max-w-[240px] px-3 py-3 text-muted">
-                        <div className="truncate">{c.groupIds.length ? c.groupIds.map(groupName).join(", ") : t("configs.noGroups")}</div>
+                        <div className="truncate">{c.profileIds.length ? c.profileIds.map(profileName).join(", ") : t("configs.noProfiles")}</div>
+                        {c.groupIds.length > 0 && <div className="truncate text-xs">{c.groupIds.map(groupName).join(", ")}</div>}
                       </td>
                       <td className="px-3 py-3">
                         <ConfigProgress c={c} />
@@ -215,7 +219,7 @@ export function ConfigEditor() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const errorText = useErrorText();
-  const groups = useGroups();
+  const profiles = useProfiles();
   const shells = useShells();
   const [cfg, setCfg] = useState<Configuration | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -239,6 +243,7 @@ export function ConfigEditor() {
       settings: defaultSettings(type, platform),
       enabled: true,
       groupIds: [],
+      profileIds: params.get("profile") ? [Number(params.get("profile"))] : [],
       priority: 100,
       revision: 0,
       createdBy: "",
@@ -267,7 +272,7 @@ export function ConfigEditor() {
       platform: cfg.platform,
       settings: cfg.settings,
       enabled: cfg.enabled,
-      groupIds: cfg.groupIds,
+      profileIds: cfg.profileIds,
       priority: cfg.priority,
     };
     try {
@@ -321,22 +326,23 @@ export function ConfigEditor() {
               <Switch checked={cfg.enabled} onChange={(enabled) => set({ enabled })} label={t("configs.enabled")} description={t("configs.enabledHint")} />
             </div>
           </Card>
-          <Card title={t("configs.assign")} description={t("configs.assignHint")}>
+          <Card title={t("configs.profiles.title")} description={t("configs.profiles.pickHint")}>
             <div className="grid max-h-64 gap-1 overflow-y-auto">
-              {(groups ?? []).map((g) => (
-                <label key={g.id} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted">
+              {(profiles ?? []).map((p) => (
+                <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted">
                   <input
                     type="checkbox"
                     className="size-4 accent-primary"
-                    checked={cfg.groupIds.includes(g.id)}
-                    onChange={(e) => set({ groupIds: e.target.checked ? [...cfg.groupIds, g.id] : cfg.groupIds.filter((x) => x !== g.id) })}
+                    checked={cfg.profileIds.includes(p.id)}
+                    onChange={(e) => set({ profileIds: e.target.checked ? [...cfg.profileIds, p.id] : cfg.profileIds.filter((x) => x !== p.id) })}
                   />
-                  <span className="flex-1 truncate">{g.name}</span>
-                  <span className="text-xs text-muted tabular-nums">{g.deviceCount}</span>
+                  <span className="flex-1 truncate">{p.name}</span>
+                  <span className="text-xs text-muted tabular-nums">{t("configs.profiles.devices", { count: p.devices })}</span>
                 </label>
               ))}
             </div>
-            {cfg.groupIds.length === 0 && <p className="mt-2 text-xs text-warning">{t("configs.noGroupsHint")}</p>}
+            {profiles?.length === 0 && <p className="text-sm text-muted">{t("configs.profiles.none")}</p>}
+            {cfg.profileIds.length === 0 && <p className="mt-2 text-xs text-warning">{t("configs.noProfilesHint")}</p>}
           </Card>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => navigate(id ? `/configurations/${id}` : "/configurations")}>
@@ -364,6 +370,7 @@ export function ConfigDetail() {
   const { can } = useAuth();
   const manage = can("config.manage");
   const groups = useGroups();
+  const profiles = useProfiles();
   const [view, setView] = useState<ConfigView | null>(null);
   const [runs, setRuns] = useState<ConfigRun[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -401,6 +408,7 @@ export function ConfigDetail() {
   if (!view) return <Spinner />;
   const c = view.configuration;
   const groupName = (gid: number) => groups?.find((g) => g.id === gid)?.name ?? `#${gid}`;
+  const profileName = (pid: number) => profiles?.find((p) => p.id === pid)?.name ?? `#${pid}`;
   const repairedDomain = view.devices.some((d) => d.repairedTotal > 0 && d.domainJoined);
 
   const apply = async () => {
@@ -442,7 +450,26 @@ export function ConfigDetail() {
             {!c.enabled && <Badge>{t("configs.disabled")}</Badge>}
             <span>{t("configs.revision", { revision: c.revision })}</span>
             <span>·</span>
-            <span>{c.groupIds.length ? c.groupIds.map(groupName).join(", ") : t("configs.noGroups")}</span>
+            <span>
+              {c.profileIds.length ? (
+                c.profileIds.map((pid, i) => (
+                  <span key={pid}>
+                    {i > 0 && ", "}
+                    <Link to={`/configurations/profiles/${pid}`} className="hover:text-primary">
+                      {profileName(pid)}
+                    </Link>
+                  </span>
+                ))
+              ) : (
+                <span className="text-warning">{t("configs.noProfiles")}</span>
+              )}
+            </span>
+            {c.groupIds.length > 0 && (
+              <>
+                <span>·</span>
+                <span>{c.groupIds.map(groupName).join(", ")}</span>
+              </>
+            )}
           </div>
         </div>
         {manage && (

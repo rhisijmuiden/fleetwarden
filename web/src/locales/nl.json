@@ -292,7 +292,10 @@
     "invalid_printer_protocol": "Onbekend printerprotocol.",
     "invalid_printer_kind": "Onbekend printertype.",
     "duplicate_printer": "Elke printer kan maar één keer toegevoegd worden.",
-    "multiple_default_printers": "Maar één printer kan de standaardprinter zijn."
+    "multiple_default_printers": "Maar één printer kan de standaardprinter zijn.",
+    "unknown_profile": "Dat profiel bestaat niet.",
+    "unknown_configuration": "Die configuratie bestaat niet.",
+    "profile_exists": "Er bestaat al een profiel met deze naam."
   },
   "login": {
     "title": "Inloggen",
@@ -2241,7 +2244,7 @@
       "drives": "Koppel netwerkschijven zoals H: voor elke gebruiker die zich aanmeldt, ook op pc's zonder domein.",
       "printers": "Gedeelde printers van een printserver en TCP/IP-printers, met hun driver en de standaardprinter."
     },
-    "comingSoon": "Netwerkschijven, printers en meer Windows-instellingen volgen in de volgende update.",
+    "comingSoon": "Meer Windows-instellingen (achtergrond, vergrendelscherm, energie, lokale beheerders, firewall) volgen in een volgende update.",
     "cols": {
       "name": "Configuratie",
       "groups": "Groepen",
@@ -2254,7 +2257,8 @@
       "when": "Wanneer",
       "user": "Draait als",
       "result": "Resultaat",
-      "duration": "Duur"
+      "duration": "Duur",
+      "profiles": "Profielen"
     },
     "noGroups": "Niet toegewezen",
     "noGroupsHint": "Kies minstens één groep, anders krijgt geen apparaat deze configuratie.",
@@ -2439,6 +2443,36 @@
         "device": "Windows voegt hem toe aan de printers van elke gebruiker bij de volgende aanmelding.",
         "user": "Wordt meteen toegevoegd in de sessie van elke aangemelde gebruiker."
       }
+    },
+    "tabs": {
+      "items": "Configuraties",
+      "profiles": "Profielen"
+    },
+    "noProfiles": "In geen profiel",
+    "noProfilesHint": "Zet de configuratie in minstens één profiel, anders krijgt geen apparaat haar.",
+    "profiles": {
+      "title": "Profielen",
+      "subtitle": "Een profiel bundelt configuraties. Koppel het aan apparaatgroepen: elk apparaat in die groepen krijgt al zijn configuraties, ook pc's zonder domein.",
+      "pickHint": "Apparaten in de groepen van deze profielen krijgen de configuratie.",
+      "none": "Er zijn nog geen profielen. Maak er een onder Profielen, of sla nu op en voeg haar later aan een profiel toe.",
+      "new": "Nieuw profiel",
+      "emptyTitle": "Nog geen profielen",
+      "emptyText": "Bundel configuraties zoals een startpagina, netwerkschijven en printers in een profiel, en koppel het aan apparaatgroepen.",
+      "items": "Configuraties",
+      "itemsHint": "De configuraties in dit profiel. Een configuratie kan in meerdere profielen zitten.",
+      "noItems": "Geen configuraties",
+      "noConfigs": "Er zijn nog geen configuraties.",
+      "makeConfig": "Nieuwe configuratie maken",
+      "devicesCol": "Apparaten",
+      "enabledHint": "Uitgeschakeld krijgen apparaten de configuraties niet meer via dit profiel.",
+      "assignHint": "Apparaten in deze groepen krijgen elke configuratie van het profiel, ook apparaten die later toegevoegd worden.",
+      "noGroupsHint": "Kies minstens één groep, anders krijgt geen apparaat dit profiel.",
+      "deleteTitle": "Profiel verwijderen?",
+      "deleteText": "{{name}} wordt verwijderd. De configuraties blijven bestaan, maar apparaten die ze alleen via dit profiel kregen, verwijderen hun instellingen.",
+      "devices_one": "{{count}} apparaat",
+      "devices_other": "{{count}} apparaten",
+      "colName": "Profiel",
+      "search": "Profielen zoeken"
     }
   }
 }
