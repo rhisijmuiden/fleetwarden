@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/rhisijmuiden/fleetwarden/internal/mail"
@@ -52,6 +54,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.agentUpdateTick(ctx)
 			s.patchTick(ctx)
 			s.softwareTick(ctx)
+			s.reportTick(ctx)
 		case <-houseTick.C:
 			if err := s.st.PurgeSessions(ctx, sessionIdle); err != nil {
 				s.log.Warn("purge sessions", "err", err)
@@ -86,7 +89,13 @@ func (s *Server) ProcessMailQueue(ctx context.Context) {
 		n, err := s.st.ProcessMail(ctx, 10, mailMaxAttempts, mailBackoff, func(m store.Mail) error {
 			sctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 			defer cancel()
-			return s.mailer.Send(sctx, cfg, mail.Message{To: m.To, Subject: m.Subject, Text: m.BodyText, HTML: m.BodyHTML})
+			msg := mail.Message{To: m.To, Subject: m.Subject, Text: m.BodyText, HTML: m.BodyHTML}
+			if len(m.Attachments) > 2 {
+				if err := json.Unmarshal(m.Attachments, &msg.Attachments); err != nil {
+					return fmt.Errorf("attachments: %w", err)
+				}
+			}
+			return s.mailer.Send(sctx, cfg, msg)
 		})
 		if err != nil {
 			s.log.Error("mail queue", "err", err)

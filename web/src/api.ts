@@ -16,7 +16,9 @@ export type Permission =
   | "patches.approve"
   | "software.manage"
   | "software.deploy"
-  | "remote.control";
+  | "remote.control"
+  | "reports.manage"
+  | "alerts.manage";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -704,6 +706,110 @@ export type BrowserReport = {
     outdated: boolean;
     browsers: Partial<Record<BrowserKey, { version: string; edition?: string; upToDate: boolean }>>;
   }[];
+};
+
+// ---- reports ----
+
+export type ReportKind = "compliance" | "patches" | "software";
+
+export type ReportSettings = { offlineDays: number; patchGraceDays: number; diskFreePercent: number; ignoredSoftware: string[] };
+
+export type LowVolume = { mount: string; freePercent: number; freeBytes: number };
+
+export type ComplianceDevice = {
+  id: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  platform: Platform;
+  online: boolean;
+  lastSeenAt: string;
+  stale: boolean;
+  notScanned: boolean;
+  security: number;
+  outdated: number;
+  lowDisk: LowVolume[];
+  lowestDisk: LowVolume | null;
+  compliant: boolean;
+  software: string[] | null;
+};
+
+export type ComplianceGroup = {
+  groupId: number;
+  name: string;
+  devices: number;
+  compliant: number;
+  stale: number;
+  patches: number;
+  software: number;
+  disk: number;
+  score: number;
+  notScanned: number;
+};
+
+export type ComplianceReport = {
+  generated: string;
+  scope: string;
+  settings: ReportSettings;
+  catalog: boolean;
+  devices: number;
+  compliant: number;
+  score: number;
+  stale: number;
+  patches: number;
+  notScanned: number;
+  software: number;
+  disk: number;
+  groups: ComplianceGroup[];
+  rows: ComplianceDevice[];
+};
+
+export type PatchesReport = {
+  generated: string;
+  scope: string;
+  devices: number;
+  scanned: number;
+  upToDate: number;
+  devicesMissing: number;
+  devicesSecurity: number;
+  rebootPending: number;
+  updates: { updateId: string; title: string; kb: string; category: PatchCategory; severity: string; releasedAt: string | null; firstSeenAt: string; devices: number }[];
+  rows: { id: string; hostname: string; groupName: string; platform: Platform; online: boolean; missing: number; security: number; rebootPending: boolean; patchScanAt: string | null }[];
+};
+
+export type OutdatedProgram = { name: string; version: string; publisher: string; packageId: string; package: string; latest: string };
+
+export type SoftwareReport = {
+  generated: string;
+  scope: string;
+  catalog: CatalogStatus;
+  devices: number;
+  devicesOutdated: number;
+  installs: number;
+  matched: number;
+  ignored: string[];
+  packages: { packageId: string; libraryId: number | null; name: string; latest: string; versions: string[]; devices: number }[];
+  rows: { id: string; hostname: string; groupName: string; online: boolean; programs: OutdatedProgram[] }[];
+};
+
+export type ReportSchedule = {
+  id: number;
+  name: string;
+  enabled: boolean;
+  reports: ReportKind[];
+  groupIds: number[];
+  frequency: "daily" | "weekly" | "monthly";
+  weekday: number;
+  monthDay: number;
+  sendAt: number;
+  timeZone: string;
+  recipients: string[];
+  language: "en" | "nl";
+  formats: ("pdf" | "csv")[];
+  nextRunAt: string | null;
+  lastRunAt: string | null;
+  lastError: string;
+  createdBy: string;
 };
 
 export type InstalledSoftware = { name: string; publisher: string; platform: Platform; source: string; versions: string[]; devices: number };

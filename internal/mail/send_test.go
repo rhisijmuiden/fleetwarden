@@ -65,13 +65,15 @@ func TestSendPlainRelay(t *testing.T) {
 	cfg := Config{Enabled: true, Host: "127.0.0.1", Port: port, Security: SecurityNone, Auth: AuthNone,
 		FromName: "Fleet", FromAddress: "fw@example.com"}
 	msg := Render("test", "en", "admin@example.com", Brand{Product: "Fleet"}, nil)
+	msg.Attachments = []Attachment{{Name: "report.csv", ContentType: "text/csv", Data: []byte("a,b\n1,2\n")}}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := (&Sender{Timeout: 5 * time.Second}).Send(ctx, cfg, msg); err != nil {
 		t.Fatal(err)
 	}
 	got := <-data
-	for _, want := range []string{"Subject: Fleet test e-mail", "To: <admin@example.com>", "text/html", "text/plain"} {
+	for _, want := range []string{"Subject: Fleet test e-mail", "To: <admin@example.com>", "text/html", "text/plain",
+		`filename="report.csv"`, "Content-Type: text/csv"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("message lacks %q:\n%s", want, got)
 		}

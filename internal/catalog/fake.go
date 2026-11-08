@@ -22,6 +22,11 @@ import (
 type FakePackage struct {
 	ID, Name, Moniker, Version, Manifest string
 	Tags                                 []string
+	// Publisher and ARPNames fill the tables that match installed
+	// programs; ARPNames defaults to Name.
+	Publisher string
+	ARPNames  []string
+	ARPMax    string
 }
 
 // FakeCDN serves a catalog with these packages the way the winget CDN does.
@@ -37,6 +42,8 @@ func FakeCDN(dir string, pkgs []FakePackage) (http.Handler, error) {
 			arp_min_version TEXT, arp_max_version TEXT, hash BLOB)`,
 		`CREATE TABLE tags2(rowid INTEGER PRIMARY KEY, tag TEXT NOT NULL)`,
 		`CREATE TABLE tags2_map(tag INT64 NOT NULL, package INT64 NOT NULL, PRIMARY KEY(tag, package)) WITHOUT ROWID`,
+		`CREATE TABLE norm_names2(norm_name TEXT NOT NULL, package INT64 NOT NULL, PRIMARY KEY(norm_name, package)) WITHOUT ROWID`,
+		`CREATE TABLE norm_publishers2(norm_publisher TEXT NOT NULL, package INT64 NOT NULL, PRIMARY KEY(norm_publisher, package)) WITHOUT ROWID`,
 	}
 	for _, s := range stmts {
 		if _, err := db.Exec(s); err != nil {
@@ -63,10 +70,28 @@ func FakeCDN(dir string, pkgs []FakePackage) (http.Handler, error) {
 		if p.Moniker != "" {
 			moniker = p.Moniker
 		}
-		if _, err := db.Exec("INSERT INTO packages (rowid, id, name, moniker, latest_version, hash) VALUES (?, ?, ?, ?, ?, ?)",
-			i+1, p.ID, p.Name, moniker, p.Version, hash[:]); err != nil {
+		var arpMax any
+		if p.ARPMax != "" {
+			arpMax = p.ARPMax
+		}
+		if _, err := db.Exec("INSERT INTO packages (rowid, id, name, moniker, latest_version, arp_max_version, hash) VALUES (?, ?, ?, ?, ?, ?, ?)",
+			i+1, p.ID, p.Name, moniker, p.Version, arpMax, hash[:]); err != nil {
 			db.Close()
 			return nil, err
+		}
+		arp := p.ARPNames
+		if len(arp) == 0 {
+			arp = []string{p.Name}
+		}
+		for _, n := range arp {
+			norm, arch := NormalizeName(n)
+			if arch != "" {
+				norm += "(" + arch + ")"
+			}
+			db.Exec("INSERT OR IGNORE INTO norm_names2 (norm_name, package) VALUES (?, ?)", norm, i+1) //nolint:errcheck
+		}
+		if p.Publisher != "" {
+			db.Exec("INSERT OR IGNORE INTO norm_publishers2 (norm_publisher, package) VALUES (?, ?)", NormalizePublisher(p.Publisher), i+1) //nolint:errcheck
 		}
 		for _, t := range p.Tags {
 			tagID++

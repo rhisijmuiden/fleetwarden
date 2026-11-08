@@ -265,19 +265,12 @@ func TestRemoteDesktopSession(t *testing.T) {
 	consent.mu.Lock()
 	consent.allow = false
 	consent.mu.Unlock()
+	// The fake agent answers at once, often before a viewer could connect,
+	// so the session log is checked instead of the viewer.
 	admin.do("POST", "/api/v1/devices/"+id+"/remote", map[string]string{"kind": "desktop"}, &rs)
-	v = admin.openViewer(rs.ID)
-	for {
-		st, _ := v.next()
-		if st.State == "denied" {
-			if st.Reason != "user_denied" {
-				t.Errorf("denied: %+v", st)
-			}
-			break
-		}
-		if st.State == "active" || st.State == "ended" {
-			t.Fatalf("denied session went %s", st.State)
-		}
+	denied := waitRemote(t, admin, rs.ID, func(r store.RemoteSession) bool { return r.EndedAt != nil })
+	if denied.State != "denied" || denied.Reason != "user_denied" {
+		t.Errorf("denied: %+v", denied)
 	}
 
 	// A group set to direct: nobody is asked, and the operator closes the viewer.

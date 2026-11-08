@@ -30,6 +30,9 @@ var texts = map[string]map[string]string{
 		"restore_success.body":    "{{product}} was restored from backup {{snapshot}}. {{detail}}",
 		"restore_failed.subject":  "{{product}} restore failed",
 		"restore_failed.body":     "Restoring {{product}} from backup {{snapshot}} failed; the previous state was kept. Details: {{detail}}",
+		"report.subject":          "{{product}} report: {{name}}",
+		"report.body":             "Your scheduled report \"{{name}}\" ({{scope}}) is attached. Generated on {{date}}.",
+		"report.footer":           "You receive this e-mail because you are a recipient of the scheduled report \"{{name}}\" in {{product}}.",
 		"footer":                  "You receive this e-mail because you are an administrator of {{product}}.",
 		"open":                    "Open {{product}}",
 	},
@@ -46,6 +49,9 @@ var texts = map[string]map[string]string{
 		"restore_success.body":    "{{product}} is teruggezet vanuit backup {{snapshot}}. {{detail}}",
 		"restore_failed.subject":  "Terugzetten van {{product}} mislukt",
 		"restore_failed.body":     "Het terugzetten van {{product}} vanuit backup {{snapshot}} is mislukt; de vorige toestand is behouden. Details: {{detail}}",
+		"report.subject":          "{{product}}-rapport: {{name}}",
+		"report.body":             "In de bijlage vind je het geplande rapport \"{{name}}\" ({{scope}}). Gemaakt op {{date}}.",
+		"report.footer":           "Je ontvangt deze e-mail omdat je ontvanger bent van het geplande rapport \"{{name}}\" in {{product}}.",
 		"footer":                  "Je ontvangt deze e-mail omdat je beheerder bent van {{product}}.",
 		"open":                    "{{product}} openen",
 	},
@@ -68,13 +74,30 @@ var layout = template.Must(template.New("mail").Parse(`<!doctype html>
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:12px;border:1px solid #e3e6eb">
 <tr><td style="padding:20px 28px;border-bottom:3px solid {{.Color}};font-size:18px;font-weight:600">{{.Product}}</td></tr>
 <tr><td style="padding:28px;font-size:15px;line-height:1.6">{{.Body}}
+{{if .Facts}}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0;border-collapse:collapse;font-size:14px">
+{{range .Facts}}<tr><td style="padding:8px 0;border-bottom:1px solid #e3e6eb;color:#5b6578">{{.Label}}</td><td align="right" style="padding:8px 0;border-bottom:1px solid #e3e6eb;font-weight:600;{{if .Color}}color:{{.Color}}{{end}}">{{.Value}}</td></tr>
+{{end}}</table>{{end}}
 {{if .URL}}<p style="margin:24px 0 0"><a href="{{.URL}}" style="display:inline-block;background:{{.Color}};color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">{{.Open}}</a></p>{{end}}
 </td></tr>
 <tr><td style="padding:16px 28px;border-top:1px solid #e3e6eb;font-size:12px;color:#5b6578">{{.Footer}}</td></tr>
 </table></td></tr></table></body></html>`))
 
+// Fact is one key figure shown as a row under the text of a message.
+type Fact struct {
+	Label string
+	Value string
+	Tone  string // "", "success", "warning" or "danger"
+}
+
+var toneColors = map[string]string{"success": "#15803d", "warning": "#b45309", "danger": "#b91c1c"}
+
 // Render builds a branded message of the given kind in lang ("en" or "nl").
 func Render(kind, lang, to string, brand Brand, vars map[string]string) Message {
+	return RenderFacts(kind, lang, to, brand, vars, nil)
+}
+
+// RenderFacts is Render with key figures under the text.
+func RenderFacts(kind, lang, to string, brand Brand, vars map[string]string, facts []Fact) Message {
 	if brand.Product == "" {
 		brand.Product = "FleetWarden"
 	}
@@ -88,12 +111,26 @@ func Render(kind, lang, to string, brand Brand, vars map[string]string) Message 
 	subject := tr(lang, kind+".subject", v)
 	body := tr(lang, kind+".body", v)
 	footer := tr(lang, "footer", v)
+	if _, ok := texts["en"][kind+".footer"]; ok {
+		footer = tr(lang, kind+".footer", v)
+	}
+	type factView struct{ Label, Value, Color string }
+	var fv []factView
+	for _, f := range facts {
+		fv = append(fv, factView{f.Label, f.Value, toneColors[f.Tone]})
+	}
 	var html bytes.Buffer
-	_ = layout.Execute(&html, map[string]string{
-		"Lang": lang, "Color": brand.Color, "Product": brand.Product, "Body": body,
+	_ = layout.Execute(&html, map[string]any{
+		"Lang": lang, "Color": brand.Color, "Product": brand.Product, "Body": body, "Facts": fv,
 		"URL": brand.URL, "Open": tr(lang, "open", v), "Footer": footer,
 	})
 	text := body + "\n\n"
+	for _, f := range facts {
+		text += f.Label + ": " + f.Value + "\n"
+	}
+	if len(facts) > 0 {
+		text += "\n"
+	}
 	if brand.URL != "" {
 		text += brand.URL + "\n\n"
 	}

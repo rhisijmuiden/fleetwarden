@@ -2,13 +2,24 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Monitor, Plus } from "lucide-react";
-import { get, type DeviceStats } from "../api";
+import { get, type ComplianceReport, type DeviceStats } from "../api";
 import { useAuth } from "../auth";
 
 export function Dashboard() {
   const { t } = useTranslation();
   const { can } = useAuth();
   const [stats, setStats] = useState<DeviceStats | null>(null);
+  const [comp, setComp] = useState<ComplianceReport | null>(null);
+  useEffect(() => {
+    if (!can("devices.view")) return;
+    const load = () =>
+      get<ComplianceReport>("/reports/compliance")
+        .then(setComp)
+        .catch(() => undefined);
+    load();
+    const id = setInterval(load, 300000);
+    return () => clearInterval(id);
+  }, []);
   useEffect(() => {
     if (!can("devices.view")) return;
     const load = () =>
@@ -32,8 +43,27 @@ export function Dashboard() {
       sub: stats?.total ? `${Math.round(((stats.online ?? 0) / stats.total) * 100)}%` : "",
       to: "/devices?status=online",
     },
-    { label: t("dashboard.missingPatches"), value: "–", sub: t("dashboard.phase", { phase: 4 }) },
-    { label: t("dashboard.outdatedSoftware"), value: "–", sub: t("dashboard.phase", { phase: 7 }) },
+    {
+      label: t("dashboard.compliance"),
+      value: comp && comp.devices ? `${comp.score}%` : "–",
+      sub: comp ? t("dashboard.compliantOf", { count: comp.compliant, total: comp.devices }) : "",
+      tone: comp && comp.devices ? (comp.score >= 90 ? "text-success" : comp.score >= 70 ? "text-warning" : "text-danger") : "",
+      to: "/reports",
+    },
+    {
+      label: t("dashboard.missingPatches"),
+      value: comp?.patches ?? "–",
+      sub: t("dashboard.securityDevices"),
+      tone: comp?.patches ? "text-danger" : "",
+      to: "/reports?tab=patches",
+    },
+    {
+      label: t("dashboard.outdatedSoftware"),
+      value: comp?.software ?? "–",
+      sub: t("dashboard.outdatedDevices"),
+      tone: comp?.software ? "text-warning" : "",
+      to: "/reports?tab=software",
+    },
   ];
   return (
     <div className="space-y-6">
@@ -41,12 +71,12 @@ export function Dashboard() {
         <h1 className="text-2xl font-semibold tracking-tight">{t("dashboard.title")}</h1>
         <p className="mt-1 text-sm text-muted">{t("dashboard.subtitle")}</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {tiles.map((s) => {
           const body = (
             <>
               <p className="text-sm text-muted">{s.label}</p>
-              <p className="mt-2 text-3xl font-semibold tabular-nums">{s.value}</p>
+              <p className={`mt-2 text-3xl font-semibold tabular-nums ${"tone" in s ? s.tone : ""}`}>{s.value}</p>
               {s.sub && <p className="mt-1 text-xs text-muted">{s.sub}</p>}
             </>
           );
