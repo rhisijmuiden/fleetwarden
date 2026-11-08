@@ -35,7 +35,8 @@
     "agentUpdates": "Agent-updates",
     "reverseProxy": "Reverse proxy",
     "gateways": "Secure gateway",
-    "configurations": "Configuraties"
+    "configurations": "Configuraties",
+    "drivers": "Drivers & firmware"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -313,7 +314,11 @@
     "invalid_addresses": "Externe adressen zijn IP-adressen, subnetten (10.0.0.0/24), reeksen (10.0.0.1-10.0.0.9) of LocalSubnet.",
     "invalid_program": "Het programma moet het volledige pad van een .exe zijn.",
     "invalid_profile": "Onbekend netwerkprofiel.",
-    "invalid_firewall_action": "Kies toestaan of blokkeren."
+    "invalid_firewall_action": "Kies toestaan of blokkeren.",
+    "invalid_state": "Onbekende status.",
+    "invalid_ids": "Selecteer tussen 1 en 500 updates.",
+    "invalid_driver_action": "Onbekende actie.",
+    "driver_not_ready": "Alleen updates die in de repository staan kunnen worden geïnstalleerd."
   },
   "login": {
     "title": "Inloggen",
@@ -435,7 +440,8 @@
     "remote_control": "Apparaten op afstand overnemen",
     "reports_manage": "Geplande rapporten en compliance-regels beheren",
     "alerts_manage": "Meldingen bevestigen en meldingsregels beheren",
-    "config_manage": "Configuraties beheren (browserbeleid, register, scripts)"
+    "config_manage": "Configuraties beheren (browserbeleid, register, scripts)",
+    "drivers_manage": "Drivers en firmware aan de repository toevoegen"
   },
   "auth": {
     "title": "Authenticatie",
@@ -901,7 +907,8 @@
       "software": "Software",
       "notes": "Notities",
       "updates": "Updates",
-      "configurations": "Configuraties"
+      "configurations": "Configuraties",
+      "drivers": "Drivers"
     },
     "system": "Systeem",
     "osVersion": "Versie",
@@ -1199,7 +1206,7 @@
       "critical": "Kritieke fixes zonder beveiligingsklasse.",
       "cumulative": "Maandelijkse cumulatieve updates en rollups.",
       "definition": "Defender- en andere definitie-updates.",
-      "driver": "Hardwaredrivers via Windows Update.",
+      "driver": "Drivers lopen nu via Drivers & firmware.",
       "feature": "Nieuwe Windows-versies (bijvoorbeeld 25H2).",
       "other": "Overige updates, en gewone apt-updates op Linux."
     },
@@ -1318,7 +1325,13 @@
     "approvedFrom": "Goedgekeurd vanaf {{when}}",
     "awaitingApproval": "Wacht op goedkeuring",
     "history": "Patchgeschiedenis",
-    "scanIntervalMoved": "Hoe vaak apparaten op updates scannen stel je in onder Instellingen > Agentscans, en per apparaatgroep."
+    "scanIntervalMoved": "Hoe vaak apparaten op updates scannen stel je in onder Instellingen > Agentscans, en per apparaatgroep.",
+    "driversSection": "Drivers en firmware",
+    "driversSectionHint": "Alleen updates die een beheerder aan de driver-repository heeft toegevoegd worden geïnstalleerd, in dit venster en met de herstartinstellingen hieronder. Apparaten downloaden nooit zelf drivers bij de leverancier.",
+    "drivers": "Drivers uit de repository installeren",
+    "driversHint": "Voorkomt ook dat Windows zelf drivers ophaalt als er een apparaat wordt aangesloten.",
+    "firmware": "Firmware (BIOS/UEFI) uit de repository installeren",
+    "firmwareHint": "Firmware vraagt een herstart. Op Windows wordt BitLocker voor die ene herstart onderbroken. Test eerst op een paar apparaten."
   },
   "software": {
     "title": "Software",
@@ -2558,5 +2571,101 @@
       "add": "Regel toevoegen",
       "hint": "De regels staan in de Windows Firewall-groep \"FleetWarden\". Wie er een wijzigt of verwijdert krijgt hem terug; regels die niet meer geconfigureerd zijn worden verwijderd."
     }
+  },
+  "drivers": {
+    "title": "Drivers & firmware",
+    "subtitle": "Je eigen repository met driver- en firmware-updates. Apparaten melden wat ze kunnen krijgen; er wordt niets gedownload tot je het hier toevoegt.",
+    "tabs": {
+      "available": "Beschikbaar",
+      "repository": "Repository",
+      "rejected": "Afgewezen"
+    },
+    "lists": {
+      "available": "Beschikbare updates",
+      "repository": "In de repository",
+      "rejected": "Afgewezen updates"
+    },
+    "listHints": {
+      "available": "Aangeboden door Windows Update of fwupd aan minstens één van je apparaten. Voeg een update toe aan de repository om de server hem te laten downloaden.",
+      "repository": "Opgeslagen op deze server. Apparaten installeren deze in het patchvenster van hun beleid, of meteen vanaf het tabblad Drivers van een apparaat.",
+      "rejected": "Verborgen in de lijst met beschikbare updates. Zet er een terug om hem weer te zien."
+    },
+    "empty": {
+      "available": "Geen nieuwe driver- of firmware-updates. Apparaten melden ze bij elke updatescan.",
+      "repository": "De repository is leeg.",
+      "rejected": "Niets afgewezen."
+    },
+    "stats": {
+      "available": "Beschikbaar",
+      "ready": "In repository",
+      "queued": "Bezig met downloaden",
+      "size": "Grootte repository",
+      "devices": "{{devices}} apparaat/apparaten met een update · {{scanned}} gescand",
+      "free": "{{size}} vrij op de server"
+    },
+    "failedHint": "{{count}} download(s) mislukt. Open de update om te zien waarom en probeer het opnieuw.",
+    "search": "Zoek op naam, leverancier, klasse of hardware-ID",
+    "kind": "Type",
+    "allKinds": "Alle types",
+    "kinds": {
+      "driver": "Driver",
+      "firmware": "Firmware"
+    },
+    "sources": {
+      "windows-update": "Windows Update",
+      "fwupd": "fwupd (LVFS)"
+    },
+    "states": {
+      "available": "Beschikbaar",
+      "queued": "Wacht",
+      "downloading": "Bezig met downloaden",
+      "ready": "In repository",
+      "failed": "Download mislukt",
+      "rejected": "Afgewezen"
+    },
+    "update": "Update",
+    "source": "Bron",
+    "devicesCol": "Apparaten",
+    "deviceCol": "Apparaat",
+    "size": "Grootte",
+    "status": "Status",
+    "selectAll": "Alles selecteren",
+    "add": "Toevoegen aan repository",
+    "addSelected": "{{count}} toevoegen aan repository",
+    "retry": "Opnieuw proberen",
+    "reject": "Afwijzen",
+    "unreject": "Terugzetten",
+    "remove": "Uit repository verwijderen",
+    "removeSelected": "{{count}} uit repository verwijderen",
+    "needsRestart": "herstart nodig",
+    "vendor": "Leverancier",
+    "class": "Klasse",
+    "version": "Versie",
+    "released": "Uitgebracht",
+    "hardwareId": "Hardware-ID",
+    "firstSeen": "Eerst gezien",
+    "decidedBy": "Besloten door",
+    "files": "Bestanden",
+    "offeredTo": "Aangeboden aan {{count}} apparaat/apparaten",
+    "noDevices": "Geen apparaat binnen jouw bereik meldt deze update.",
+    "currentVersion": "nu {{version}}",
+    "firmwareWarningTitle": "Firmware-update",
+    "firmwareWarning": "Firmware wordt alleen geïnstalleerd op apparaten waarvan het patchbeleid firmware toestaat. Houd het apparaat aan de stroom tijdens de herstart; op Windows wordt BitLocker voor die herstart onderbroken.",
+    "downloadFailed": "Download mislukt",
+    "notDownloadedHint": "Nog niet gedownload. Toevoegen aan de repository downloadt hem één keer bij de leverancier naar deze server; apparaten halen hem daarna hier op.",
+    "deviceStatus": "Driverstatus",
+    "onOffer": "Aangeboden",
+    "inRepository": "{{count}} in de repository",
+    "offered": "Driver- en firmware-updates",
+    "offeredHint": "Alleen updates in de repository kunnen worden geïnstalleerd. Andere moet een beheerder eerst toevoegen onder Drivers & firmware.",
+    "installSelected": "{{count}} nu installeren",
+    "installStarted": "Installatie gestart. Volg hem op het tabblad Updates.",
+    "notInRepository": "Nog niet in de repository",
+    "upToDate": "Geen driver- of firmware-updates aangeboden.",
+    "policyDriversOn": "Drivers: in het venster geïnstalleerd",
+    "policyDriversOff": "Drivers: niet automatisch",
+    "policyFirmwareOn": "Firmware: in het venster geïnstalleerd",
+    "policyFirmwareOff": "Firmware: niet automatisch",
+    "deviceNoPolicy": "De groep van dit apparaat heeft geen patchbeleid, dus er wordt niets automatisch geïnstalleerd. Je kunt repository-updates wel met de hand installeren."
   }
 }

@@ -133,15 +133,20 @@ func newWUASession() (*ole.IDispatch, error) {
 	return s, nil
 }
 
-// search returns the IUpdateCollection of missing updates.
+// search returns the IUpdateCollection of missing software updates.
+// Drivers are left out: they only come through the repository.
 func search(session *ole.IDispatch) (*ole.IDispatch, error) {
+	return searchFor(session, "IsInstalled=0 and IsHidden=0 and Type='Software'")
+}
+
+func searchFor(session *ole.IDispatch, criteria string) (*ole.IDispatch, error) {
 	searcher, err := dispCall(session, "CreateUpdateSearcher")
 	if err != nil {
 		return nil, err
 	}
 	defer searcher.Release()
 	_, _ = oleutil.PutProperty(searcher, "Online", true)
-	res, err := dispCall(searcher, "Search", "IsInstalled=0 and IsHidden=0")
+	res, err := dispCall(searcher, "Search", criteria)
 	if err != nil {
 		return nil, err
 	}

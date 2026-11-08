@@ -4,7 +4,8 @@ import { post, put, type Approval, type ApprovalMode, type PatchCategory, type P
 import { Alert, Button, Field, Input, Modal, Select, Switch, useErrorText } from "../../components/ui";
 import { minutesToTime, timeToMinutes, weekOrder, weekdayNames } from "./util";
 
-const categories: PatchCategory[] = ["security", "critical", "cumulative", "definition", "driver", "feature", "other"];
+// Drivers are not in the list: they come through the driver repository.
+const categories: PatchCategory[] = ["security", "critical", "cumulative", "definition", "feature", "other"];
 const durations = [60, 120, 180, 240, 360, 480, 720, 1440];
 
 type Draft = Omit<PatchPolicy, "id" | "createdAt" | "updatedAt" | "groups" | "nextWindow" | "windowOpen">;
@@ -177,6 +178,13 @@ export function PolicyForm({
               );
             })}
           </div>
+        </section>
+
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold">{t("patches.driversSection")}</h3>
+          <p className="text-xs text-muted">{t("patches.driversSectionHint")}</p>
+          <Switch checked={d.drivers} onChange={(v) => set("drivers", v)} label={t("patches.drivers")} description={t("patches.driversHint")} />
+          <Switch checked={d.firmware} onChange={(v) => set("firmware", v)} label={t("patches.firmware")} description={t("patches.firmwareHint")} />
         </section>
 
         <section className="space-y-3">

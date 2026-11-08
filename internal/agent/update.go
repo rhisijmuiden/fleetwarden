@@ -169,7 +169,7 @@ func (a *Agent) downloadSigned(ctx context.Context, path, sum string, size int64
 		return fmt.Errorf("server answered %s", res.Status)
 	}
 	limit := int64(maxPackageSize)
-	if strings.HasPrefix(path, agentproto.PathSoftware) {
+	if strings.HasPrefix(path, agentproto.PathSoftware) || strings.HasPrefix(path, agentproto.PathRepository) {
 		limit = maxInstallerSize
 	}
 	f, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)

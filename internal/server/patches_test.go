@@ -208,7 +208,7 @@ func allDayPolicy(name string) map[string]any {
 	return map[string]any{
 		"name": name, "enabled": true, "windowDays": 127, "windowStart": 0, "windowMinutes": 1440, "reboot": "prompt",
 		"notifyUsers": true, "maxPostpones": 1, "postponeMinutes": 5, "countdownSeconds": 60, "takeOver": true, "scanHours": 6,
-		"approvals": map[string]any{"driver": map[string]any{"mode": "manual"}},
+		"approvals": map[string]any{"other": map[string]any{"mode": "manual"}},
 	}
 }
 
@@ -234,7 +234,8 @@ func TestPatchPolicyAndJobs(t *testing.T) {
 	a := newTestAgent(t, e, info.Token, "PC-PATCH", false)
 	fp := &fakePatches{missing: []agentproto.PatchUpdate{
 		{ID: "11111111-aaaa", Title: "2026-11 Security Update (KB5050001)", KB: "KB5050001", Category: "security", RebootRequired: true},
-		{ID: "22222222-bbbb", Title: "Intel - Display - 31.0.101", Category: "driver"},
+		{ID: "22222222-bbbb", Title: "Microsoft Defender tool", Category: "other"},
+		{ID: "44444444-dddd", Title: "Intel - Display - 31.0.101", Category: "driver"}, // older agents: dropped
 		{ID: "33333333-cccc", Title: "Windows 11, version 25H2", Category: "feature"},
 	}}
 	fn := &fakeNotifier{postpone: 1}
@@ -267,9 +268,9 @@ func TestPatchPolicyAndJobs(t *testing.T) {
 		t.Errorf("approvals: %+v", approved)
 	}
 
-	// The update overview and a manual approval of the driver.
+	// The update overview and a manual approval of the tool update.
 	var ups []store.UpdateSummary
-	if code := admin.do("GET", "/api/v1/patches/updates?category=driver", nil, &ups); code != 200 || len(ups) != 1 || ups[0].Devices != 1 {
+	if code := admin.do("GET", "/api/v1/patches/updates?category=other", nil, &ups); code != 200 || len(ups) != 1 || ups[0].Devices != 1 {
 		t.Fatalf("updates: %d %+v", code, ups)
 	}
 	if code := admin.do("PUT", "/api/v1/patches/decision", map[string]any{"updateId": "22222222-bbbb", "decision": "approved"}, nil); code != 204 {
@@ -321,7 +322,7 @@ func TestPatchPolicyAndJobs(t *testing.T) {
 	ctx2, cancel2 := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel2()
 	booted := time.Now().Add(time.Hour)
-	a2 := &agent.Agent{ConfigPath: a.ConfigPath, StateDir: a.StateDir, Collect: a.Collect, Patches: fp, Notify: fn,
+	a2 := &agent.Agent{ConfigPath: a.ConfigPath, StateDir: a.StateDir, Collect: a.Collect, Patches: fp, Notify: fn, Drivers: &fakeDrivers{},
 		BootTime: func() time.Time { return booted }}
 	go a2.Run(ctx2) //nolint:errcheck
 	waitFor(t, "job completed after the restart", func() bool {

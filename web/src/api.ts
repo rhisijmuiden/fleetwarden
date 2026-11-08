@@ -19,7 +19,8 @@ export type Permission =
   | "remote.control"
   | "reports.manage"
   | "alerts.manage"
-  | "config.manage";
+  | "config.manage"
+  | "drivers.manage";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -306,6 +307,8 @@ export type PatchPolicy = {
   postponeMinutes: number;
   countdownSeconds: number;
   takeOver: boolean;
+  drivers: boolean;
+  firmware: boolean;
   scanHours: number;
   createdAt: string;
   updatedAt: string;
@@ -1147,3 +1150,66 @@ export type ConfigRun = {
 };
 
 export type DeviceConfigsView = { items: DeviceConfigState[]; runs: ConfigRun[] };
+
+// ---- drivers and firmware ----
+
+export type DriverState = "available" | "queued" | "downloading" | "ready" | "failed" | "rejected";
+export type DriverKind = "driver" | "firmware";
+
+export type DriverFile = { name: string; url: string; size?: number; sha256?: string; sha1?: string; stored?: string };
+
+export type DriverUpdate = {
+  id: number;
+  source: "windows-update" | "fwupd";
+  sourceId: string;
+  kind: DriverKind;
+  platform: Platform;
+  title: string;
+  vendor: string;
+  class: string;
+  version: string;
+  releasedAt: string | null;
+  sizeBytes: number;
+  hardwareId: string;
+  description: string;
+  reboot: boolean;
+  files: DriverFile[];
+  state: DriverState;
+  error: string;
+  storedBytes: number;
+  attempts: number;
+  decidedBy: string;
+  decidedAt: string | null;
+  storedAt: string | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  devices: number;
+};
+
+export type DriverDevice = {
+  deviceId: string;
+  hostname: string;
+  groupName: string;
+  online: boolean;
+  deviceName: string;
+  currentVersion: string;
+  seenAt: string;
+  lastSeen: string | null;
+};
+
+export type DriverDetail = DriverUpdate & { deviceList: DriverDevice[] };
+
+export type DriverSummary = {
+  stats: { available: number; queued: number; ready: number; failed: number; storedBytes: number; devices: number; scanned: number };
+  freeBytes: number | null;
+  downloading: boolean;
+};
+
+export type DeviceDriverRow = DriverUpdate & { deviceName: string; fwDeviceId: string; currentVersion: string; seenAt: string };
+
+export type DeviceDrivers = {
+  scanAt: string | null;
+  scanError: string;
+  policy: PatchPolicy | null;
+  drivers: DeviceDriverRow[];
+};
