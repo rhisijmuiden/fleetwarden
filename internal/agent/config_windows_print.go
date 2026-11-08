@@ -334,11 +334,47 @@ func (s *printerStore) Delete(name string) error {
 	}
 	script := "Remove-Printer -Name " + psq(id) + "\n"
 	if strings.HasPrefix(port, "FW_") {
-		// The port goes too when no other printer uses it. The spooler
-		// keeps the port busy for a moment after Remove-Printer, so retry.
-		script += fmt.Sprintf("if (-not (Get-Printer | Where-Object PortName -eq %[1]s)) { for ($i = 0; $i -lt 15; $i++) { Remove-PrinterPort -Name %[1]s -ErrorAction SilentlyContinue; if (-not (Get-PrinterPort -Name %[1]s -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 500 } }\n", psq(port))
+		// The port goes too when no other printer uses it. The spooler can
+		// hold it for a while after Remove-Printer; Close sweeps it up later.
+		script += fmt.Sprintf("if (-not (Get-Printer | Where-Object PortName -eq %s)) { Remove-PrinterPort -Name %s -ErrorAction SilentlyContinue }\n", psq(port), psq(port))
 	}
 	return s.w.run(agentproto.ShellPowerShell, script, nil)
 }
 
 func (s *printerStore) Close() error { return nil }
+
+// SweepPrinterPorts removes the FW_ ports that no printer uses any more. The
+// spooler can still hold a port when its printer is removed, so the port goes
+// on a later pass. It costs a registry read when there is nothing to do.
+func (w *winConfig) SweepPrinterPorts() {
+	ports := fwPrinterPorts()
+	if len(ports) == 0 {
+		return
+	}
+	quoted := make([]string, len(ports))
+	for i, p := range ports {
+		quoted[i] = psq(p)
+	}
+	script := "$used = @(Get-Printer | ForEach-Object PortName)\n" +
+		"foreach ($p in @(" + strings.Join(quoted, ",") + ")) { if ($used -notcontains $p) { Remove-PrinterPort -Name $p -ErrorAction SilentlyContinue } }\n"
+	_ = w.run(agentproto.ShellPowerShell, script, nil)
+}
+
+// fwPrinterPorts lists the TCP/IP and LPR ports that FleetWarden created.
+func fwPrinterPorts() []string {
+	var out []string
+	for _, mon := range []string{`Standard TCP/IP Port`, `LPR Port`} {
+		k, err := registry.OpenKey(registry.LOCAL_MACHINE, printKey+`Monitors\`+mon+`\Ports`, registry.READ)
+		if err != nil {
+			continue
+		}
+		names, _ := k.ReadSubKeyNames(-1)
+		k.Close()
+		for _, n := range names {
+			if strings.HasPrefix(n, "FW_") {
+				out = append(out, n)
+			}
+		}
+	}
+	return out
+}

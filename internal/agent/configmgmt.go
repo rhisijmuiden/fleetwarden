@@ -827,4 +827,7 @@ func (a *Agent) applyPrinters(be ConfigBackend, st *configState, items []agentpr
 			res[id].note("printers of the users are added when a user logs on")
 		}
 	}
+	if sw, ok := be.(interface{ SweepPrinterPorts() }); ok {
+		sw.SweepPrinterPorts()
+	}
 }

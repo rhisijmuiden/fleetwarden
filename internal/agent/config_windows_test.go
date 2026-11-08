@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/sys/windows/registry"
 
@@ -253,8 +254,17 @@ func TestConfigWindowsPrinters(t *testing.T) {
 	if got := powershell(t, "@(Get-Printer | Where-Object { $_.Name -eq '"+name+"' -or $_.Name -like '*fwtest*' }).Count"); got != "0" {
 		t.Errorf("printers left: %q", got)
 	}
-	if got := powershell(t, "@(Get-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction SilentlyContinue).Count"); got != "0" {
-		t.Errorf("port left: %q", got)
+	// The spooler may still hold the port right after the printer goes; the
+	// next pass sweeps it up.
+	portLeft := func() bool {
+		return powershell(t, "@(Get-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction SilentlyContinue).Count") != "0"
+	}
+	for i := 0; i < 5 && portLeft(); i++ {
+		time.Sleep(2 * time.Second)
+		a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
+	}
+	if portLeft() {
+		t.Errorf("port left: %s", powershell(t, "Get-Printer | Format-Table Name,PortName,PrinterStatus -AutoSize | Out-String; try { Remove-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction Stop } catch { $_.Exception.Message }; exit 0"))
 	}
 }
 
