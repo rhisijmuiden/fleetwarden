@@ -460,7 +460,8 @@ func (a *Agent) sendInventory(ctx context.Context, send func(string, any)) {
 }
 
 func collectHeartbeat() agentproto.Heartbeat {
-	return agentproto.Heartbeat{LoggedInUser: loggedInUser(), BootTime: bootTime(), LocalIPs: localIPs(), AgentVersion: version.Version}
+	return agentproto.Heartbeat{LoggedInUser: loggedInUser(), BootTime: bootTime(), LocalIPs: localIPs(), AgentVersion: version.Version,
+		Volumes: fixedVolumes()}
 }
 
 func seconds(v, def int) time.Duration {

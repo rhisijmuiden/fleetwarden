@@ -19,10 +19,11 @@ func defaultConfigPath() string {
 	return filepath.Join(dir, "fleetwarden-agent", "agent.json")
 }
 
-func restrictDir(dir string) error { return os.Chmod(dir, 0o700) }
-func machineID() string            { return "" }
-func bootTime() time.Time          { return time.Time{} }
-func loggedInUser() string         { return os.Getenv("USER") }
+func restrictDir(dir string) error      { return os.Chmod(dir, 0o700) }
+func machineID() string                 { return "" }
+func bootTime() time.Time               { return time.Time{} }
+func loggedInUser() string              { return os.Getenv("USER") }
+func fixedVolumes() []agentproto.Volume { return nil }
 
 func collectInventory(_ context.Context) (agentproto.Inventory, error) {
 	inv := agentproto.Inventory{OS: agentproto.OSInfo{Name: runtime.GOOS, Kind: "workstation"}}

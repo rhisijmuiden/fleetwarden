@@ -9,11 +9,18 @@ import (
 // Texts of reports, PDF and CSV in English and Dutch.
 var texts = map[string]map[string]string{
 	"en": {
-		"pdf.generated": "Generated on %s",
-		"pdf.page":      "Page %d of %s",
-		"pdf.noRows":    "Nothing to report.",
-		"scope.all":     "All groups",
-		"scope.groups":  "Groups: %s",
+		"pdf.generated":      "Generated on %s",
+		"pdf.page":           "Page %d of %s",
+		"pdf.noRows":         "Nothing to report.",
+		"alert.offline":      "No contact for %s (last seen %s)",
+		"alert.disk":         "%s has %d%% free (%s of %s)",
+		"alert.back.offline": "Back online",
+		"alert.back.disk":    "%s has %d%% free again",
+		"dur.minutes":        "%d min",
+		"dur.hours":          "%d h %d min",
+		"dur.days":           "%d days %d h",
+		"scope.all":          "All groups",
+		"scope.groups":       "Groups: %s",
 
 		"compliance.title":        "Compliance report",
 		"compliance.summary":      "Summary",
@@ -99,11 +106,18 @@ var texts = map[string]map[string]string{
 		"category.other":          "Other",
 	},
 	"nl": {
-		"pdf.generated": "Gemaakt op %s",
-		"pdf.page":      "Pagina %d van %s",
-		"pdf.noRows":    "Niets te melden.",
-		"scope.all":     "Alle groepen",
-		"scope.groups":  "Groepen: %s",
+		"pdf.generated":      "Gemaakt op %s",
+		"pdf.page":           "Pagina %d van %s",
+		"pdf.noRows":         "Niets te melden.",
+		"alert.offline":      "Geen contact gedurende %s (laatst gezien %s)",
+		"alert.disk":         "%s heeft %d%% vrij (%s van %s)",
+		"alert.back.offline": "Weer online",
+		"alert.back.disk":    "%s heeft weer %d%% vrij",
+		"dur.minutes":        "%d min",
+		"dur.hours":          "%d uur %d min",
+		"dur.days":           "%d dagen %d uur",
+		"scope.all":          "Alle groepen",
+		"scope.groups":       "Groepen: %s",
 
 		"compliance.title":        "Compliancerapport",
 		"compliance.summary":      "Samenvatting",
@@ -242,4 +256,33 @@ func ShortDate(t *time.Time) string {
 		return ""
 	}
 	return t.Format("2006-01-02")
+}
+
+// Duration writes a period such as "2 h 15 min" or "3 days 4 h".
+func Duration(lang string, d time.Duration) string {
+	m := int(d / time.Minute)
+	switch {
+	case m < 60:
+		return T(lang, "dur.minutes", m)
+	case m < 24*60:
+		return T(lang, "dur.hours", m/60, m%60)
+	default:
+		return T(lang, "dur.days", m/(24*60), m%(24*60)/60)
+	}
+}
+
+// Bytes writes a size in GB (or MB below 1 GB), with a decimal comma in Dutch.
+func Bytes(lang string, b int64) string {
+	var s string
+	if b < 1<<30 {
+		s = fmt.Sprintf("%.0f MB", float64(b)/(1<<20))
+	} else if b < 100<<30 {
+		s = fmt.Sprintf("%.1f GB", float64(b)/(1<<30))
+	} else {
+		s = fmt.Sprintf("%.0f GB", float64(b)/(1<<30))
+	}
+	if lang == "nl" {
+		s = strings.Replace(s, ".", ",", 1)
+	}
+	return s
 }

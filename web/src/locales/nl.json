@@ -47,7 +47,9 @@
     "compliance": "Compliance",
     "compliantOf": "{{count}} van {{total}} compliant",
     "securityDevices": "apparaten missen beveiligingsupdates",
-    "outdatedDevices": "apparaten met verouderde software"
+    "outdatedDevices": "apparaten met verouderde software",
+    "openAlerts": "Open meldingen",
+    "noAlerts": "Niets vraagt aandacht"
   },
   "placeholder": {
     "comingIn": "Komt in fase {{phase}}",
@@ -224,6 +226,8 @@
     "invalid_report_settings": "Deze waarden vallen buiten het toegestane bereik.",
     "mail_not_configured": "Stel eerst de mailserver in (Administratie > Mailserver).",
     "report_failed": "Het rapport kon niet gemaakt worden.",
+    "invalid_threshold": "Vul een drempel binnen het toegestane bereik in.",
+    "invalid_kind": "Kies een geldig type.",
     "network_too_wide": "Als je elk adres vertrouwt, kan iedereen zijn IP-adres vervalsen. Vul het adres of netwerk van de proxy zelf in.",
     "invalid_upstream": "Vul de upstream in als host:poort, bijvoorbeeld 127.0.0.1:8080."
   },
@@ -346,7 +350,7 @@
     "software_deploy": "Software uitrollen en verwijderen",
     "remote_control": "Apparaten op afstand overnemen",
     "reports_manage": "Geplande rapporten en compliance-regels beheren",
-    "alerts_manage": "Alerts bevestigen"
+    "alerts_manage": "Meldingen bevestigen en meldingsregels beheren"
   },
   "auth": {
     "title": "Authenticatie",
@@ -1761,6 +1765,59 @@
     "hours_other": "{{count}} uur",
     "days_one": "{{count}} dag",
     "days_other": "{{count}} dagen"
+  },
+  "alerts": {
+    "title": "Meldingen",
+    "subtitle": "Apparaten die te lang offline zijn of bijna geen schijfruimte meer hebben. Meldingen sluiten vanzelf zodra het probleem weg is.",
+    "tabs": {
+      "open": "Open",
+      "history": "Geschiedenis",
+      "rules": "Regels"
+    },
+    "openTitle_one": "{{count}} open melding",
+    "openTitle_other": "{{count}} open meldingen",
+    "historyTitle": "Recente meldingen",
+    "none": "Geen open meldingen. Alles ziet er goed uit.",
+    "noHistory": "Nog geen meldingen.",
+    "opened": "Geopend {{when}} ({{date}})",
+    "resolved": "opgelost {{date}}",
+    "acknowledged": "Bevestigd",
+    "acknowledgedBy": "bevestigd door {{user}} op {{date}}",
+    "acknowledge": "Bevestigen",
+    "kinds": {
+      "all": "Alle apparaten",
+      "workstation": "Werkplekken",
+      "server": "Servers",
+      "hypervisor": "Hypervisors"
+    },
+    "rules": {
+      "title": "Meldingsregels",
+      "subtitle": "Wanneer een melding opent en wie daar een e-mail over krijgt.",
+      "new": "Nieuwe meldingsregel",
+      "edit": "Meldingsregel bewerken",
+      "empty": "Nog geen meldingsregels.",
+      "paused": "Gepauzeerd",
+      "open_one": "{{count}} open",
+      "open_other": "{{count}} open",
+      "offlineFor": "{{time}} of langer offline",
+      "diskBelow": "Minder dan {{percent}}% vrije ruimte op een schijf",
+      "noRecipients": "geen e-mail, alleen hier zichtbaar",
+      "confirmDelete": "De meldingsregel \"{{name}}\" en de meldingen ervan verwijderen?",
+      "name": "Naam",
+      "namePlaceholder": "Servers offline",
+      "kind": "Melden als",
+      "kindOffline": "Een apparaat offline is",
+      "kindDisk": "Een schijf bijna vol is",
+      "offlineAfter": "Offline gedurende",
+      "offlineHint": "Minstens 5 minuten. Agents melden zich elke minuut.",
+      "diskPercent": "Vrije ruimte onder (%)",
+      "diskHint": "Schijven kleiner dan 2 GB tellen niet mee.",
+      "deviceKinds": "Apparaten",
+      "recipients": "Ontvangers",
+      "recipientsHint": "Maximaal 20 adressen, gescheiden door komma's. Laat leeg om meldingen alleen hier te tonen.",
+      "notifyResolved": "Ook mailen als een melding is opgelost",
+      "enabled": "Regel is actief"
+    }
   },
   "proxy": {
     "title": "Reverse proxy",

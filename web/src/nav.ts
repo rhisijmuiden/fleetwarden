@@ -27,6 +27,7 @@ export type NavItem = {
   icon: LucideIcon;
   phase?: number; // planned phase while not built yet
   perm?: Permission; // hidden for users without this permission
+  badge?: "alerts"; // shows a live count
 };
 
 export type NavGroup = { label: string; items: NavItem[] };
@@ -57,7 +58,7 @@ export const navigation: NavGroup[] = [
     label: "nav.insights",
     items: [
       { path: "/reports", label: "nav.reports", icon: FileBarChart, perm: "devices.view" },
-      { path: "/alerts", label: "nav.alerts", icon: Bell, phase: 7 },
+      { path: "/alerts", label: "nav.alerts", icon: Bell, perm: "devices.view", badge: "alerts" },
     ],
   },
   {

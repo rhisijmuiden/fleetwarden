@@ -23,6 +23,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 	if s.st == nil {
 		return
 	}
+	s.workersStarted = s.now()
 	stop := context.AfterFunc(ctx, s.bgCancel)
 	defer stop()
 	defer s.bgWG.Wait()
@@ -55,6 +56,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.patchTick(ctx)
 			s.softwareTick(ctx)
 			s.reportTick(ctx)
+			s.alertTick(ctx)
 		case <-houseTick.C:
 			if err := s.st.PurgeSessions(ctx, sessionIdle); err != nil {
 				s.log.Warn("purge sessions", "err", err)

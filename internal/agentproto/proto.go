@@ -221,6 +221,9 @@ type Heartbeat struct {
 	BootTime     time.Time `json:"bootTime"`
 	LocalIPs     []string  `json:"localIps"`
 	AgentVersion string    `json:"agentVersion"`
+	// Volumes are the local fixed file systems with their free space, sent
+	// with every heartbeat for disk space alerts. Older agents leave it out.
+	Volumes []Volume `json:"volumes,omitempty"`
 }
 
 // Inventory is the full hardware and software inventory.

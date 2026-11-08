@@ -159,10 +159,20 @@ type softwareRun struct {
 func (r *softwareRun) report(state, msg string) {
 	r.st.State, r.st.Message, r.st.At = state, msg, time.Now().UTC()
 	st := r.st
+	finished := agentproto.SoftwareFinished(state)
+	if finished {
+		// The server may send the next job as soon as it reads this
+		// status, so the agent is free again before it reports it.
+		_ = os.Remove(filepath.Join(r.a.stateDir(), softwareJobFile))
+	}
 	r.a.mu.Lock()
-	r.a.software.last = &st
+	if finished {
+		r.a.software.running, r.a.software.jobID, r.a.software.last = false, 0, nil
+	} else {
+		r.a.software.last = &st
+	}
 	r.a.mu.Unlock()
-	if !agentproto.SoftwareFinished(state) {
+	if !finished {
 		_ = writeJSONFile(filepath.Join(r.a.stateDir(), softwareJobFile), st)
 	}
 	r.a.emit(agentproto.TypeSoftwareStatus, st)
@@ -180,7 +190,9 @@ func (a *Agent) runSoftwareJob(ctx context.Context, job agentproto.SoftwareJob) 
 	defer func() {
 		_ = os.RemoveAll(dir)
 		a.mu.Lock()
-		a.software.running, a.software.jobID, a.software.last = false, 0, nil
+		if a.software.jobID == job.JobID { // not a next job that started already
+			a.software.running, a.software.jobID, a.software.last = false, 0, nil
+		}
 		a.mu.Unlock()
 	}()
 	a.Log.Info("software job", "job", job.JobID, "action", job.Action, "name", job.Name)
@@ -190,7 +202,6 @@ func (a *Agent) runSoftwareJob(ctx context.Context, job agentproto.SoftwareJob) 
 	}
 	r.st.Output = tailString(r.st.Output, softwareOutputMax)
 	r.report(state, msg)
-	_ = os.Remove(filepath.Join(a.stateDir(), softwareJobFile))
 	a.Log.Info("software job finished", "job", job.JobID, "state", state, "message", msg)
 	a.requestInventory()
 }

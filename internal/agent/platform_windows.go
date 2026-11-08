@@ -282,3 +282,31 @@ func collectInventory(ctx context.Context) (agentproto.Inventory, error) {
 	}
 	return inv, nil
 }
+
+// fixedVolumes lists the local fixed drives (like Win32_LogicalDisk with
+// DriveType 3) through the Win32 API, cheap enough for every heartbeat.
+func fixedVolumes() []agentproto.Volume {
+	mask, err := windows.GetLogicalDrives()
+	if err != nil {
+		return nil
+	}
+	var out []agentproto.Volume
+	for i := range 26 {
+		if mask&(1<<i) == 0 {
+			continue
+		}
+		mount := string(rune('A'+i)) + ":"
+		root, _ := windows.UTF16PtrFromString(mount + `\`)
+		if windows.GetDriveType(root) != windows.DRIVE_FIXED {
+			continue
+		}
+		var avail, total, free uint64
+		if windows.GetDiskFreeSpaceEx(root, &avail, &total, &free) != nil || total == 0 {
+			continue
+		}
+		fs := make([]uint16, windows.MAX_PATH+1)
+		_ = windows.GetVolumeInformation(root, nil, 0, nil, nil, nil, &fs[0], uint32(len(fs)))
+		out = append(out, agentproto.Volume{Mount: mount, FileSystem: windows.UTF16ToString(fs), SizeBytes: int64(total), FreeBytes: int64(free)})
+	}
+	return out
+}
