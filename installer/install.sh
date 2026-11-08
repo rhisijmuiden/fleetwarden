@@ -50,11 +50,14 @@ if [[ -z "$DEB" ]]; then
     log "Looking up the latest ${CHANNEL} release"
     api="https://api.github.com/repos/${REPO}/releases"
     if [[ "$CHANNEL" == "production" ]]; then
-        filter='[.[] | select(.prerelease == false and .draft == false)][0]'
+        filter='[.[] | select(.prerelease == false and .draft == false)]'
     else
-        filter='[.[] | select(.prerelease == true and .draft == false)][0]'
+        filter='[.[] | select(.prerelease == true and .draft == false)]'
     fi
-    url=$(curl -fsSL "$api?per_page=30" | jq -r "$filter | .assets[]? | select(.name | test(\"^fleetwarden-server_.*_amd64\\\\.deb$\")) | .browser_download_url" | head -n1)
+    # GitHub does not list releases newest first (v0.1.0-test.8 sorts above
+    # v0.1.0-test.30), so pick the most recently published one ourselves.
+    filter="$filter | sort_by(.published_at) | last"
+    url=$(curl -fsSL "$api?per_page=100" | jq -r "$filter | .assets[]? | select(.name | test(\"^fleetwarden-server_.*_amd64\\\\.deb$\")) | .browser_download_url" | head -n1)
     [[ -n "$url" && "$url" != "null" ]] || die "No ${CHANNEL} release with a server package found."
     DEB="$(mktemp -d)/$(basename "$url")"
     log "Downloading $(basename "$url")"
