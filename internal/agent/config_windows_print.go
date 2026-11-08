@@ -334,8 +334,9 @@ func (s *printerStore) Delete(name string) error {
 	}
 	script := "Remove-Printer -Name " + psq(id) + "\n"
 	if strings.HasPrefix(port, "FW_") {
-		// The port goes too when no other printer uses it.
-		script += fmt.Sprintf("if (-not (Get-Printer | Where-Object PortName -eq %s)) { Remove-PrinterPort -Name %s -ErrorAction SilentlyContinue }\n", psq(port), psq(port))
+		// The port goes too when no other printer uses it. The spooler
+		// keeps the port busy for a moment after Remove-Printer, so retry.
+		script += fmt.Sprintf("if (-not (Get-Printer | Where-Object PortName -eq %[1]s)) { for ($i = 0; $i -lt 15; $i++) { Remove-PrinterPort -Name %[1]s -ErrorAction SilentlyContinue; if (-not (Get-PrinterPort -Name %[1]s -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 500 } }\n", psq(port))
 	}
 	return s.w.run(agentproto.ShellPowerShell, script, nil)
 }
