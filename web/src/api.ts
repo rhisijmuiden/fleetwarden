@@ -1036,7 +1036,8 @@ export type Configuration = {
   platform: Platform;
   settings: ConfigSettings | null; // null for users who may not see them
   enabled: boolean;
-  groupIds: number[];
+  groupIds: number[]; // the groups it reaches through its profiles
+  profileIds: number[];
   priority: number;
   revision: number;
   createdBy: string;
@@ -1047,6 +1048,20 @@ export type Configuration = {
   applied: number;
   failed: number;
   repaired: number;
+};
+
+export type ConfigProfile = {
+  id: number;
+  name: string;
+  description: string;
+  enabled: boolean;
+  groupIds: number[];
+  configIds: number[];
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  devices: number;
 };
 
 export type ConfigList = {

@@ -292,7 +292,10 @@
     "invalid_printer_protocol": "Unknown printer protocol.",
     "invalid_printer_kind": "Unknown printer type.",
     "duplicate_printer": "Each printer can be added once.",
-    "multiple_default_printers": "Only one printer can be the default."
+    "multiple_default_printers": "Only one printer can be the default.",
+    "unknown_profile": "That profile does not exist.",
+    "unknown_configuration": "That configuration does not exist.",
+    "profile_exists": "A profile with this name already exists."
   },
   "login": {
     "title": "Sign in",
@@ -2241,7 +2244,7 @@
       "drives": "Map network drives such as H: for every user who logs on, also on PCs without a domain.",
       "printers": "Shared printers from a print server and TCP/IP printers, with their driver and the default printer."
     },
-    "comingSoon": "Network drives, printers and more Windows settings follow in the next update.",
+    "comingSoon": "More Windows settings (wallpaper, lock screen, power, local administrators, firewall) follow in a next update.",
     "cols": {
       "name": "Configuration",
       "groups": "Groups",
@@ -2254,7 +2257,8 @@
       "when": "When",
       "user": "Runs as",
       "result": "Result",
-      "duration": "Duration"
+      "duration": "Duration",
+      "profiles": "Profiles"
     },
     "noGroups": "Not assigned",
     "noGroupsHint": "Pick at least one group, otherwise no device gets this configuration.",
@@ -2439,6 +2443,36 @@
         "device": "Windows adds it to the printers of every user the next time they log on.",
         "user": "Added right away in the session of each logged-on user."
       }
+    },
+    "tabs": {
+      "items": "Configurations",
+      "profiles": "Profiles"
+    },
+    "noProfiles": "In no profile",
+    "noProfilesHint": "Put the configuration in at least one profile, otherwise no device gets it.",
+    "profiles": {
+      "title": "Profiles",
+      "subtitle": "A profile bundles configurations. Assign it to device groups: every device in those groups gets all its configurations, also PCs without a domain.",
+      "pickHint": "Devices in the groups of these profiles get the configuration.",
+      "none": "There are no profiles yet. Make one under Profiles, or save now and add it to a profile later.",
+      "new": "New profile",
+      "emptyTitle": "No profiles yet",
+      "emptyText": "Bundle configurations such as a start page, network drives and printers in a profile, and assign it to device groups.",
+      "items": "Configurations",
+      "itemsHint": "The configurations in this profile. A configuration can be in several profiles.",
+      "noItems": "No configurations",
+      "noConfigs": "There are no configurations yet.",
+      "makeConfig": "Make a new configuration",
+      "devicesCol": "Devices",
+      "enabledHint": "Turned off, devices no longer get the configurations through this profile.",
+      "assignHint": "Devices in these groups get every configuration of the profile, also devices that join later.",
+      "noGroupsHint": "Pick at least one group, otherwise no device gets this profile.",
+      "deleteTitle": "Delete profile?",
+      "deleteText": "{{name}} is deleted. Its configurations stay, but devices that got them only through this profile remove their settings.",
+      "devices_one": "{{count}} device",
+      "devices_other": "{{count}} devices",
+      "colName": "Profile",
+      "search": "Search profiles"
     }
   }
 }

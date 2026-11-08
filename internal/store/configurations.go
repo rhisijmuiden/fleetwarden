@@ -18,13 +18,17 @@ type Configuration struct {
 	Platform    string          `json:"platform"`
 	Settings    json.RawMessage `json:"settings"`
 	Enabled     bool            `json:"enabled"`
-	GroupIDs    []int64         `json:"groupIds"`
-	Priority    int             `json:"priority"`
-	Revision    int             `json:"revision"`
-	CreatedBy   string          `json:"createdBy"`
-	UpdatedBy   string          `json:"updatedBy"`
-	CreatedAt   time.Time       `json:"createdAt"`
-	UpdatedAt   time.Time       `json:"updatedAt"`
+	// GroupIDs are the groups the configuration reaches through its enabled
+	// profiles; it is kept up to date by the store.
+	GroupIDs []int64 `json:"groupIds"`
+	// ProfileIDs are the profiles the configuration is in.
+	ProfileIDs []int64   `json:"profileIds"`
+	Priority   int       `json:"priority"`
+	Revision   int       `json:"revision"`
+	CreatedBy  string    `json:"createdBy"`
+	UpdatedBy  string    `json:"updatedBy"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 	// Counts over the devices of the assigned groups, in the caller's scope.
 	Devices  int `json:"devices"`
 	Applied  int `json:"applied"`
@@ -32,8 +36,9 @@ type Configuration struct {
 	Repaired int `json:"repaired"` // devices where settings were changed outside FleetWarden
 }
 
-const configCols = `c.id, c.name, c.description, c.type, c.platform, c.settings, c.enabled, c.group_ids, c.priority, c.revision,
-	c.created_by, c.updated_by, c.created_at, c.updated_at`
+const configCols = `c.id, c.name, c.description, c.type, c.platform, c.settings, c.enabled, c.group_ids,
+	COALESCE((SELECT array_agg(pi.profile_id ORDER BY pi.profile_id) FROM configuration_profile_items pi WHERE pi.configuration_id = c.id), '{}'),
+	c.priority, c.revision, c.created_by, c.updated_by, c.created_at, c.updated_at`
 
 // configCounts counts the target devices within a scope ($1 all, $2 groups).
 const configCounts = `,
@@ -47,15 +52,13 @@ const configCounts = `,
 
 func scanConfig(row pgx.Row, counts bool) (Configuration, error) {
 	var c Configuration
-	dst := []any{&c.ID, &c.Name, &c.Description, &c.Type, &c.Platform, &c.Settings, &c.Enabled, &c.GroupIDs, &c.Priority, &c.Revision,
+	dst := []any{&c.ID, &c.Name, &c.Description, &c.Type, &c.Platform, &c.Settings, &c.Enabled, &c.GroupIDs, &c.ProfileIDs, &c.Priority, &c.Revision,
 		&c.CreatedBy, &c.UpdatedBy, &c.CreatedAt, &c.UpdatedAt}
 	if counts {
 		dst = append(dst, &c.Devices, &c.Applied, &c.Failed, &c.Repaired)
 	}
 	err := row.Scan(dst...)
-	if c.GroupIDs == nil {
-		c.GroupIDs = []int64{}
-	}
+	c.GroupIDs, c.ProfileIDs = groupIDs(c.GroupIDs), groupIDs(c.ProfileIDs)
 	return c, mapErr(err)
 }
 
@@ -108,30 +111,67 @@ func groupIDs(v []int64) []int64 {
 	return v
 }
 
-// CreateConfiguration inserts a configuration.
+// CreateConfiguration inserts a configuration and puts it in the profiles
+// of c.ProfileIDs.
 func (s *Store) CreateConfiguration(ctx context.Context, c Configuration) (Configuration, error) {
-	err := s.pool.QueryRow(ctx, `INSERT INTO configurations (name, description, type, platform, settings, enabled, group_ids, priority, created_by, updated_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9) RETURNING id`, c.Name, c.Description, c.Type, c.Platform, c.Settings, c.Enabled,
-		groupIDs(c.GroupIDs), c.Priority, c.CreatedBy).Scan(&c.ID)
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		err := tx.QueryRow(ctx, `INSERT INTO configurations (name, description, type, platform, settings, enabled, priority, created_by, updated_by)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8) RETURNING id`, c.Name, c.Description, c.Type, c.Platform, c.Settings, c.Enabled,
+			c.Priority, c.CreatedBy).Scan(&c.ID)
+		if err != nil {
+			return mapErr(err)
+		}
+		return setConfigProfiles(ctx, tx, c.ID, c.ProfileIDs)
+	})
 	if err != nil {
-		return c, mapErr(err)
+		return c, err
 	}
 	return s.ConfigurationByID(ctx, c.ID, Scope{All: true})
 }
 
-// UpdateConfiguration changes a configuration. The revision goes up when the
-// settings change. Type and platform stay.
+// UpdateConfiguration changes a configuration and the profiles it is in. The
+// revision goes up when the settings change. Type and platform stay.
 func (s *Store) UpdateConfiguration(ctx context.Context, c Configuration) (Configuration, error) {
-	tag, err := s.pool.Exec(ctx, `UPDATE configurations SET name = $2, description = $3, settings = $4, enabled = $5, group_ids = $6, priority = $7,
-		updated_by = $8, updated_at = now(), revision = revision + CASE WHEN settings IS DISTINCT FROM $4::jsonb THEN 1 ELSE 0 END
-		WHERE id = $1`, c.ID, c.Name, c.Description, c.Settings, c.Enabled, groupIDs(c.GroupIDs), c.Priority, c.UpdatedBy)
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `UPDATE configurations SET name = $2, description = $3, settings = $4, enabled = $5, priority = $6,
+			updated_by = $7, updated_at = now(), revision = revision + CASE WHEN settings IS DISTINCT FROM $4::jsonb THEN 1 ELSE 0 END
+			WHERE id = $1`, c.ID, c.Name, c.Description, c.Settings, c.Enabled, c.Priority, c.UpdatedBy)
+		if err != nil {
+			return mapErr(err)
+		}
+		if tag.RowsAffected() == 0 {
+			return ErrNotFound
+		}
+		return setConfigProfiles(ctx, tx, c.ID, c.ProfileIDs)
+	})
 	if err != nil {
-		return c, mapErr(err)
-	}
-	if tag.RowsAffected() == 0 {
-		return c, ErrNotFound
+		return c, err
 	}
 	return s.ConfigurationByID(ctx, c.ID, Scope{All: true})
+}
+
+// setConfigProfiles makes a configuration a member of exactly the listed
+// profiles; unknown profiles are ignored.
+func setConfigProfiles(ctx context.Context, tx pgx.Tx, id int64, profiles []int64) error {
+	if _, err := tx.Exec(ctx, "DELETE FROM configuration_profile_items WHERE configuration_id = $1 AND NOT profile_id = ANY($2)", id, groupIDs(profiles)); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO configuration_profile_items (profile_id, configuration_id)
+		SELECT p.id, $1 FROM configuration_profiles p WHERE p.id = ANY($2) ON CONFLICT DO NOTHING`, id, groupIDs(profiles)); err != nil {
+		return err
+	}
+	return refreshConfigGroups(ctx, tx)
+}
+
+// refreshConfigGroups sets the groups of every configuration to those of its
+// enabled profiles.
+func refreshConfigGroups(ctx context.Context, tx pgx.Tx) error {
+	_, err := tx.Exec(ctx, `UPDATE configurations c SET group_ids = x.groups FROM (
+		SELECT c2.id, COALESCE((SELECT array_agg(DISTINCT g ORDER BY g) FROM configuration_profile_items pi
+			JOIN configuration_profiles p ON p.id = pi.profile_id AND p.enabled, unnest(p.group_ids) g
+			WHERE pi.configuration_id = c2.id), '{}') AS groups FROM configurations c2) x
+		WHERE x.id = c.id AND c.group_ids IS DISTINCT FROM x.groups`)
+	return err
 }
 
 // DeleteConfiguration removes a configuration. Agents remove its settings
