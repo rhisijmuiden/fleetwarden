@@ -60,6 +60,8 @@ type Agent struct {
 	// Remote opens remote desktop sessions; defaults to the platform
 	// backend (nil where there is none).
 	Remote RemoteBackend
+	// Config applies configurations; defaults to the platform backend.
+	Config ConfigBackend
 	// Minute is the length of a postpone or inventory-interval minute;
 	// tests shorten it.
 	Minute time.Duration
@@ -74,6 +76,7 @@ type Agent struct {
 	patch    patchState
 	software softwareState // guarded by mu
 	remote   remoteState
+	config   configRunner
 	ctx      context.Context // of Run: jobs outlive a single session
 	// installMu keeps patch installs and software jobs apart: Windows
 	// Installer and dpkg run one installation at a time.
@@ -207,6 +210,7 @@ func (a *Agent) Run(ctx context.Context) error {
 		}
 		a.resumePatchJob(ctx)
 		a.resumeSoftwareJob()
+		go a.runConfigLoop(ctx)
 	}
 	backoff = newBackoff()
 	next := 0 // index into the candidate addresses
@@ -428,6 +432,10 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 				a.handlePatchInstall(e)
 			case agentproto.TypeSoftwareJob:
 				a.handleSoftwareJob(e)
+			case agentproto.TypeConfigPolicy:
+				a.handleConfigPolicy(e)
+			case agentproto.TypeConfigApply:
+				a.handleConfigApply()
 			case agentproto.TypeRemoteStart:
 				a.handleRemoteStart(e, send)
 			case agentproto.TypeRemoteStop:
