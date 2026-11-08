@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 
 	"github.com/rhisijmuiden/fleetwarden/internal/agentproto"
@@ -221,7 +222,7 @@ func TestConfigWindowsPrinters(t *testing.T) {
 	}
 	const name = "FleetWarden Test"
 	cleanup := func() {
-		powershell(t, "Get-Printer | Where-Object { $_.Name -like '*fwtest*' -or $_.Name -eq '"+name+"' } | Remove-Printer -ErrorAction SilentlyContinue; Remove-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction SilentlyContinue")
+		powershell(t, "Get-Printer | Where-Object { $_.Name -like '*fwtest*' -or $_.Name -eq '"+name+"' } | Remove-Printer -ErrorAction SilentlyContinue; Remove-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction SilentlyContinue; exit 0")
 	}
 	cleanup()
 	t.Cleanup(cleanup)
@@ -249,25 +250,51 @@ func TestConfigWindowsPrinters(t *testing.T) {
 		t.Errorf("repair: %+v", s)
 	}
 
-	// Share it, and connect the share for the user.
-	host, _ := os.Hostname()
-	powershell(t, "Set-Printer -Name '"+name+"' -Shared $true -ShareName fwtest")
-	shared := agentproto.Printer{Kind: "shared", Path: `\\` + host + `\fwtest`, Scope: "user"}
-	pol.Items[0].Revision = 2
-	pol.Items[0].Printers.Printers = []agentproto.Printer{{Kind: "ip", Name: name, Address: "127.0.0.1", Protocol: "raw", Port: 9100, Driver: "Generic / Text Only"}, shared}
-	a.applyConfig(ctx, pol, be.Users(), nil)
-	if s := itemState(lastStatus(t, a), 1); s.State != "applied" {
-		t.Errorf("shared printer: %+v", s)
-	}
-	if !regKeyExists(registry.CURRENT_USER, `Printers\Connections\`+connKey(shared.Path)) {
-		t.Errorf("no connection to %s: %s", shared.Path, powershell(t, "Get-Printer | Format-Table -AutoSize Name,Type,PortName | Out-String"))
-	}
-
 	a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
 	if got := powershell(t, "(Get-Printer | Where-Object { $_.Name -eq '"+name+"' -or $_.Name -like '*fwtest*' }).Count"); got != "0" {
 		t.Errorf("printers left: %q", got)
 	}
 	if got := powershell(t, "(Get-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction SilentlyContinue).Count"); got != "0" {
 		t.Errorf("port left: %q", got)
+	}
+}
+
+// TestConfigWindowsSharedPrinter connects a shared printer in the user's
+// session. Windows only makes printer connections for a user with a desktop
+// session, so it needs an interactive session (not session 0, where CI
+// services run).
+func TestConfigWindowsSharedPrinter(t *testing.T) {
+	var session uint32
+	if err := windows.ProcessIdToSessionId(windows.GetCurrentProcessId(), &session); err != nil || session == 0 {
+		t.Skipf("needs an interactive session (this process runs in session %d)", session)
+	}
+	if s := powershell(t, "(Get-Service Spooler).Status"); s != "Running" {
+		t.Skipf("the print spooler is not running: %q", s)
+	}
+	const name = "FleetWarden Shared Test"
+	cleanup := func() {
+		powershell(t, "Get-Printer | Where-Object { $_.Name -like '*fwshared*' -or $_.Name -eq '"+name+"' } | Remove-Printer -ErrorAction SilentlyContinue; Remove-PrinterPort -Name 'FW_127.0.0.2_9100' -ErrorAction SilentlyContinue; exit 0")
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+	powershell(t, "Add-PrinterPort -Name 'FW_127.0.0.2_9100' -PrinterHostAddress 127.0.0.2; Add-PrinterDriver -Name 'Generic / Text Only'; "+
+		"Add-Printer -Name '"+name+"' -DriverName 'Generic / Text Only' -PortName 'FW_127.0.0.2_9100' -Shared -ShareName fwshared")
+	host, _ := os.Hostname()
+	be := NewWindowsTestConfigBackend(`Software\FleetWardenTest`, t.TempDir())
+	a := testConfigAgent(t, be)
+	shared := agentproto.Printer{Kind: "shared", Path: `\\` + host + `\fwshared`, Scope: "user", Default: true}
+	pol := agentproto.ConfigPolicy{Items: []agentproto.ConfigItem{{ID: 1, Revision: 1, Type: agentproto.ConfigPrinters,
+		Printers: &agentproto.PrinterSettings{Printers: []agentproto.Printer{shared}}}}}
+	ctx := context.Background()
+	a.applyConfig(ctx, pol, be.Users(), nil)
+	if s := itemState(lastStatus(t, a), 1); s.State != "applied" {
+		t.Fatalf("status: %+v", s)
+	}
+	if !regKeyExists(registry.CURRENT_USER, `Printers\Connections\`+connKey(shared.Path)) {
+		t.Errorf("no connection to %s", shared.Path)
+	}
+	a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
+	if regKeyExists(registry.CURRENT_USER, `Printers\Connections\`+connKey(shared.Path)) {
+		t.Errorf("the connection to %s is still there", shared.Path)
 	}
 }
