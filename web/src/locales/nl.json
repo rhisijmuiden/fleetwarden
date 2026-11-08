@@ -244,7 +244,10 @@
     "gateway_bad_signature": "De gateway weigerde de handtekening van de server.",
     "gateway_exists": "Deze gateway is al toegevoegd.",
     "invalid_address": "Vul het gateway-adres in als host of host:poort.",
-    "invalid_gateway": "Deze gateway bestaat niet of staat uit."
+    "invalid_gateway": "Deze gateway bestaat niet of staat uit.",
+    "gateway_not_connected": "De gateway is op dit moment niet verbonden.",
+    "gateway_not_updatable": "Deze gateway is niet vanuit het pakket geïnstalleerd en kan zichzelf niet bijwerken. Voer het installatiecommando opnieuw uit op de gateway.",
+    "gateway_invalid_version": "De gateway weigerde het versienummer."
   },
   "login": {
     "title": "Inloggen",
@@ -1945,6 +1948,14 @@
       "direct": "Rechtstreeks",
       "viaGateway": "Via een gateway",
       "noServerUrl": "Stel de externe basis-URL van deze server in (Instellingen of Reverse proxy) zodat agents ook het interne adres krijgen. Zonder die URL houden ze het adres waarmee ze zijn geïnstalleerd."
+    },
+    "versionMismatchUpdate": "De gateway draait {{gateway}}, de server {{server}}. Werk de gateway bij zodat ze gelijk lopen.",
+    "update": "Gateway bijwerken naar {{version}}",
+    "updateRequested": "Gateway {{name}} installeert nu {{version}}. De tunnel valt even weg tijdens de herstart.",
+    "updateState": {
+      "downloading": "Update downloaden",
+      "installing": "Update installeren",
+      "failed": "De gateway-update is mislukt"
     }
   }
 }

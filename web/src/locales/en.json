@@ -244,7 +244,10 @@
     "gateway_bad_signature": "The gateway refused the server's signature.",
     "gateway_exists": "This gateway has already been added.",
     "invalid_address": "Enter the gateway address as host or host:port.",
-    "invalid_gateway": "This gateway does not exist or is disabled."
+    "invalid_gateway": "This gateway does not exist or is disabled.",
+    "gateway_not_connected": "The gateway is not connected right now.",
+    "gateway_not_updatable": "This gateway was not installed from the package, so it cannot update itself. Run the install command on the gateway again.",
+    "gateway_invalid_version": "The gateway refused the version number."
   },
   "login": {
     "title": "Sign in",
@@ -1945,6 +1948,14 @@
       "direct": "Direct",
       "viaGateway": "Via a gateway",
       "noServerUrl": "Set the external base URL of this server (Settings or Reverse proxy) so agents also get the internal address. Without it they keep the address they were installed with."
+    },
+    "versionMismatchUpdate": "The gateway runs {{gateway}}, the server {{server}}. Update the gateway so they stay in step.",
+    "update": "Update gateway to {{version}}",
+    "updateRequested": "Gateway {{name}} installs {{version}} now. The tunnel drops for a moment while it restarts.",
+    "updateState": {
+      "downloading": "Downloading the update",
+      "installing": "Installing the update",
+      "failed": "The gateway update failed"
     }
   }
 }

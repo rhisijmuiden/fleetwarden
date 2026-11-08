@@ -47,7 +47,23 @@ const DefaultTunnelPort = 8444
 // Control paths the server requests from the gateway over the tunnel.
 const (
 	PathStatus = "/status"
+	PathUpdate = "/update" // POST UpdateRequest
 )
+
+// UpdateRequest asks the gateway to install a release from GitHub. Only the
+// version travels; the gateway's root updater downloads and verifies it.
+type UpdateRequest struct {
+	Version string `json:"version"`
+}
+
+// UpdateStatus is reported by the gateway's updater.
+type UpdateStatus struct {
+	State       string    `json:"state"` // downloading, installing, completed, failed
+	Message     string    `json:"message"`
+	FromVersion string    `json:"fromVersion"`
+	ToVersion   string    `json:"toVersion"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
 
 // AgentPrefix is the only path prefix the gateway forwards.
 const AgentPrefix = "/agent/"
@@ -220,4 +236,8 @@ type Status struct {
 	Requests     int64     `json:"requests"`
 	ActiveSocket int64     `json:"activeSockets"`
 	Rejected     int64     `json:"rejected"`
+	// Updatable is false when the gateway was not installed from the
+	// package (no updater).
+	Updatable bool          `json:"updatable"`
+	Update    *UpdateStatus `json:"update,omitempty"`
 }

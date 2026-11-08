@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -78,5 +80,43 @@ func TestClientInfo(t *testing.T) {
 	ip, scheme, _ = g.clientInfo(r)
 	if ip != "198.51.100.1" || scheme != "http" {
 		t.Errorf("untrusted: %s %s", ip, scheme)
+	}
+}
+
+func TestUpdateRequest(t *testing.T) {
+	dir := t.TempDir()
+	g, err := New(Config{TLSMode: TLSProxy, DataDir: dir, UpdateDir: dir + "/update", UpdateStatusDir: dir}, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ts := httptest.NewServer(g.controlHandler())
+	defer ts.Close()
+	post := func(body string) int {
+		res, err := http.Post(ts.URL+"/update", "application/json", strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		return res.StatusCode
+	}
+	if code := post(`{"version":"0.2.0"}`); code != 409 {
+		t.Errorf("without update dir: %d", code)
+	}
+	if err := os.MkdirAll(dir+"/update", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if code := post(`{"version":"0.2.0; rm -rf /"}`); code != 400 {
+		t.Errorf("bad version: %d", code)
+	}
+	if code := post(`{"version":"0.2.0-test.41"}`); code != 202 {
+		t.Errorf("update: %d", code)
+	}
+	raw, err := os.ReadFile(dir + "/update/request.json")
+	if err != nil || string(raw) != `{"version":"0.2.0-test.41"}` {
+		t.Errorf("request file: %q %v", raw, err)
+	}
+	os.WriteFile(dir+"/status.json", []byte(`{"state":"installing","message":"Installing 0.2.0-test.41"}`), 0o600)
+	if st := g.Status(); !st.Updatable || st.Update == nil || st.Update.State != "installing" {
+		t.Errorf("status: %+v", st)
 	}
 }

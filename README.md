@@ -50,6 +50,7 @@ your own password at the first sign-in. Lost it? Run
 - Remote control: [docs/remote.md](docs/remote.md)
 - Reports and scheduled report mails: [docs/reports.md](docs/reports.md)
 - Alerts: [docs/alerts.md](docs/alerts.md)
+- Secure gateway in the DMZ for agents outside the network: [docs/gateway.md](docs/gateway.md)
 
 ## Development
 

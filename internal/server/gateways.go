@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,6 +35,9 @@ const (
 	headerGatewayID     = "X-FleetWarden-Gateway"
 	gatewayEndpointsKey = "agent.endpoints"
 )
+
+// releaseVersion matches versions published on GitHub (what the gateway updater accepts).
+var releaseVersion = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(-test\.[0-9]+)?$`)
 
 // gatewayRef identifies the gateway a request came through.
 type gatewayRef struct {
@@ -370,6 +374,7 @@ func (s *Server) gatewayRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/v1/gateways/{id}/pair", adm(s.handleRepairGateway))
 	mux.Handle("POST /api/v1/gateways/{id}/test", adm(s.handleTestGateway))
 	mux.Handle("DELETE /api/v1/gateways/{id}", adm(s.handleDeleteGateway))
+	mux.Handle("POST /api/v1/gateways/{id}/update", s.authed(auth.PermSystemUpdate, 0, s.handleGatewaySoftwareUpdate))
 }
 
 type gatewayView struct {
@@ -752,4 +757,61 @@ func (s *Server) checkGatewayURL(ctx context.Context, g store.Gateway) gatewayCh
 	}
 	c.OK = true
 	return c
+}
+
+// gatewayClient talks to a connected gateway's control endpoints.
+func (s *Server) gatewayClient(id int64) *http.Client {
+	l := s.gateways.link(id)
+	if l == nil {
+		return nil
+	}
+	l.mu.Lock()
+	sess := l.sess
+	l.mu.Unlock()
+	if sess == nil {
+		return nil
+	}
+	return &http.Client{Timeout: 15 * time.Second, Transport: &http.Transport{
+		DialContext: func(context.Context, string, string) (net.Conn, error) { return sess.OpenStream() },
+	}}
+}
+
+// handleGatewaySoftwareUpdate asks a gateway to install the server's own version.
+func (s *Server) handleGatewaySoftwareUpdate(w http.ResponseWriter, r *http.Request) {
+	g, ok := s.gatewayByPath(w, r)
+	if !ok {
+		return
+	}
+	target := version.Version
+	if !releaseVersion.MatchString(target) {
+		apiError(w, http.StatusConflict, "version_not_offered") // development build: nothing to download
+		return
+	}
+	client := s.gatewayClient(g.ID)
+	if client == nil {
+		apiError(w, http.StatusConflict, "gateway_not_connected")
+		return
+	}
+	body, _ := json.Marshal(gwproto.UpdateRequest{Version: target})
+	req, _ := http.NewRequestWithContext(r.Context(), http.MethodPost, "http://gateway"+gwproto.PathUpdate, strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
+	res, err := client.Do(req)
+	if err != nil {
+		apiErrorDetail(w, http.StatusBadGateway, "gateway_tunnel_failed", cleanText(err.Error(), 300))
+		return
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusAccepted {
+		var e apiErr
+		_ = json.NewDecoder(io.LimitReader(res.Body, 4096)).Decode(&e)
+		code := "gateway_" + e.Error
+		if e.Error == "" {
+			code = "gateway_tunnel_failed"
+		}
+		s.audit(r, "gateway.update", g.Name, false, map[string]any{"version": target, "error": code})
+		apiError(w, http.StatusConflict, code)
+		return
+	}
+	s.audit(r, "gateway.update", g.Name, true, map[string]any{"version": target})
+	writeJSON(w, http.StatusAccepted, map[string]string{"version": target})
 }

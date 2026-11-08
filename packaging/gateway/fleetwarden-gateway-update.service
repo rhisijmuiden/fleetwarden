@@ -1,0 +1,13 @@
+[Unit]
+Description=FleetWarden gateway updater (installs the release the management server asked for)
+Documentation=https://github.com/rhisijmuiden/fleetwarden/blob/main/docs/gateway.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/fleetwarden-gateway/fleetwarden-gateway-update
+TimeoutStartSec=15min
+# Runs as root: it installs packages. It only accepts a version number from
+# the request file and downloads from the official GitHub releases.
+PrivateTmp=true

@@ -47,6 +47,11 @@ type Config struct {
 	// tunnel certificate (FW_GW_TUNNEL_CERT, FW_GW_TUNNEL_KEY).
 	TunnelCertFile, TunnelKeyFile string
 
+	// UpdateDir is where the gateway asks the root updater for a release
+	// (FW_GW_UPDATE_DIR); UpdateStatusDir is where the updater reports
+	// (FW_GW_UPDATE_STATUS_DIR). Updates are offered when UpdateDir exists.
+	UpdateDir, UpdateStatusDir string
+
 	// DataDir holds the gateway key, the pinned server key, the pairing code
 	// and certificates (FW_GW_DATA_DIR).
 	DataDir string
@@ -76,6 +81,8 @@ func FromEnv() (Config, error) {
 		TunnelKeyFile:  os.Getenv("FW_GW_TUNNEL_KEY"),
 		DataDir:        getenv("FW_GW_DATA_DIR", "/var/lib/fleetwarden-gateway"),
 	}
+	c.UpdateDir = getenv("FW_GW_UPDATE_DIR", c.DataDir+"/update")
+	c.UpdateStatusDir = getenv("FW_GW_UPDATE_STATUS_DIR", "/var/lib/fleetwarden-gateway-update")
 	for _, d := range strings.Split(os.Getenv("FW_GW_ACME_DOMAINS"), ",") {
 		if d = strings.ToLower(strings.TrimSpace(d)); d != "" {
 			c.ACMEDomains = append(c.ACMEDomains, d)

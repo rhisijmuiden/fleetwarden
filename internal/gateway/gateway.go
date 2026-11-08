@@ -254,6 +254,7 @@ func (g *Gateway) controlHandler() http.Handler {
 	mux.HandleFunc("GET "+gwproto.PathStatus, func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, g.Status())
 	})
+	mux.HandleFunc("POST "+gwproto.PathUpdate, g.handleUpdate)
 	return mux
 }
 
@@ -267,6 +268,7 @@ func (g *Gateway) Status() gwproto.Status {
 		Version: g.version, Protocol: gwproto.Version, StartedAt: g.started.UTC(), ConnectedAt: connected.UTC(), Hostname: host,
 		Listen: []string{g.cfg.Listen}, TLSMode: g.cfg.TLSMode,
 		Requests: g.requests.Load(), ActiveSocket: g.sockets.Load(), Rejected: g.rejected.Load(),
+		Updatable: g.updatable(), Update: g.updateStatus(),
 	}
 }
 

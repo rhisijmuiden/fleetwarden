@@ -1,0 +1,43 @@
+[Unit]
+Description=FleetWarden secure gateway
+Documentation=https://github.com/rhisijmuiden/fleetwarden/blob/main/docs/gateway.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fleetwarden-gateway
+Group=fleetwarden-gateway
+EnvironmentFile=/etc/fleetwarden-gateway/gateway.env
+ExecStart=/usr/bin/fleetwarden-gateway
+Restart=always
+RestartSec=3s
+# Ports 80 and 443 for the Let's Encrypt and own-certificate modes.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+# Hardening: the gateway only relays; it stores nothing but its keys.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/var/lib/fleetwarden-gateway
+StateDirectory=fleetwarden-gateway
+StateDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target

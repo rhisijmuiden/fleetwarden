@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch for FleetWarden gateway update requests from the management server
+
+[Path]
+PathExists=/var/lib/fleetwarden-gateway/update/request.json
+Unit=fleetwarden-gateway-update.service
+
+[Install]
+WantedBy=multi-user.target

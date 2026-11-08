@@ -828,6 +828,8 @@ export type GatewayStatus = {
   requests: number;
   activeSockets: number;
   rejected: number;
+  updatable: boolean;
+  update?: { state: "downloading" | "installing" | "completed" | "failed"; message: string; fromVersion: string; toVersion: string; updatedAt: string };
 };
 export type Gateway = {
   id: number;

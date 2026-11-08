@@ -133,6 +133,11 @@ func TestSecureGateway(t *testing.T) {
 		t.Fatalf("public url: %d", code)
 	}
 
+	// A development build has no release the gateway could download.
+	if code := admin.do("POST", fmt.Sprintf("/api/v1/gateways/%d/update", created.ID), nil, &apiErr); code != 409 || apiErr.Error != "version_not_offered" {
+		t.Errorf("update from a dev build: %d %+v", code, apiErr)
+	}
+
 	var test struct{ Checks []gatewayCheck }
 	if code := admin.do("POST", fmt.Sprintf("/api/v1/gateways/%d/test", created.ID), nil, &test); code != 200 || len(test.Checks) != 2 || !test.Checks[0].OK || !test.Checks[1].OK {
 		t.Fatalf("test: %d %+v", code, test)

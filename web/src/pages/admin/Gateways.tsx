@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeftRight, CheckCircle2, ChevronLeft, ChevronRight, Cloud, KeyRound, Laptop, Pencil, Plus, Power, Server, ShieldHalf, Stethoscope, Trash2, XCircle } from "lucide-react";
+import { ArrowLeftRight, ArrowUpCircle, CheckCircle2, ChevronLeft, ChevronRight, Cloud, KeyRound, Laptop, Pencil, Plus, Power, Server, ShieldHalf, Stethoscope, Trash2, XCircle } from "lucide-react";
 import { del, get, post, put, type Gateway, type GatewayCheck, type GatewaysView } from "../../api";
+import { useAuth } from "../../auth";
 import { Alert, Badge, Button, Card, CopyField, Field, Input, Modal, PageHeader, Spinner, formatDate, useErrorText } from "../../components/ui";
 
 const stateTone = { connected: "success", connecting: "warning", error: "danger", disabled: "neutral" } as const;
@@ -70,6 +71,19 @@ export function Gateways() {
     }
   };
 
+  const update = async (g: Gateway) => {
+    setBusy(`update-${g.id}`);
+    try {
+      await post(`/gateways/${g.id}/update`);
+      setMsg({ tone: "success", text: t("gateways.updateRequested", { name: g.name, version: data?.version ?? "" }) });
+      load();
+    } catch (e) {
+      setMsg({ tone: "danger", text: errorText(e) });
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const remove = async () => {
     if (!deleting) return;
     setBusy("delete");
@@ -118,6 +132,7 @@ export function Gateways() {
                   onRepair={() => setRepairing(g)}
                   onToggle={() => toggle(g)}
                   onDelete={() => setDeleting(g)}
+                  onUpdate={() => update(g)}
                 />
               ))}
             </div>
@@ -243,6 +258,7 @@ function GatewayCard({
   onRepair,
   onToggle,
   onDelete,
+  onUpdate,
 }: {
   g: Gateway;
   serverVersion: string;
@@ -253,8 +269,10 @@ function GatewayCard({
   onRepair: () => void;
   onToggle: () => void;
   onDelete: () => void;
+  onUpdate: () => void;
 }) {
   const { t, i18n } = useTranslation();
+  const { can } = useAuth();
   const linkError = useLinkError();
   const lang = i18n.language;
   const version = g.status?.version || g.version;
@@ -301,7 +319,21 @@ function GatewayCard({
           </Alert>
         )}
         {version && serverVersion && version !== serverVersion && g.state === "connected" && (
-          <Alert tone="warning">{t("gateways.versionMismatch", { gateway: version, server: serverVersion })}</Alert>
+          <Alert tone="warning">
+            {t(g.status?.updatable ? "gateways.versionMismatchUpdate" : "gateways.versionMismatch", { gateway: version, server: serverVersion })}
+            {g.status?.updatable && can("system.update") && (
+              <div className="mt-2">
+                <Button size="sm" icon={<ArrowUpCircle className="size-4" />} loading={busy === `update-${g.id}`} onClick={onUpdate}>
+                  {t("gateways.update", { version: serverVersion })}
+                </Button>
+              </div>
+            )}
+          </Alert>
+        )}
+        {g.status?.update && g.status.update.state !== "completed" && (
+          <Alert tone={g.status.update.state === "failed" ? "danger" : "info"} title={t(`gateways.updateState.${g.status.update.state}`, { defaultValue: g.status.update.state })}>
+            {g.status.update.message}
+          </Alert>
         )}
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {row(t("gateways.agents"), <span className="font-semibold">{g.agents}</span>)}
