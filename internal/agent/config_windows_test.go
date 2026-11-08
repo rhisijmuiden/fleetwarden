@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 
 	"github.com/rhisijmuiden/fleetwarden/internal/agentproto"
@@ -251,38 +250,26 @@ func TestConfigWindowsPrinters(t *testing.T) {
 	}
 
 	a.applyConfig(ctx, agentproto.ConfigPolicy{}, be.Users(), nil)
-	if got := powershell(t, "(Get-Printer | Where-Object { $_.Name -eq '"+name+"' -or $_.Name -like '*fwtest*' }).Count"); got != "0" {
+	if got := powershell(t, "@(Get-Printer | Where-Object { $_.Name -eq '"+name+"' -or $_.Name -like '*fwtest*' }).Count"); got != "0" {
 		t.Errorf("printers left: %q", got)
 	}
-	if got := powershell(t, "(Get-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction SilentlyContinue).Count"); got != "0" {
+	if got := powershell(t, "@(Get-PrinterPort -Name 'FW_127.0.0.1_9100' -ErrorAction SilentlyContinue).Count"); got != "0" {
 		t.Errorf("port left: %q", got)
 	}
 }
 
-// TestConfigWindowsSharedPrinter connects a shared printer in the user's
-// session. Windows only makes printer connections for a user with a desktop
-// session, so it needs an interactive session (not session 0, where CI
-// services run).
+// TestConfigWindowsSharedPrinter connects a shared printer for the user,
+// makes it the default and removes it. Windows does not connect to a printer
+// that the same computer shares (HRESULT 0x8007007b), so it needs a printer
+// shared by another computer: FW_TEST_PRINT_SHARE=\\server\printer.
 func TestConfigWindowsSharedPrinter(t *testing.T) {
-	var session uint32
-	if err := windows.ProcessIdToSessionId(windows.GetCurrentProcessId(), &session); err != nil || session == 0 {
-		t.Skipf("needs an interactive session (this process runs in session %d)", session)
+	path := os.Getenv("FW_TEST_PRINT_SHARE")
+	if path == "" {
+		t.Skip("set FW_TEST_PRINT_SHARE to a printer shared by another computer")
 	}
-	if s := powershell(t, "(Get-Service Spooler).Status"); s != "Running" {
-		t.Skipf("the print spooler is not running: %q", s)
-	}
-	const name = "FleetWarden Shared Test"
-	cleanup := func() {
-		powershell(t, "Get-Printer | Where-Object { $_.Name -like '*fwshared*' -or $_.Name -eq '"+name+"' } | Remove-Printer -ErrorAction SilentlyContinue; Remove-PrinterPort -Name 'FW_127.0.0.2_9100' -ErrorAction SilentlyContinue; exit 0")
-	}
-	cleanup()
-	t.Cleanup(cleanup)
-	powershell(t, "Add-PrinterPort -Name 'FW_127.0.0.2_9100' -PrinterHostAddress 127.0.0.2; Add-PrinterDriver -Name 'Generic / Text Only'; "+
-		"Add-Printer -Name '"+name+"' -DriverName 'Generic / Text Only' -PortName 'FW_127.0.0.2_9100' -Shared -ShareName fwshared")
-	host, _ := os.Hostname()
 	be := NewWindowsTestConfigBackend(`Software\FleetWardenTest`, t.TempDir())
 	a := testConfigAgent(t, be)
-	shared := agentproto.Printer{Kind: "shared", Path: `\\` + host + `\fwshared`, Scope: "user", Default: true}
+	shared := agentproto.Printer{Kind: "shared", Path: path, Scope: "user", Default: true}
 	pol := agentproto.ConfigPolicy{Items: []agentproto.ConfigItem{{ID: 1, Revision: 1, Type: agentproto.ConfigPrinters,
 		Printers: &agentproto.PrinterSettings{Printers: []agentproto.Printer{shared}}}}}
 	ctx := context.Background()
