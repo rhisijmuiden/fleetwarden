@@ -80,8 +80,8 @@ jobs:
           echo "FW_TEST_FTP_ADDR=127.0.0.1:2121" >> "$GITHUB_ENV"
           echo "FW_TEST_FTPS_ADDR=127.0.0.1:2990" >> "$GITHUB_ENV"
       - run: go test -race ./...
-      - name: Build server and agents
-        run: make server agents VERSION=${{ needs.meta.outputs.version }} CHANNEL=${{ needs.meta.outputs.channel }}
+      - name: Build server, agents and gateway
+        run: make server agents gateways VERSION=${{ needs.meta.outputs.version }} CHANNEL=${{ needs.meta.outputs.channel }}
       - uses: actions/upload-artifact@v4
         with:
           name: binaries
@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: shellcheck installer/*.sh packaging/scripts/*.sh packaging/updater/fleetwarden-update tests/*.sh packaging/agent/*.sh packaging/agent/config
+      - run: shellcheck installer/*.sh packaging/scripts/*.sh packaging/updater/fleetwarden-update tests/*.sh packaging/agent/*.sh packaging/agent/config packaging/gateway/*.sh packaging/gateway/fleetwarden-gateway-update
 
   msi:
     name: Windows installer (MSI)
@@ -188,6 +188,8 @@ jobs:
       - run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
       - name: Agent packages (bundled with the server package)
         run: VERSION=${{ needs.meta.outputs.version }} packaging/agent/build-debs.sh
+      - name: Gateway packages
+        run: VERSION=${{ needs.meta.outputs.version }} packaging/gateway/build-debs.sh
       # nfpm turns 0.1.0-test.5 into the Debian version 0.1.0~test.5 (sorts below 0.1.0).
       # The file keeps the semver name because GitHub rewrites "~" in asset names.
       - run: VERSION=${{ needs.meta.outputs.version }} nfpm package -f packaging/nfpm-server.yaml -p deb -t "dist/fleetwarden-server_${{ needs.meta.outputs.version }}_amd64.deb"
@@ -202,6 +204,7 @@ jobs:
           path: |
             dist/*.deb
             dist/agent/
+            dist/gateway/
           retention-days: 7
 
   install-test:
@@ -217,10 +220,23 @@ jobs:
       - name: Install in a clean debian:trixie container
         run: docker run --rm -v "$PWD:/src" -w /src debian:trixie bash -c 'tests/install-test.sh dist/fleetwarden-server_*_amd64.deb'
 
+  install-gateway-test:
+    name: Secure gateway on Debian 13
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: deb
+          path: dist/
+      - name: Install server and gateway in a clean debian:trixie container, pair and enroll through the gateway
+        run: docker run --rm -v "$PWD:/src" -w /src debian:trixie bash -c 'tests/install-gateway-test.sh dist/fleetwarden-server_*_amd64.deb dist/gateway/fleetwarden-gateway_*_amd64.deb'
+
   release:
     name: Publish release
     if: github.event_name == 'push'
-    needs: [meta, install-test]
+    needs: [meta, install-test, install-gateway-test]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -234,12 +250,14 @@ jobs:
           mkdir -p release
           cp artifacts/deb/*.deb release/
           cp artifacts/deb/agent/*.deb artifacts/deb/agent/*.msi release/
+          cp artifacts/deb/gateway/*.deb release/
           v=${{ needs.meta.outputs.version }}
           for p in linux-amd64 linux-arm64; do
             cp "artifacts/binaries/$p/fleetwarden-agent" "release/fleetwarden-agent_${v}_${p}"
           done
           cp artifacts/binaries/windows-amd64/fleetwarden-agent.exe "release/fleetwarden-agent_${v}_windows-amd64.exe"
           cp installer/install.sh release/install.sh
+          cp installer/install-gateway.sh release/install-gateway.sh
           (cd release && sha256sum * > SHA256SUMS)
       - name: Create GitHub release
         env:

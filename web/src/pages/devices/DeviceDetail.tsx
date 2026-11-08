@@ -63,6 +63,7 @@ export function DeviceDetail() {
               <span>·</span>
               <span>{device.groupName}</span>
               {!device.online && <span>· {t("devices.lastSeenAgo", { when: timeAgo(device.lastSeenAt, i18n.language) })}</span>}
+              {device.online && device.connectedVia && <span>· {t("devices.viaGateway", { name: device.connectedVia })}</span>}
             </div>
           </div>
         </div>

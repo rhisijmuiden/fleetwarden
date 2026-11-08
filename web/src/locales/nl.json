@@ -33,7 +33,8 @@
     "info": "Over",
     "audit": "Auditlog",
     "agentUpdates": "Agent-updates",
-    "reverseProxy": "Reverse proxy"
+    "reverseProxy": "Reverse proxy",
+    "gateways": "Secure gateway"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -229,7 +230,27 @@
     "invalid_threshold": "Vul een drempel binnen het toegestane bereik in.",
     "invalid_kind": "Kies een geldig type.",
     "network_too_wide": "Als je elk adres vertrouwt, kan iedereen zijn IP-adres vervalsen. Vul het adres of netwerk van de proxy zelf in.",
-    "invalid_upstream": "Vul de upstream in als host:poort, bijvoorbeeld 127.0.0.1:8080."
+    "invalid_upstream": "Vul de upstream in als host:poort, bijvoorbeeld 127.0.0.1:8080.",
+    "gateway_bad_pairing_code": "De koppelcode klopt niet. Voer \"sudo fleetwarden-gateway pairing-code\" uit op de gateway om hem te zien.",
+    "gateway_unreachable": "De gateway is niet bereikbaar op dit adres. Controleer het adres, de poort en de firewall tussen de server en de DMZ.",
+    "gateway_already_paired": "Deze gateway is al gekoppeld aan een server. Voer \"sudo fleetwarden-gateway reset-pairing\" uit op de gateway voor een nieuwe code.",
+    "gateway_paired_with_other_server": "Deze gateway is gekoppeld aan een andere managementserver.",
+    "gateway_key_changed": "De gateway heeft een andere sleutel dan bij het koppelen (opnieuw geïnstalleerd?). Koppel hem opnieuw.",
+    "gateway_proof_invalid": "De gateway kon zijn identiteit niet bewijzen. Mogelijk onderschept iets tussen de server en de gateway de verbinding.",
+    "gateway_rate_limited": "Te veel verkeerde koppelcodes. Wacht 15 minuten en probeer het opnieuw.",
+    "gateway_protocol_mismatch": "De gateway draait een niet-compatibele versie. Werk de gateway bij naar de versie van de server.",
+    "gateway_protocol": "De gateway begreep de server niet. Werk de gateway bij naar de versie van de server.",
+    "gateway_handshake_failed": "De verbinding met de gateway werd tijdens het koppelen verbroken.",
+    "gateway_tunnel_failed": "De tunnel naar de gateway is mislukt.",
+    "gateway_pairing_code_required": "Vul de koppelcode van de gateway in.",
+    "gateway_not_paired": "De gateway is nog niet gekoppeld.",
+    "gateway_bad_signature": "De gateway weigerde de handtekening van de server.",
+    "gateway_exists": "Deze gateway is al toegevoegd.",
+    "invalid_address": "Vul het gateway-adres in als host of host:poort.",
+    "invalid_gateway": "Deze gateway bestaat niet of staat uit.",
+    "gateway_not_connected": "De gateway is op dit moment niet verbonden.",
+    "gateway_not_updatable": "Deze gateway is niet vanuit het pakket geïnstalleerd en kan zichzelf niet bijwerken. Voer het installatiecommando opnieuw uit op de gateway.",
+    "gateway_invalid_version": "De gateway weigerde het versienummer."
   },
   "login": {
     "title": "Inloggen",
@@ -494,7 +515,8 @@
     "scansApplied": "Online agents gebruiken het nieuwe interval binnen een minuut.",
     "publicUrlDetected": "Niet ingesteld, gedetecteerd als {{url}}",
     "proxyHint": "De publieke URL, vertrouwde proxy's, configuratievoorbeelden en een verbindingstest staan op de pagina Reverse proxy.",
-    "openProxy": "Reverse proxy-instellingen"
+    "openProxy": "Reverse proxy-instellingen",
+    "publicUrlHint": "Het adres dat mensen via je reverse proxy gebruiken, voor SSO en links in e-mails. Leeg: gedetecteerd als {{url}}."
   },
   "audit": {
     "title": "Auditlog",
@@ -858,7 +880,8 @@
     "agentUpdateTo": "{{state}} naar {{version}}",
     "softwareJobs": "Softwaretaken",
     "installSoftware": "Software installeren",
-    "noPackages": "Er staan nog geen pakketten voor dit platform in de bibliotheek. Voeg er een toe onder"
+    "noPackages": "Er staan nog geen pakketten voor dit platform in de bibliotheek. Voeg er een toe onder",
+    "viaGateway": "via gateway {{name}}"
   },
   "addClient": {
     "button": "Add client",
@@ -893,7 +916,11 @@
     "token": "Enrollment-token",
     "waiting": "Wachten op aanmelding van het apparaat…",
     "connected": "verbonden",
-    "enrolled": "ingeschreven"
+    "enrolled": "ingeschreven",
+    "via": "Verbinden via",
+    "viaHint": "Apparaten buiten je netwerk gebruiken een secure gateway. De commando's en downloads hieronder wijzen naar het adres dat je kiest.",
+    "viaDirect": "Rechtstreeks naar deze server (binnen het netwerk)",
+    "viaGateway": "Gateway {{name}} ({{url}})"
   },
   "tokens": {
     "expires": "Verloopt",
@@ -2021,6 +2048,124 @@
         "pass": "Geaccepteerd ({{detail}}). Zorg dat de limiet van de proxy minstens 2 GiB is.",
         "fail": "Geweigerd ({{detail}}). Status 413 betekent dat de limiet voor de request-grootte in de proxy te laag is (nginx: client_max_body_size; Caddy: request_body max_size)."
       }
+    }
+  },
+  "gateways": {
+    "title": "Secure gateway",
+    "subtitle": "Een kleine doorgeefserver in de DMZ voor agents buiten je netwerk. De managementserver blijft intern: hij legt zelf de verbinding met de gateway.",
+    "add": "Gateway toevoegen",
+    "addTitle": "Secure gateway toevoegen",
+    "editTitle": "{{name}} bewerken",
+    "editHint": "Als je het adres of de URL wijzigt, wordt de tunnel opnieuw opgebouwd. Agents krijgen de nieuwe URL automatisch.",
+    "pair": "Koppelen",
+    "paired": "Gateway {{name}} is gekoppeld. De server maakt nu verbinding.",
+    "deleted": "Gateway {{name}} is verwijderd.",
+    "deleteTitle": "{{name}} verwijderen?",
+    "deleteText_one": "Er is {{count}} agent verbonden via deze gateway. Die maakt opnieuw verbinding via een ander adres als dat bereikbaar is. De gateway zelf blijft geïnstalleerd; reset de koppeling om hem opnieuw te gebruiken.",
+    "deleteText_other": "Er zijn {{count}} agents verbonden via deze gateway. Die maken opnieuw verbinding via een ander adres als dat bereikbaar is. De gateway zelf blijft geïnstalleerd; reset de koppeling om hem opnieuw te gebruiken.",
+    "test": "Testen",
+    "repair": "Opnieuw koppelen",
+    "repairTitle": "{{name}} opnieuw koppelen",
+    "repairText": "Nodig nadat de gateway opnieuw is geïnstalleerd of gereset. Voer dit uit op de gateway en vul daarna de nieuwe koppelcode in die hij toont:",
+    "repairHint": "Gebruik \"Opnieuw koppelen\" met een nieuwe code van de gateway.",
+    "enable": "Inschakelen",
+    "disable": "Uitschakelen",
+    "name": "Naam",
+    "address": "Tunneladres",
+    "addressHint": "Hoe deze server de gateway in de DMZ bereikt: IP-adres of hostnaam, poort {{port}} tenzij je die hebt aangepast.",
+    "publicUrl": "Publieke URL voor agents",
+    "publicUrlHint": "Het adres dat agents op internet gebruiken, bijvoorbeeld https://agents.example.com.",
+    "pairingCode": "Koppelcode",
+    "pairingCodeHint": "Getoond bij de installatie, of met \"sudo fleetwarden-gateway pairing-code\" op de gateway. Hij werkt één keer.",
+    "agents": "Verbonden agents",
+    "version": "Versie",
+    "lastConnected": "Verbinding",
+    "connectedSince": "sinds {{when}}",
+    "fingerprint": "Vingerafdruk",
+    "host": "Hostnaam",
+    "tlsMode": "Certificaat",
+    "requests": "Verkeer",
+    "requestsValue": "{{requests}} verzoeken · {{sockets}} open",
+    "errorTitle": "De tunnel ligt eruit",
+    "versionMismatch": "De gateway draait {{gateway}}, de server {{server}}. Werk de gateway bij met hetzelfde installatiecommando zodat ze gelijk lopen.",
+    "state": {
+      "connected": "Verbonden",
+      "connecting": "Verbinden",
+      "error": "Niet verbonden",
+      "disabled": "Uitgeschakeld"
+    },
+    "tls": {
+      "proxy": "Achter een reverse proxy",
+      "files": "Eigen certificaat",
+      "acme": "Let's Encrypt"
+    },
+    "checks": {
+      "tunnel": "Tunnel",
+      "tunnelOk": "de server is verbonden met de gateway",
+      "publicUrl": "Publieke URL",
+      "publicUrlOk": "komt via deze gateway bij deze server uit"
+    },
+    "checkCodes": {
+      "connecting": "nog aan het verbinden",
+      "error": "niet verbonden; zie de fout hierboven",
+      "disabled": "de gateway staat uit",
+      "unreachable": "niet bereikbaar vanaf de managementserver. Dat kan normaal zijn als de server zijn eigen publieke adres niet kan bereiken (geen hairpin-NAT); test het vanaf een apparaat buiten het netwerk.",
+      "bad_answer": "er antwoordt iets, maar niet FleetWarden. Controleer de reverse proxy voor de gateway.",
+      "other_server": "leidt naar een andere FleetWarden-server.",
+      "not_via_gateway": "komt bij deze server uit, maar niet via deze gateway. Laat de URL naar de gateway wijzen.",
+      "invalid_url": "de URL is ongeldig."
+    },
+    "linkErrors": {
+      "unreachable": "De gateway is niet bereikbaar",
+      "gateway_key_changed": "De gateway heeft een nieuwe sleutel",
+      "paired_with_other_server": "De gateway is gekoppeld aan een andere server",
+      "not_paired": "De gateway is zijn koppeling kwijt",
+      "bad_signature": "De gateway weigerde de server",
+      "gateway_proof_invalid": "De gateway kon zijn identiteit niet bewijzen",
+      "protocol_mismatch": "Niet-compatibele gatewayversie",
+      "protocol": "Niet-compatibele gatewayversie",
+      "handshake_failed": "De handshake is mislukt",
+      "tunnel_failed": "De tunnel is mislukt"
+    },
+    "flow": {
+      "agents": "Agents",
+      "agentsHint": "thuis, onderweg",
+      "https": "HTTPS 443, inkomend",
+      "gateway": "Secure gateway",
+      "gatewayHint": "DMZ, slaat niets op",
+      "tunnel": "tunnel, opgezet door de server",
+      "server": "Managementserver",
+      "serverHint": "alleen intern netwerk",
+      "explain": "Agents vertrouwen alleen de serversleutel die ze bij het inschrijven hebben vastgelegd, dus de gateway geeft hun ondertekende berichten door zonder ze te kunnen wijzigen. Remote control blijft end-to-end versleuteld."
+    },
+    "setup": {
+      "title": "Een gateway inrichten",
+      "subtitle": "Drie stappen op een Debian 13-machine in je DMZ.",
+      "show": "Toon de stappen voor nog een gateway",
+      "install": "Installeer de gateway",
+      "installHint": "Voer dit uit op de DMZ-machine. De installer vraagt hoe agents hem bereiken: achter je reverse proxy, met een eigen certificaat, of met een Let's Encrypt-certificaat dat hij zelf aanvraagt.",
+      "firewall": "Zet de firewall open",
+      "firewallIn": "Internet naar gateway: TCP 443 (of de poort van je reverse proxy).",
+      "firewallTunnel": "Managementserver naar gateway: TCP {{port}} (de tunnel). Sta alleen het adres van de server toe.",
+      "firewallNone": "Een regel vanuit de DMZ naar je netwerk is niet nodig.",
+      "pair": "Koppel hem aan deze server",
+      "pairHint": "De installer toont een eenmalige koppelcode. Je kunt hem opnieuw tonen met:"
+    },
+    "endpoints": {
+      "title": "Adressen die agents gebruiken",
+      "subtitle": "Wordt naar elke agent gestuurd. Een agent probeert ze in deze volgorde en gaat door als er een niet antwoordt, zodat laptops vanzelf wisselen tussen kantoor en thuis.",
+      "none": "Nog geen gateway: agents gebruiken alleen het adres waarmee ze zijn geïnstalleerd.",
+      "direct": "Rechtstreeks",
+      "viaGateway": "Via een gateway",
+      "noServerUrl": "Stel de externe basis-URL van deze server in (Instellingen of Reverse proxy) zodat agents ook het interne adres krijgen. Zonder die URL houden ze het adres waarmee ze zijn geïnstalleerd."
+    },
+    "versionMismatchUpdate": "De gateway draait {{gateway}}, de server {{server}}. Werk de gateway bij zodat ze gelijk lopen.",
+    "update": "Gateway bijwerken naar {{version}}",
+    "updateRequested": "Gateway {{name}} installeert nu {{version}}. De tunnel valt even weg tijdens de herstart.",
+    "updateState": {
+      "downloading": "Update downloaden",
+      "installing": "Update installeren",
+      "failed": "De gateway-update is mislukt"
     }
   }
 }

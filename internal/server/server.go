@@ -86,6 +86,9 @@ type Server struct {
 	backupMu   sync.Mutex // held while a backup runs or a restore is prepared
 	progress   progressState
 	restore    restorePrep
+	gateways   gatewayManager
+	appOnce    sync.Once
+	app        http.Handler
 	trusted    atomic.Pointer[[]netip.Prefix] // FW_TRUSTED_PROXIES plus the web interface list
 	hsts       atomic.Bool
 	probes     probeSet
@@ -146,6 +149,17 @@ func New(cfg config.Server, d Deps) *Server {
 
 // Handler returns the root HTTP handler.
 func (s *Server) Handler() http.Handler {
+	return s.withClientIP(s.appHandler())
+}
+
+// appHandler is the API and web interface without the client address
+// resolution; gateway tunnels set the address themselves.
+func (s *Server) appHandler() http.Handler {
+	s.appOnce.Do(func() { s.app = s.buildApp() })
+	return s.app
+}
+
+func (s *Server) buildApp() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.handleHealth)
 	mux.HandleFunc("GET /api/v1/version", s.handleVersion)
@@ -161,7 +175,7 @@ func (s *Server) Handler() http.Handler {
 		})
 	}
 	mux.Handle("/", s.webHandler())
-	return s.withClientIP(securityHeaders(csrfGuard(mux)))
+	return securityHeaders(csrfGuard(mux))
 }
 
 func (s *Server) routes(mux *http.ServeMux) {
@@ -182,6 +196,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.remoteRoutes(mux)
 	s.reportRoutes(mux)
 	s.alertRoutes(mux)
+	s.gatewayRoutes(mux)
 	s.proxyRoutes(mux)
 
 	// Signed in. allowPending lets a user with a forced password change reach these.
@@ -462,6 +477,9 @@ func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 // baseURL is the public URL of the server: the configured one, or the one the
 // browser used (through a trusted proxy).
 func (s *Server) baseURL(r *http.Request) string {
+	if g, ok := gatewayFrom(r); ok {
+		return g.PublicURL // agents that came through a gateway stay on it
+	}
 	var g generalSettings
 	if err := s.st.GetSetting(r.Context(), keyGeneral, &g); err == nil && g.PublicURL != "" {
 		return strings.TrimRight(g.PublicURL, "/")

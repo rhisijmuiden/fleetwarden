@@ -175,6 +175,7 @@ export type Device = {
   inventoryAt: string | null;
   notes: string;
   online: boolean;
+  connectedVia?: string; // name of the secure gateway of the current connection
   updateVersion: string;
   updateState: UpdateState | "";
   updateMessage: string;
@@ -814,6 +815,52 @@ export type ReportSchedule = {
 
 export type InstalledSoftware = { name: string; publisher: string; platform: Platform; source: string; versions: string[]; devices: number };
 export type InstalledDevice = { deviceId: string; hostname: string; groupId: number; version: string };
+
+export type GatewayState = "connected" | "connecting" | "error" | "disabled";
+export type GatewayStatus = {
+  version: string;
+  protocol: number;
+  startedAt: string;
+  connectedAt: string;
+  hostname: string;
+  listen: string[];
+  tlsMode: "proxy" | "files" | "acme";
+  requests: number;
+  activeSockets: number;
+  rejected: number;
+  updatable: boolean;
+  update?: { state: "downloading" | "installing" | "completed" | "failed"; message: string; fromVersion: string; toVersion: string; updatedAt: string };
+};
+export type Gateway = {
+  id: number;
+  name: string;
+  address: string;
+  publicUrl: string;
+  enabled: boolean;
+  version: string;
+  lastConnectedAt: string | null;
+  lastError: string;
+  lastErrorAt: string | null;
+  createdBy: string;
+  createdAt: string;
+  fingerprint: string;
+  state: GatewayState;
+  stateSince: string | null;
+  error: string;
+  agents: number;
+  status: GatewayStatus | null;
+};
+export type GatewaysView = {
+  gateways: Gateway[];
+  directAgents: number;
+  serverUrl: string;
+  tunnelPort: number;
+  endpoints: string[];
+  version: string;
+  channel: string;
+};
+export type GatewayCheck = { name: "tunnel" | "publicUrl"; ok: boolean; code?: string; detail?: string };
+export type GatewayOption = { id: number; name: string; publicUrl: string };
 
 export class ApiError extends Error {
   constructor(

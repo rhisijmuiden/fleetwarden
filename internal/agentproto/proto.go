@@ -59,6 +59,7 @@ const (
 	TypeUpdate           = "agent.update"      // install another agent version
 	TypeRemove           = "agent.remove"      // device was deleted: forget enrollment
 	TypeAgentConfig      = "agent.config"      // changed settings for this session
+	TypeEndpoints        = "agent.endpoints"   // addresses the agent may connect to
 	// agent -> server
 	TypeAuth         = "auth"
 	TypeHeartbeat    = "heartbeat"
@@ -146,6 +147,15 @@ type Welcome struct {
 // ignore it and keep the interval from the welcome until they reconnect.
 type AgentConfig struct {
 	InventoryMinutes int `json:"inventoryMinutes"`
+}
+
+// Endpoints lists the addresses of the management server, in order of
+// preference: its own external URL and the secure gateways in the DMZ. The
+// agent tries them in turn when the connection fails; the server key it
+// pinned at enrollment makes any of them equally trustworthy. An empty list
+// means: only use the configured server address.
+type Endpoints struct {
+	URLs []string `json:"urls"`
 }
 
 // Update asks the agent to install another agent version. The agent fetches

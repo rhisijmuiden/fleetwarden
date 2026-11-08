@@ -9,6 +9,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/go-ole/go-ole v1.3.0
 	github.com/go-pdf/fpdf v0.9.0
+	github.com/hashicorp/yamux v0.1.2
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/jlaffaye/ftp v0.2.4
 	github.com/klauspost/compress v1.20.3
@@ -35,6 +36,7 @@ require (
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.16.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	modernc.org/libc v1.80.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

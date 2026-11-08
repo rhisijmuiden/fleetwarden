@@ -294,5 +294,6 @@ func (s *Server) handlePutGeneral(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "settings.general", "publicUrl", true, map[string]any{"publicUrl": req.PublicURL})
+	s.broadcastEndpoints(r.Context())
 	s.handleGetGeneral(w, r)
 }

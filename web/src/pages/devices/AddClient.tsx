@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { CheckCircle2, Download, Loader2, Terminal } from "lucide-react";
-import { get, post, type Device, type EnrollmentToken, type InstallInfo, type Platform } from "../../api";
+import { get, post, type Device, type EnrollmentToken, type GatewayOption, type InstallInfo, type Platform } from "../../api";
 import { Alert, Button, CopyField, Field, Input, Modal, Select, useErrorText } from "../../components/ui";
 import { useGroups } from "../../components/GroupScope";
 import { KindIcon } from "./util";
@@ -27,6 +27,8 @@ export function AddClient({ open, onClose, token, defaultGroup }: Props) {
   const [description, setDescription] = useState("");
   const [created, setCreated] = useState<EnrollmentToken | null>(null);
   const [info, setInfo] = useState<InstallInfo | null>(null);
+  const [gateways, setGateways] = useState<GatewayOption[]>([]);
+  const [via, setVia] = useState("");
   const [since, setSince] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +40,10 @@ export function AddClient({ open, onClose, token, defaultGroup }: Props) {
     setInfo(null);
     setDescription("");
     setSince(new Date(Date.now() - 60_000).toISOString());
+    setVia("");
+    get<GatewayOption[]>("/gateways/options")
+      .then(setGateways)
+      .catch(() => setGateways([]));
     if (token) {
       get<InstallInfo>(`/enrollment-tokens/${token.id}/install`)
         .then(setInfo)
@@ -48,6 +54,17 @@ export function AddClient({ open, onClose, token, defaultGroup }: Props) {
   useEffect(() => {
     if (groups && !group) setGroup(String(defaultGroup ?? groups[0]?.id ?? ""));
   }, [groups]);
+
+  // Install commands for devices outside the network point at a gateway.
+  const changeVia = async (v: string) => {
+    setVia(v);
+    if (!created) return;
+    try {
+      setInfo(await get<InstallInfo>(`/enrollment-tokens/${created.id}/install${v ? `?via=${v}` : ""}`));
+    } catch (e) {
+      setError(errorText(e));
+    }
+  };
 
   const create = async () => {
     setBusy(true);
@@ -60,7 +77,7 @@ export function AddClient({ open, onClose, token, defaultGroup }: Props) {
       });
       setSince(tok.createdAt);
       setCreated(tok);
-      setInfo(await get<InstallInfo>(`/enrollment-tokens/${tok.id}/install`));
+      setInfo(await get<InstallInfo>(`/enrollment-tokens/${tok.id}/install${via ? `?via=${via}` : ""}`));
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -141,9 +158,30 @@ export function AddClient({ open, onClose, token, defaultGroup }: Props) {
           <Loader2 className="size-6 animate-spin text-muted" />
         </div>
       ) : (
-        <InstallSteps info={info} platform={token ? null : platform} tokenId={created.id} since={since} />
+        <div className="space-y-5">
+          {gateways.length > 0 && <ViaSelect gateways={gateways} value={via} onChange={changeVia} />}
+          <InstallSteps info={info} platform={token ? null : platform} tokenId={created.id} since={since} />
+        </div>
       )}
     </Modal>
+  );
+}
+
+function ViaSelect({ gateways, value, onChange }: { gateways: GatewayOption[]; value: string; onChange: (v: string) => void }) {
+  const { t } = useTranslation();
+  return (
+    <Field label={t("addClient.via")} hint={t("addClient.viaHint")}>
+      {(id) => (
+        <Select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+          <option value="">{t("addClient.viaDirect")}</option>
+          {gateways.map((g) => (
+            <option key={g.id} value={g.id}>
+              {t("addClient.viaGateway", { name: g.name, url: g.publicUrl })}
+            </option>
+          ))}
+        </Select>
+      )}
+    </Field>
   );
 }
 

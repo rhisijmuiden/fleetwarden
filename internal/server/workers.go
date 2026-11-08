@@ -35,6 +35,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 	if err := s.st.EndInterruptedRemoteSessions(ctx); err != nil {
 		s.log.Warn("remote session log", "err", err)
 	}
+	s.reconcileGateways(ctx)
 	s.bgWG.Add(1)
 	go s.agentReleaseLoop(s.bgCtx)
 	mailTick := time.NewTicker(15 * time.Second)

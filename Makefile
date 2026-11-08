@@ -7,9 +7,9 @@ PKG      := github.com/rhisijmuiden/fleetwarden/internal/version
 LDFLAGS  := -s -w -X $(PKG).Version=$(VERSION) -X $(PKG).Commit=$(COMMIT) -X $(PKG).Channel=$(CHANNEL) -X $(PKG).BuildDate=$(DATE)
 GOBUILD  := CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)"
 
-.PHONY: all test web server agents agent-debs deb clean
+.PHONY: all test web server agents gateways agent-debs gateway-debs deb clean
 
-all: web server agents
+all: web server agents gateways
 
 test:
 	go vet ./...
@@ -26,6 +26,14 @@ agents:
 	GOOS=linux   GOARCH=amd64 $(GOBUILD) -o dist/linux-amd64/fleetwarden-agent ./cmd/fleetwarden-agent
 	GOOS=linux   GOARCH=arm64 $(GOBUILD) -o dist/linux-arm64/fleetwarden-agent ./cmd/fleetwarden-agent
 	GOOS=windows GOARCH=amd64 $(GOBUILD) -o dist/windows-amd64/fleetwarden-agent.exe ./cmd/fleetwarden-agent
+
+# The secure gateway for the DMZ.
+gateways:
+	GOOS=linux GOARCH=amd64 $(GOBUILD) -o dist/linux-amd64/fleetwarden-gateway ./cmd/fleetwarden-gateway
+	GOOS=linux GOARCH=arm64 $(GOBUILD) -o dist/linux-arm64/fleetwarden-gateway ./cmd/fleetwarden-gateway
+
+gateway-debs: gateways
+	VERSION=$(VERSION) packaging/gateway/build-debs.sh
 
 # Agent packages for Debian/Proxmox; the server package bundles them (and the MSI, when built).
 agent-debs: agents

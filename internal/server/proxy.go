@@ -271,6 +271,7 @@ func (s *Server) handlePutProxy(w http.ResponseWriter, r *http.Request) {
 	details := map[string]any{"trustedProxies": nets, "hsts": p.HSTS, "kind": p.Kind, "upstream": p.Upstream}
 	if req.PublicURL != nil {
 		details["publicUrl"] = *req.PublicURL
+		s.broadcastEndpoints(r.Context())
 	}
 	s.audit(r, "settings.proxy", "proxy", true, details)
 	// The response reflects the new trust list for this very request.
