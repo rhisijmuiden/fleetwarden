@@ -38,14 +38,15 @@ const (
 	PermDriversManage  Permission = "drivers.manage"  // add driver and firmware updates to the repository
 	PermVulnsManage    Permission = "vulns.manage"    // vulnerability sources and accepted risks
 	PermRemoteManage   Permission = "remote.manage"   // processes, services, event logs and files without taking over the screen
+	PermAssetsManage   Permission = "assets.manage"   // owner, location and warranty of devices, software licences
 )
 
 // Roles lists the roles in order of privilege.
 var Roles = []Role{RoleAdministrator, RoleTechnician, RoleReadOnly}
 
 var rolePermissions = map[Role][]Permission{
-	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermRemoteTerminal, PermReportsManage, PermAlertsManage, PermConfigManage, PermDriversManage, PermRemoteManage, PermVulnsManage},
-	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage, PermPatchesApprove, PermSoftwareDeploy, PermRemoteControl, PermAlertsManage, PermRemoteManage},
+	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermRemoteTerminal, PermReportsManage, PermAlertsManage, PermConfigManage, PermDriversManage, PermRemoteManage, PermAssetsManage, PermVulnsManage},
+	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage, PermPatchesApprove, PermSoftwareDeploy, PermRemoteControl, PermAlertsManage, PermRemoteManage, PermAssetsManage},
 	RoleReadOnly:      {PermDashboardView, PermDevicesView},
 }
 

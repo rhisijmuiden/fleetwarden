@@ -29,9 +29,10 @@ const (
 	reportCompliance = "compliance"
 	reportPatches    = "patches"
 	reportSoftware   = "software"
+	reportAssets     = "assets"
 )
 
-var reportKinds = []string{reportCompliance, reportPatches, reportSoftware}
+var reportKinds = []string{reportCompliance, reportPatches, reportSoftware, reportAssets}
 
 // reportSettings define compliance and which software the reports skip.
 type reportSettings struct {
@@ -39,10 +40,13 @@ type reportSettings struct {
 	PatchGraceDays  int      `json:"patchGraceDays"`  // security updates may be missing this long
 	DiskFreePercent int      `json:"diskFreePercent"` // minimum free space on every volume
 	IgnoredSoftware []string `json:"ignoredSoftware"` // winget package IDs left out of the reports
+	// ExpiringDays: warranties and licences ending within this many days
+	// count as ending soon.
+	ExpiringDays int `json:"expiringDays"`
 }
 
 func defaultReportSettings() reportSettings {
-	return reportSettings{OfflineDays: 7, PatchGraceDays: 14, DiskFreePercent: 10, IgnoredSoftware: []string{}}
+	return reportSettings{OfflineDays: 7, PatchGraceDays: 14, DiskFreePercent: 10, IgnoredSoftware: []string{}, ExpiringDays: 90}
 }
 
 func (s *Server) loadReportSettings(ctx context.Context) reportSettings {
@@ -51,12 +55,16 @@ func (s *Server) loadReportSettings(ctx context.Context) reportSettings {
 	if rs.IgnoredSoftware == nil {
 		rs.IgnoredSoftware = []string{}
 	}
+	if rs.ExpiringDays == 0 {
+		rs.ExpiringDays = 90
+	}
 	return rs
 }
 
 func validReportSettings(rs reportSettings) bool {
 	return rs.OfflineDays >= 1 && rs.OfflineDays <= 365 && rs.PatchGraceDays >= 0 && rs.PatchGraceDays <= 365 &&
-		rs.DiskFreePercent >= 1 && rs.DiskFreePercent <= 90 && len(rs.IgnoredSoftware) <= 1000
+		rs.DiskFreePercent >= 1 && rs.DiskFreePercent <= 90 && len(rs.IgnoredSoftware) <= 1000 &&
+		rs.ExpiringDays >= 1 && rs.ExpiringDays <= 730
 }
 
 // minVolumeBytes keeps tiny partitions (EFI, recovery) out of the disk check.
@@ -736,6 +744,9 @@ func (s *Server) buildReport(ctx context.Context, kind string, in reportInput, l
 	case reportSoftware:
 		r, err := s.softwareReport(ctx, in)
 		return r, r.output(lang), err
+	case reportAssets:
+		r, err := s.assetsReport(ctx, in)
+		return r, r.output(lang), err
 	}
 	return nil, reportOutput{}, errors.New("unknown report")
 }
@@ -879,6 +890,9 @@ func (s *Server) handlePutReportSettings(w http.ResponseWriter, r *http.Request)
 	}
 	if rs.IgnoredSoftware == nil {
 		rs.IgnoredSoftware = []string{}
+	}
+	if rs.ExpiringDays == 0 {
+		rs.ExpiringDays = 90
 	}
 	if !validReportSettings(rs) {
 		apiError(w, http.StatusBadRequest, "invalid_report_settings")

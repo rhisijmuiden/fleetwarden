@@ -48,6 +48,13 @@ Linux-pakketten staan bij *Ontbrekende patches*.
   bijvoorbeeld als je bewust een oude versie houdt. Terugdraaien kan onder
   **Rapporten > Instellingen**.
 
+## Assets
+
+Softwarelicenties die overschreden zijn of binnenkort aflopen, en de
+apparaten waarvan de garantie verlopen is of binnenkort afloopt.
+*Binnenkort* stel je in onder **Instellingen** (standaard 90 dagen). De
+CSV-export is het volledige assetregister. Zie [assets.nl.md](assets.nl.md).
+
 ## Exporteren
 
 **PDF** en **CSV** boven aan de pagina exporteren het open tabblad voor de

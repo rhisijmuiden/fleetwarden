@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { Permission } from "./api";
 import {
   Bell,
+  Boxes,
   Bug,
   Cpu,
   ScrollText,
@@ -47,6 +48,7 @@ export const navigation: NavGroup[] = [
     items: [
       { path: "/devices", label: "nav.devices", icon: Monitor, perm: "devices.view" },
       { path: "/groups", label: "nav.groups", icon: FolderTree, perm: "devices.view" },
+      { path: "/asset-management", label: "nav.assets", icon: Boxes, perm: "devices.view" },
     ],
   },
   {

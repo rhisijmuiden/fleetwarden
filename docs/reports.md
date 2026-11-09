@@ -47,6 +47,13 @@ under *Missing patches*.
   for example when you keep an old version on purpose. Undo it under
   **Reports > Settings**.
 
+## Assets
+
+Software licences that are over-used or end soon, and the devices whose
+warranty has ended or ends soon. *Ending soon* is set under **Settings**
+(90 days by default). The CSV export is the complete asset register. See
+[assets.md](assets.md).
+
 ## Export
 
 **PDF** and **CSV** at the top of the page export the open tab for the
