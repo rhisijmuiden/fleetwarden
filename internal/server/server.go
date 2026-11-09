@@ -474,7 +474,16 @@ func apiErrorDetail(w http.ResponseWriter, code int, errCode, detail string) {
 	writeJSON(w, code, apiErr{Error: errCode, Detail: detail})
 }
 
+// canceled reports an error caused by a closed connection or shutdown, which
+// is not worth a log line.
+func canceled(err error) bool {
+	return errors.Is(err, context.Canceled)
+}
+
 func (s *Server) internalError(w http.ResponseWriter, r *http.Request, err error) {
+	if canceled(err) && r.Context().Err() != nil {
+		return // the browser went away
+	}
 	s.log.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
 	apiError(w, http.StatusInternalServerError, "internal")
 }

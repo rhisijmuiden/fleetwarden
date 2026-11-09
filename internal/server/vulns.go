@@ -31,6 +31,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rhisijmuiden/fleetwarden/internal/agentproto"
@@ -84,6 +85,47 @@ type vulnSync struct {
 	urls      *vulnURLs
 	client    *http.Client
 	firstYear int
+
+	// The summary counts go over every device match (millions in a large
+	// unpatched fleet), so they are cached briefly per scope. statsGen
+	// changes when matches or accepted risks change.
+	statsMu  sync.Mutex
+	statsGen atomic.Uint64
+	stats    map[string]cachedVulnStats
+}
+
+type cachedVulnStats struct {
+	st  store.VulnStats
+	gen uint64
+	at  time.Time
+}
+
+const vulnStatsTTL = 30 * time.Second
+
+// vulnStats returns the summary counts of a scope, from the cache when fresh.
+func (s *Server) vulnStats(ctx context.Context, sc store.Scope) (store.VulnStats, error) {
+	key := "all"
+	if !sc.All {
+		g := slices.Clone(sc.Groups)
+		slices.Sort(g)
+		key = fmt.Sprint(g)
+	}
+	v := &s.vulns
+	v.statsMu.Lock()
+	defer v.statsMu.Unlock()
+	gen := v.statsGen.Load()
+	if c, ok := v.stats[key]; ok && c.gen == gen && s.now().Sub(c.at) < vulnStatsTTL {
+		return c.st, nil
+	}
+	st, err := s.st.VulnStats(ctx, sc)
+	if err != nil {
+		return st, err
+	}
+	if v.stats == nil || len(v.stats) > 1000 {
+		v.stats = map[string]cachedVulnStats{}
+	}
+	v.stats[key] = cachedVulnStats{st: st, gen: gen, at: s.now()}
+	return st, nil
 }
 
 // vulnSettings is the setting "vulnerabilities".
@@ -533,6 +575,7 @@ func (s *Server) matchDirtyDevices(ctx context.Context) error {
 				return err
 			}
 		}
+		s.vulns.statsGen.Add(1)
 	}
 	return ctx.Err()
 }
@@ -961,7 +1004,7 @@ type vulnSummaryView struct {
 }
 
 func (s *Server) handleVulnSummary(w http.ResponseWriter, r *http.Request) {
-	st, err := s.st.VulnStats(r.Context(), s.scope(r))
+	st, err := s.vulnStats(r.Context(), s.scope(r))
 	if err != nil {
 		s.internalError(w, r, err)
 		return
@@ -1386,6 +1429,7 @@ func (s *Server) handleCreateVulnException(w http.ResponseWriter, r *http.Reques
 	u, _ := currentUser(r)
 	x.CreatedBy = u.Username
 	id, err := s.st.CreateVulnException(r.Context(), x)
+	s.vulns.statsGen.Add(1)
 	if errors.Is(err, store.ErrConflict) {
 		apiError(w, http.StatusConflict, "exception_exists")
 		return
@@ -1434,6 +1478,7 @@ func (s *Server) handleDeleteVulnException(w http.ResponseWriter, r *http.Reques
 		s.internalError(w, r, err)
 		return
 	}
+	s.vulns.statsGen.Add(1)
 	s.audit(r, "vulnerabilities.accept.remove", x.CVE, true, map[string]any{"device": x.DeviceID})
 	w.WriteHeader(http.StatusNoContent)
 }
