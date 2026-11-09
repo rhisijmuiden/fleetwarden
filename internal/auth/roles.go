@@ -35,14 +35,17 @@ const (
 	PermAlertsManage   Permission = "alerts.manage"   // acknowledge alerts
 	PermConfigManage   Permission = "config.manage"   // configurations: browser policies, registry values, scripts
 	PermDriversManage  Permission = "drivers.manage"  // add driver and firmware updates to the repository
+	// The self-service catalog and its settings; handling the requests of users.
+	PermSelfServiceManage Permission = "selfservice.manage"
+	PermSelfServiceHandle Permission = "selfservice.handle"
 )
 
 // Roles lists the roles in order of privilege.
 var Roles = []Role{RoleAdministrator, RoleTechnician, RoleReadOnly}
 
 var rolePermissions = map[Role][]Permission{
-	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermReportsManage, PermAlertsManage, PermConfigManage, PermDriversManage},
-	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage, PermPatchesApprove, PermSoftwareDeploy, PermRemoteControl, PermAlertsManage},
+	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermReportsManage, PermAlertsManage, PermConfigManage, PermDriversManage, PermSelfServiceManage, PermSelfServiceHandle},
+	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage, PermPatchesApprove, PermSoftwareDeploy, PermRemoteControl, PermAlertsManage, PermSelfServiceHandle},
 	RoleReadOnly:      {PermDashboardView, PermDevicesView},
 }
 

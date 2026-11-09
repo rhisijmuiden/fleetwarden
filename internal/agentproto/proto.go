@@ -141,6 +141,9 @@ type Welcome struct {
 	HeartbeatSeconds  int    `json:"heartbeatSeconds"`
 	InventoryMinutes  int    `json:"inventoryMinutes"`
 	InventoryRequired bool   `json:"inventoryRequired"`
+	// SelfService: the server answers selfservice.request messages (older
+	// servers drop the connection on an unknown message type).
+	SelfService bool `json:"selfService,omitempty"`
 }
 
 // AgentConfig changes session settings after the welcome. Older agents

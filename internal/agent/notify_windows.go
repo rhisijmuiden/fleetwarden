@@ -38,6 +38,7 @@ func platformNotifier(ctx context.Context, log *slog.Logger) Notifier {
 	h := newTrayHub(log)
 	h.sessions = activeSessions
 	h.session = pipeClientSession
+	h.user = pipeClientUser
 	if exe, err := os.Executable(); err == nil {
 		tray := filepath.Join(filepath.Dir(exe), TrayExe)
 		if _, err := os.Stat(tray); err == nil {
@@ -89,6 +90,41 @@ func pipeClientSession(c net.Conn) uint32 {
 		return 0
 	}
 	return session
+}
+
+// pipeClientUser returns the account (DOMAIN\name) of the process on the
+// other end, from its token: the tray cannot claim another user.
+func pipeClientUser(c net.Conn) string {
+	f, ok := c.(interface{ Fd() uintptr })
+	if !ok {
+		return ""
+	}
+	var pid uint32
+	if windows.GetNamedPipeClientProcessId(windows.Handle(f.Fd()), &pid) != nil {
+		return ""
+	}
+	p, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+	if err != nil {
+		return ""
+	}
+	defer windows.CloseHandle(p)
+	var tok windows.Token
+	if windows.OpenProcessToken(p, windows.TOKEN_QUERY, &tok) != nil {
+		return ""
+	}
+	defer tok.Close()
+	u, err := tok.GetTokenUser()
+	if err != nil {
+		return ""
+	}
+	account, domain, _, err := u.User.Sid.LookupAccount("")
+	if err != nil {
+		return u.User.Sid.String()
+	}
+	if domain == "" {
+		return account
+	}
+	return domain + `\` + account
 }
 
 // launchInSession starts exe as the user of the session, on their desktop.

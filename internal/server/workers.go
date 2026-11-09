@@ -89,6 +89,9 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			if err := s.st.PurgeConfigurationRuns(ctx, configRunDays*24*time.Hour); err != nil {
 				s.log.Warn("purge configuration script runs", "err", err)
 			}
+			if err := s.st.PurgeSelfService(ctx, selfServiceRetention); err != nil {
+				s.log.Warn("purge self-service requests", "err", err)
+			}
 			s.pruneSoftwareFiles(ctx)
 		}
 	}
