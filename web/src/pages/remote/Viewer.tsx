@@ -17,6 +17,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   X,
+  Zap,
 } from "lucide-react";
 import { get, post, type Device, type RemoteSession, type RemoteState } from "../../api";
 import { useBranding } from "../../branding";
@@ -25,6 +26,7 @@ import {
   Mouse,
   Msg,
   ack,
+  chunks,
   combos,
   control,
   decodeFrame,
@@ -32,11 +34,13 @@ import {
   decodeText,
   key,
   mouse,
+  rtcSignal,
   scanCodes,
   setClipboard,
   type Info,
   type Quality,
   type RemoteEvent,
+  type RTCSignal,
 } from "./protocol";
 
 export type Phase = RemoteState | "starting";
@@ -66,16 +70,92 @@ export function RemoteViewer() {
   const [full, setFull] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [consentLeft, setConsentLeft] = useState(30);
+  const [path, setPath] = useState<"relay" | "direct">("relay");
 
   const ws = useRef<WebSocket | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
   const started = useRef(-1);
 
+  // The direct path (a WebRTC data channel to the agent), when it opened.
+  const dc = useRef<RTCDataChannel | null>(null);
+  const pc = useRef<RTCPeerConnection | null>(null);
+  const rtc = useRef<{ iceServers: string[] } | null>(null);
+  const rtcAsked = useRef(false);
+
   const send = useCallback((m: ArrayBuffer) => {
+    const d = dc.current;
+    if (d && d.readyState === "open") {
+      for (const c of chunks(m)) d.send(c);
+      return;
+    }
     const s = ws.current;
     if (s && s.readyState === WebSocket.OPEN) s.send(m);
   }, []);
+
+  const closeDirect = () => {
+    dc.current = null;
+    pc.current?.close();
+    pc.current = null;
+    setPath("relay");
+  };
+
+  // startDirect answers the agent's offer. The screen moves to the data
+  // channel once it opens; the relay stays as the fallback.
+  async function startDirect(sdp: string) {
+    closeDirect();
+    const servers = rtc.current?.iceServers ?? [];
+    const conn = new RTCPeerConnection({ iceServers: servers.length ? [{ urls: servers }] : [] });
+    pc.current = conn;
+    let parts: Uint8Array[] = [];
+    conn.ondatachannel = (e) => {
+      const d = e.channel;
+      d.binaryType = "arraybuffer";
+      d.onopen = () => {
+        if (pc.current === conn) dc.current = d;
+      };
+      d.onclose = () => {
+        if (dc.current === d) {
+          dc.current = null;
+          setPath("relay");
+        }
+      };
+      d.onmessage = (ev) => {
+        const b = new Uint8Array(ev.data as ArrayBuffer);
+        parts.push(b.subarray(1));
+        if (b[0] !== 1) return;
+        const total = parts.reduce((n, p) => n + p.length, 0);
+        const msg = new Uint8Array(total);
+        let off = 0;
+        for (const p of parts) {
+          msg.set(p, off);
+          off += p.length;
+        }
+        parts = [];
+        handleBinary(msg.buffer);
+      };
+    };
+    try {
+      await conn.setRemoteDescription({ type: "offer", sdp });
+      await conn.setLocalDescription(await conn.createAnswer());
+      // Send the answer with all candidates (the agent does not trickle).
+      await new Promise<void>((resolve) => {
+        if (conn.iceGatheringState === "complete") return resolve();
+        const timer = setTimeout(resolve, 3000);
+        conn.addEventListener("icegatheringstatechange", () => {
+          if (conn.iceGatheringState === "complete") {
+            clearTimeout(timer);
+            resolve();
+          }
+        });
+      });
+      if (pc.current !== conn) return;
+      send(rtcSignal({ type: "answer", sdp: conn.localDescription?.sdp ?? "" }));
+    } catch {
+      if (pc.current === conn) closeDirect();
+      send(rtcSignal({ type: "failed" }));
+    }
+  }
 
   useEffect(() => {
     get<Device>(`/devices/${deviceId}`)
@@ -96,9 +176,12 @@ export function RemoteViewer() {
     setReason("");
     setStartError(null);
     setInfo(null);
-    post<RemoteSession>(`/devices/${deviceId}/remote`, { kind: "desktop" })
+    closeDirect();
+    rtcAsked.current = false;
+    post<RemoteSession & { rtc?: { iceServers: string[] } }>(`/devices/${deviceId}/remote`, { kind: "desktop" })
       .then((s) => {
         if (closed) return;
+        rtc.current = s.rtc ?? null;
         setSession(s);
         setPhase(s.state);
         const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -118,6 +201,7 @@ export function RemoteViewer() {
           handleBinary(ev.data as ArrayBuffer);
         };
         sock.onclose = () => {
+          closeDirect();
           setPhase((p) => (finished(p) ? p : "ended"));
           setReason((r) => r || "connection_lost");
         };
@@ -133,7 +217,13 @@ export function RemoteViewer() {
   }, [deviceId, attempt]);
 
   // Close the socket when the tab goes away.
-  useEffect(() => () => ws.current?.close(), []);
+  useEffect(
+    () => () => {
+      pc.current?.close();
+      ws.current?.close();
+    },
+    [],
+  );
 
   useEffect(() => {
     if (phase !== "consent") return;
@@ -160,6 +250,11 @@ export function RemoteViewer() {
           setInfo(i);
           setDesktop(i.desktop);
           setPhase((p) => (finished(p) ? p : "active")); // the screen is here, whatever the status said
+          // Ask the agent for the direct path once the screen shows.
+          if (!rtcAsked.current && rtc.current && typeof RTCPeerConnection !== "undefined") {
+            rtcAsked.current = true;
+            send(rtcSignal({ type: "request" }));
+          }
         });
         break;
       }
@@ -185,8 +280,14 @@ export function RemoteViewer() {
         navigator.clipboard?.writeText(text).catch(() => {});
         break;
       }
+      case Msg.RTC: {
+        const sig = decodeJSON<RTCSignal>(buf);
+        if (sig.type === "offer" && sig.sdp) void startDirect(sig.sdp);
+        break;
+      }
       case Msg.Event: {
         const ev = decodeJSON<RemoteEvent>(buf);
+        if (ev.type === "path") setPath(ev.code === "direct" ? "direct" : "relay");
         if (ev.type === "desktop" && ev.desktop) setDesktop(ev.desktop);
         if (ev.type === "notice" && ev.code) showNotice(t(`remote.notices.${ev.code}`, { defaultValue: ev.code }));
         break;
@@ -363,6 +464,14 @@ export function RemoteViewer() {
               title={t("remote.secureDesktopHint")}
             >
               <ShieldAlert className="size-3.5" /> {t("remote.secureDesktop")}
+            </span>
+          )}
+          {active && info && (
+            <span
+              className={`ml-1 hidden items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs font-medium sm:inline-flex ${path === "direct" ? "bg-success/10 text-success" : "bg-surface-muted text-muted"}`}
+              title={t(`remote.paths.${path}Hint`)}
+            >
+              {path === "direct" && <Zap className="size-3.5" />} {t(`remote.paths.${path}`)}
             </span>
           )}
           {session && session.consent !== "direct" && active && (

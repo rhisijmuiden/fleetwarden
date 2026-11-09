@@ -324,7 +324,9 @@
     "upload_missing": "The uploaded file is gone. Upload it again.",
     "driver_already_uploaded": "This package was uploaded already.",
     "title_required": "Give the package a name.",
-    "invalid_terminal_shell": "Choose PowerShell or Command Prompt."
+    "invalid_terminal_shell": "Choose PowerShell or Command Prompt.",
+    "invalid_stun_server": "Enter STUN servers as stun:host or stun:host:port.",
+    "too_many_stun_servers": "Enter at most 5 STUN servers."
   },
   "login": {
     "title": "Sign in",
@@ -593,7 +595,16 @@
     "publicUrlDetected": "Not set, detected as {{url}}",
     "proxyHint": "The public URL, trusted proxies, configuration examples and a connection test are on the Reverse proxy page.",
     "openProxy": "Reverse proxy settings",
-    "publicUrlHint": "The address people use through your reverse proxy, used for SSO and links in e-mails. Empty: detected as {{url}}."
+    "publicUrlHint": "The address people use through your reverse proxy, used for SSO and links in e-mails. Empty: detected as {{url}}.",
+    "remote": {
+      "title": "Remote control",
+      "subtitle": "How the screen of a remote session reaches your browser.",
+      "direct": "Direct connection when possible",
+      "directHint": "Sends the screen straight from the device to the browser (WebRTC, encrypted) when the browser can reach the device, for example on the same network or over a VPN. Otherwise, and when this is off, sessions go through the server.",
+      "stun": "STUN servers",
+      "stunHint": "Optional, one per line, such as stun:stun.example.org:3478. They let a direct connection cross NAT routers. The device and the browser contact these servers, so only use ones you trust.",
+      "applied": "New sessions use it."
+    }
   },
   "audit": {
     "title": "Audit log",
@@ -1755,6 +1766,12 @@
       "exited": "The shell exited with code {{code}}.",
       "newSession": "New session",
       "screen": "Terminal on {{host}}"
+    },
+    "paths": {
+      "direct": "Direct",
+      "directHint": "The screen comes straight from the device (WebRTC), not through the server.",
+      "relay": "Via server",
+      "relayHint": "The screen goes through the server. A direct connection is tried automatically when the device is reachable from this browser."
     }
   },
   "reports": {

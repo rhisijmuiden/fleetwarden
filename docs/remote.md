@@ -103,13 +103,32 @@ to `3` when it was `2` (ease of access apps). A Group Policy *Disable or enable
 software Secure Attention Sequence* that says otherwise overrides this, so set
 it to *Services* (or *Services and Ease of Access applications*).
 
+## Direct connection
+
+Once the screen shows, the viewer asks the agent for a direct connection: a
+WebRTC data channel between the browser and the device. When the browser can
+reach the device (the same network, a VPN, or through NAT with a STUN server),
+the screen and the input switch to it and the toolbar shows **Direct**;
+otherwise the session simply stays **Via server**. If the direct connection
+drops, the session falls back to the server without interruption.
+
+- The offer and answer go over the encrypted session socket, so the DTLS
+  keys of the data channel are authenticated end to end; the data channel is
+  encrypted with DTLS.
+- **Settings > Remote control** turns it off (every session through the
+  server) and takes optional STUN servers (`stun:host:port`). Without STUN
+  servers only the device's own addresses are tried. No TURN server is used:
+  where no direct route exists, the server relay is the fallback.
+- The Windows installer adds two inbound firewall rules for UDP to
+  `fleetwarden-agent.exe`, on domain and private networks only.
+
 ## Design notes
 
-The plan named WebRTC with H.264. This version sends changed 64×64 tiles as
-JPEG over the WebSocket relay instead: it works through every proxy and
-firewall that allows HTTPS, needs no codec on the machines and no TURN
-server, and frame acknowledgements keep latency low on slow links. A direct
-WebRTC path follows in the next step.
+The plan named WebRTC with H.264. Both paths carry the same changed 64×64
+tiles as JPEG instead: that works through every proxy and firewall that
+allows HTTPS, needs no codec on the machines, and frame acknowledgements keep
+latency low on slow links. The direct path cuts out the server's round trip
+and its bandwidth.
 
 ## Troubleshooting
 

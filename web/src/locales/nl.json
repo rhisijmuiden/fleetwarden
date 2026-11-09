@@ -324,7 +324,9 @@
     "upload_missing": "Het geüploade bestand is weg. Upload het opnieuw.",
     "driver_already_uploaded": "Dit pakket is al geüpload.",
     "title_required": "Geef het pakket een naam.",
-    "invalid_terminal_shell": "Kies PowerShell of Opdrachtprompt."
+    "invalid_terminal_shell": "Kies PowerShell of Opdrachtprompt.",
+    "invalid_stun_server": "Vul STUN-servers in als stun:host of stun:host:poort.",
+    "too_many_stun_servers": "Vul maximaal 5 STUN-servers in."
   },
   "login": {
     "title": "Inloggen",
@@ -593,7 +595,16 @@
     "publicUrlDetected": "Niet ingesteld, gedetecteerd als {{url}}",
     "proxyHint": "De publieke URL, vertrouwde proxy's, configuratievoorbeelden en een verbindingstest staan op de pagina Reverse proxy.",
     "openProxy": "Reverse proxy-instellingen",
-    "publicUrlHint": "Het adres dat mensen via je reverse proxy gebruiken, voor SSO en links in e-mails. Leeg: gedetecteerd als {{url}}."
+    "publicUrlHint": "Het adres dat mensen via je reverse proxy gebruiken, voor SSO en links in e-mails. Leeg: gedetecteerd als {{url}}.",
+    "remote": {
+      "title": "Overnemen op afstand",
+      "subtitle": "Hoe het scherm van een sessie op afstand je browser bereikt.",
+      "direct": "Directe verbinding als het kan",
+      "directHint": "Stuurt het scherm rechtstreeks van het apparaat naar de browser (WebRTC, versleuteld) als de browser het apparaat kan bereiken, bijvoorbeeld op hetzelfde netwerk of via een VPN. Anders, en als dit uit staat, gaan sessies via de server.",
+      "stun": "STUN-servers",
+      "stunHint": "Optioneel, één per regel, zoals stun:stun.example.org:3478. Daarmee kan een directe verbinding door NAT-routers heen. Het apparaat en de browser nemen contact op met deze servers, dus gebruik alleen servers die je vertrouwt.",
+      "applied": "Nieuwe sessies gebruiken dit."
+    }
   },
   "audit": {
     "title": "Auditlog",
@@ -1755,6 +1766,12 @@
       "exited": "De shell is afgesloten met code {{code}}.",
       "newSession": "Nieuwe sessie",
       "screen": "Terminal op {{host}}"
+    },
+    "paths": {
+      "direct": "Direct",
+      "directHint": "Het scherm komt rechtstreeks van het apparaat (WebRTC), niet via de server.",
+      "relay": "Via server",
+      "relayHint": "Het scherm gaat via de server. Een directe verbinding wordt vanzelf geprobeerd als het apparaat bereikbaar is vanuit deze browser."
     }
   },
   "reports": {

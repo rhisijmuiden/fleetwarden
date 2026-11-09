@@ -16,6 +16,7 @@
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Name="FleetWarden Agent"
            Manufacturer="FleetWarden"
@@ -44,7 +45,13 @@
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="FleetWarden Agent">
         <Component Id="AgentService" Bitness="always64">
-          <File Id="AgentExe" Source="$(var.AgentExe)" Name="fleetwarden-agent.exe" KeyPath="yes" />
+          <File Id="AgentExe" Source="$(var.AgentExe)" Name="fleetwarden-agent.exe" KeyPath="yes">
+            <!-- The direct path of remote control (WebRTC): the operator's
+                 browser sends UDP to the agent. Domain and private networks
+                 only; public networks keep using the relay. -->
+            <fw:FirewallException Id="AgentDirectDomain" Name="FleetWarden Agent (direct remote control, domain)" Protocol="udp" Profile="domain" Scope="any" />
+            <fw:FirewallException Id="AgentDirectPrivate" Name="FleetWarden Agent (direct remote control, private)" Protocol="udp" Profile="private" Scope="any" />
+          </File>
           <ServiceInstall Id="AgentService"
                           Name="FleetWardenAgent"
                           DisplayName="FleetWarden Agent"

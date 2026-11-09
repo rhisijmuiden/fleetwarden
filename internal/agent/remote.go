@@ -189,7 +189,7 @@ func (a *Agent) runRemote(ctx context.Context, st agentproto.RemoteStart, send f
 		defer notifier.RemoteEnded(st.SessionID)
 	}
 	a.Log.Info("remote session started", "session", st.SessionID, "operator", st.Operator, "consent", st.Consent)
-	end := a.relayDesktop(ctx, ws, ciph, backend)
+	end := a.relayDesktop(ctx, ws, ciph, backend, st)
 	send(agentproto.TypeRemoteStatus, agentproto.RemoteStatus{SessionID: st.SessionID, State: end.state, Reason: end.reason})
 	ws.Close(websocket.StatusNormalClosure, end.reason) //nolint:errcheck
 	return end
@@ -254,7 +254,7 @@ func (a *Agent) dialRemote(ctx context.Context, sessionID string, key *agentprot
 // relayDesktop passes messages between the session socket and the desktop
 // helper. When the helper goes away (the user signs out, the console session
 // changes) a new one is started in the current console session.
-func (a *Agent) relayDesktop(ctx context.Context, ws *websocket.Conn, ciph *agentproto.RemoteCipher, backend RemoteBackend) remoteEnd {
+func (a *Agent) relayDesktop(ctx context.Context, ws *websocket.Conn, ciph *agentproto.RemoteCipher, backend RemoteBackend, st agentproto.RemoteStart) remoteEnd {
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 	var mu sync.Mutex
@@ -269,16 +269,134 @@ func (a *Agent) relayDesktop(ctx context.Context, ws *websocket.Conn, ciph *agen
 		defer mu.Unlock()
 		return helper
 	}
-	write := func(plain []byte) error {
+	relayWrite := func(plain []byte) error {
 		wctx, wcancel := context.WithTimeout(ctx, remoteWriteTimeout)
 		defer wcancel()
 		return ws.Write(wctx, websocket.MessageBinary, ciph.Seal(plain))
+	}
+	// The direct path, once the viewer asked for it and it opened.
+	var linkMu sync.Mutex
+	var link *rtcLink
+	getLink := func() *rtcLink {
+		linkMu.Lock()
+		defer linkMu.Unlock()
+		return link
+	}
+	defer func() {
+		if l := getLink(); l != nil {
+			l.close()
+		}
+	}()
+	refresh := func() {
+		// Frames sent on the old path can arrive after ones on the new
+		// path: a full frame puts the viewer right.
+		if h := getHelper(); h != nil {
+			_ = h.WriteMsg(remote.JSONMessage(remote.MsgControl, remote.Control{Op: "refresh"}))
+		}
+	}
+	pathEvent := func(path string) []byte {
+		return remote.JSONMessage(remote.MsgEvent, remote.Event{Type: "path", Code: path})
+	}
+	write := func(plain []byte) error {
+		if l := getLink(); l != nil && l.open.Load() {
+			if err := l.send(ctx, plain); err == nil || ctx.Err() != nil {
+				return err
+			}
+			// The direct path broke: this message and the rest go
+			// over the relay.
+		}
+		return relayWrite(plain)
 	}
 	notice := func(code string) {
 		_ = write(remote.JSONMessage(remote.MsgEvent, remote.Event{Type: "notice", Code: code}))
 	}
 
-	// viewer -> helper
+	var fromViewer func(m []byte)
+	startDirect := func() {
+		if !st.Direct {
+			_ = relayWrite(remote.JSONMessage(remote.MsgRTC, remote.RTCSignal{Type: "failed"}))
+			return
+		}
+		linkMu.Lock()
+		old := link
+		link = nil
+		linkMu.Unlock()
+		if old != nil {
+			old.close()
+		}
+		var l *rtcLink
+		onClose := func() {
+			linkMu.Lock()
+			current := link == l
+			if current {
+				link = nil
+			}
+			linkMu.Unlock()
+			if current && ctx.Err() == nil {
+				a.Log.Info("remote session: direct path closed, back to the relay")
+				_ = relayWrite(pathEvent(remote.PathRelay))
+				refresh()
+			}
+		}
+		onOpen := func() {
+			a.Log.Info("remote session: direct path open")
+			if l := getLink(); l != nil {
+				_ = l.send(ctx, pathEvent(remote.PathDirect))
+			}
+			refresh()
+		}
+		var sdp string
+		var err error
+		l, sdp, err = newRTCLink(ctx, st.ICEServers, func(m []byte) { fromViewer(m) }, onOpen, onClose)
+		if err != nil {
+			a.Log.Warn("remote session: direct path", "err", err)
+			_ = relayWrite(remote.JSONMessage(remote.MsgRTC, remote.RTCSignal{Type: "failed"}))
+			return
+		}
+		linkMu.Lock()
+		link = l
+		linkMu.Unlock()
+		_ = relayWrite(remote.JSONMessage(remote.MsgRTC, remote.RTCSignal{Type: "offer", SDP: sdp}))
+	}
+	fromViewer = func(m []byte) {
+		if len(m) == 0 {
+			return
+		}
+		if m[0] == remote.MsgRTCAns {
+			var sig remote.RTCSignal
+			if json.Unmarshal(m[1:], &sig) != nil {
+				return
+			}
+			switch sig.Type {
+			case "request":
+				go startDirect()
+			case "answer":
+				if l := getLink(); l != nil {
+					if err := l.accept(sig.SDP, nil); err != nil {
+						a.Log.Warn("remote session: direct path answer", "err", err)
+						l.close()
+					}
+				}
+			case "failed":
+				if l := getLink(); l != nil && !l.open.Load() {
+					l.close()
+				}
+			}
+			return
+		}
+		if ctl, ok := remote.DecodeControl(m); ok && ctl.Op == "cad" {
+			if err := backend.SecureAttention(); err != nil {
+				a.Log.Warn("remote session: Ctrl+Alt+Del", "err", err)
+				notice("cad_failed")
+			}
+			return
+		}
+		if h := getHelper(); h != nil {
+			_ = h.WriteMsg(m) // a dead helper is replaced below
+		}
+	}
+
+	// viewer -> helper (relay)
 	go func() {
 		for {
 			typ, raw, err := ws.Read(ctx)
@@ -294,16 +412,7 @@ func (a *Agent) relayDesktop(ctx context.Context, ws *websocket.Conn, ciph *agen
 				cancel(failed("bad_message"))
 				return
 			}
-			if ctl, ok := remote.DecodeControl(m); ok && ctl.Op == "cad" {
-				if err := backend.SecureAttention(); err != nil {
-					a.Log.Warn("remote session: Ctrl+Alt+Del", "err", err)
-					notice("cad_failed")
-				}
-				continue
-			}
-			if h := getHelper(); h != nil {
-				_ = h.WriteMsg(m) // a dead helper is replaced below
-			}
+			fromViewer(m)
 		}
 	}()
 

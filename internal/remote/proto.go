@@ -12,6 +12,7 @@
 //	             u16 x, u16 y, u16 w, u16 h, u8 encoding, u32 length, data
 //	MsgClipboard UTF-8 text copied on the remote computer
 //	MsgEvent     JSON Event
+//	MsgRTC       JSON RTCSignal: the offer for the direct path
 //
 // Viewer -> helper:
 //
@@ -20,6 +21,11 @@
 //	MsgAck       u32 seq of a frame the viewer has drawn
 //	MsgSetClip   UTF-8 text for the remote clipboard
 //	MsgControl   JSON Control
+//	MsgRTCAns    JSON RTCSignal: request, answer or failed
+//
+// Once the direct path (a WebRTC data channel) is open, the agent sends the
+// screen over it and the viewer sends its input over it; messages are split
+// in chunks (ChunkMore, ChunkLast). The relay stays open as the fallback.
 //
 // The helper keeps at most a few frames unacknowledged, so the frame rate
 // follows what the connection and the browser can take.
@@ -37,12 +43,40 @@ const (
 	MsgFrame     byte = 0x02
 	MsgClipboard byte = 0x03
 	MsgEvent     byte = 0x04
+	MsgRTC       byte = 0x05 // agent -> viewer: JSON RTCSignal (the offer)
 
 	MsgMouse   byte = 0x81
 	MsgKey     byte = 0x82
 	MsgAck     byte = 0x83
 	MsgSetClip byte = 0x84
 	MsgControl byte = 0x85
+	MsgRTCAns  byte = 0x86 // viewer -> agent: JSON RTCSignal (request, answer, failed)
+)
+
+// RTCSignal sets up the direct path: the viewer asks for it ("request"),
+// the agent sends an offer with all its candidates, and the viewer answers
+// (or reports "failed"). It travels over the encrypted relay, so the DTLS
+// fingerprints in the SDP are authenticated.
+type RTCSignal struct {
+	Type string `json:"type"` // request, offer, answer, failed
+	SDP  string `json:"sdp,omitempty"`
+}
+
+// Paths a session's screen can travel, reported in an Event of type "path".
+const (
+	PathRelay  = "relay"
+	PathDirect = "direct"
+)
+
+// Data channel framing: every data channel message starts with a byte that
+// says whether it ends a session message (messages can be larger than a
+// data channel message may be).
+const (
+	ChunkMore byte = 0
+	ChunkLast byte = 1
+	// ChunkSize is the payload per data channel message; every browser
+	// takes 64 KiB.
+	ChunkSize = 64<<10 - 1
 )
 
 // Tile encodings.
@@ -102,7 +136,7 @@ type Info struct {
 
 // Event tells the viewer about something that happened.
 type Event struct {
-	Type    string `json:"type"` // "desktop", "error", "notice"
+	Type    string `json:"type"` // "desktop", "error", "notice", "path"
 	Desktop string `json:"desktop,omitempty"`
 	Code    string `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`

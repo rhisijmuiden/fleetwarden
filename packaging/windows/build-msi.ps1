@@ -21,7 +21,7 @@ if (-not (Get-Command wix -ErrorAction SilentlyContinue)) {
     if ($LASTEXITCODE) { throw "installing wix failed" }
     $env:PATH = "$env:PATH;$env:USERPROFILE\.dotnet\tools"
 }
-foreach ($ext in 'WixToolset.Util.wixext', 'WixToolset.UI.wixext') {
+foreach ($ext in 'WixToolset.Util.wixext', 'WixToolset.UI.wixext', 'WixToolset.Firewall.wixext') {
     wix extension add --global "$ext/$WixVersion"
     if ($LASTEXITCODE) { throw "adding $ext failed" }
 }
@@ -38,7 +38,7 @@ if (-not $ca) { throw "FleetWardenCA.CA.dll was not produced" }
 
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $out = Join-Path $OutDir "fleetwarden-agent_${Version}_x64.msi"
-wix build -arch x64 -ext WixToolset.Util.wixext -ext WixToolset.UI.wixext `
+wix build -arch x64 -ext WixToolset.Util.wixext -ext WixToolset.UI.wixext -ext WixToolset.Firewall.wixext `
     -d "Version=$msiVersion" -d "AgentExe=$((Resolve-Path $AgentExe).Path)" -d "CADll=$($ca.FullName)" -d "TrayExe=$((Resolve-Path $tray).Path)" `
     -o $out "$here/FleetWardenAgent.wxs"
 if ($LASTEXITCODE) { throw "wix build failed" }
