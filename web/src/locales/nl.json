@@ -218,8 +218,8 @@
     "unsupported_file": "Alleen .msi-, .exe- en .deb-bestanden kunnen worden geüpload.",
     "upload_failed": "Het uploaden is mislukt. Probeer het opnieuw.",
     "no_browsers": "Kies minstens één browser.",
-    "remote_unsupported": "Overnemen kan op Windows-apparaten.",
-    "remote_busy": "Op dit apparaat lopen al twee sessies op afstand.",
+    "remote_unsupported": "Dit apparaat ondersteunt dit soort sessie op afstand niet.",
+    "remote_busy": "Dit apparaat heeft al het maximale aantal sessies op afstand van deze soort.",
     "remote_viewer_connected": "Deze sessie is al geopend in een ander tabblad.",
     "invalid_consent": "Kies een geldige instelling voor overnemen.",
     "name_taken": "Deze naam is al in gebruik.",
@@ -323,7 +323,8 @@
     "no_inf_in_zip": "Het ZIP-bestand bevat geen driver (.inf).",
     "upload_missing": "Het geüploade bestand is weg. Upload het opnieuw.",
     "driver_already_uploaded": "Dit pakket is al geüpload.",
-    "title_required": "Geef het pakket een naam."
+    "title_required": "Geef het pakket een naam.",
+    "invalid_terminal_shell": "Kies PowerShell of Opdrachtprompt."
   },
   "login": {
     "title": "Inloggen",
@@ -443,6 +444,7 @@
     "software_manage": "Softwarebibliotheek beheren",
     "software_deploy": "Software uitrollen en verwijderen",
     "remote_control": "Apparaten op afstand overnemen",
+    "remote_terminal": "Een terminal openen op apparaten (root of SYSTEM)",
     "reports_manage": "Geplande rapporten en compliance-regels beheren",
     "alerts_manage": "Meldingen bevestigen en meldingsregels beheren",
     "config_manage": "Configuraties beheren (browserbeleid, register, scripts)",
@@ -1594,12 +1596,12 @@
   },
   "remote": {
     "title": "Overnemen op afstand",
-    "subtitle": "Bekijk en bedien het scherm van een Windows-computer of -server vanuit je browser, ook op het inlogscherm en bij UAC-vragen.",
+    "subtitle": "Neem het scherm van een Windows-computer of -server over, ook op het inlogscherm en bij UAC-vragen, of open een terminal op Windows- en Linux-apparaten.",
     "connect": "Overnemen",
     "connectHint": "Opent het scherm op afstand in een nieuw tabblad.",
-    "windowsOnly": "Overnemen kan op Windows-apparaten. Een terminal voor Linux volgt.",
+    "windowsOnly": "Het scherm overnemen kan bij Windows-apparaten. Linux-apparaten hebben een terminal.",
     "connectTitle": "Verbinden",
-    "connectText": "Online Windows-apparaten. De sessie opent in een nieuw tabblad.",
+    "connectText": "Online Windows- en Linux-apparaten. De sessie opent in een nieuw tabblad.",
     "searchPlaceholder": "Zoek op naam, gebruiker of IP-adres",
     "noDevices": "Geen online Windows-apparaat gevonden.",
     "activeTitle": "Actieve sessies",
@@ -1613,7 +1615,8 @@
       "started": "Gestart",
       "duration": "Duur",
       "consent": "Toestemming",
-      "result": "Resultaat"
+      "result": "Resultaat",
+      "kind": "Soort"
     },
     "states": {
       "starting": "Starten",
@@ -1664,7 +1667,9 @@
       "server_restart": "De server is opnieuw gestart.",
       "server_stopping": "De server wordt gestopt.",
       "internal": "Er ging iets mis op het apparaat.",
-      "unknown": "De sessie is beëindigd."
+      "unknown": "De sessie is beëindigd.",
+      "shell_exited": "De shell is afgesloten.",
+      "shell_failed": "De shell kon niet worden gestart op het apparaat."
     },
     "closeWindow": "Tabblad sluiten",
     "reconnect": "Opnieuw verbinden",
@@ -1720,6 +1725,36 @@
     "notices": {
       "cad_failed": "Ctrl+Alt+Del kon niet worden verstuurd.",
       "helper_restarting": "Het scherm maakt opnieuw verbinding (de gebruiker logt misschien in of uit)…"
+    },
+    "kinds": {
+      "desktop": "Scherm",
+      "terminal": "Terminal"
+    },
+    "term": {
+      "title": "Terminal",
+      "open": "Terminal",
+      "hint": {
+        "linux": "Open een shell op dit apparaat als root",
+        "windows": "Open PowerShell op dit apparaat als SYSTEM"
+      },
+      "unsupported": "Een terminal is beschikbaar voor Windows- en Linux-apparaten.",
+      "shell": "Shell",
+      "shells": {
+        "powershell": "PowerShell",
+        "cmd": "Opdrachtprompt"
+      },
+      "copy": "Selectie kopiëren (Ctrl+Shift+C)",
+      "paste": "Plakken (Ctrl+Shift+V)",
+      "copied": "Gekopieerd naar het klembord.",
+      "nothingSelected": "Selecteer eerst tekst in de terminal.",
+      "pasteBlocked": "De browser stond het lezen van het klembord niet toe. Gebruik Ctrl+Shift+V.",
+      "smaller": "Kleinere tekst",
+      "larger": "Grotere tekst",
+      "privileged": "Volledige rechten",
+      "privilegedHint": "Opdrachten draaien als {{user}}, met volledige rechten op dit apparaat. Alles wordt gelogd.",
+      "exited": "De shell is afgesloten met code {{code}}.",
+      "newSession": "Nieuwe sessie",
+      "screen": "Terminal op {{host}}"
     }
   },
   "reports": {

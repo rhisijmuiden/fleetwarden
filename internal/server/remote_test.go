@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -329,5 +330,94 @@ func TestRemoteAgentLegNeedsSignature(t *testing.T) {
 	}
 	if consentFor("auto", "server") != "direct" || consentFor("auto", "workstation") != "ask" || consentFor("notify", "server") != "notify" {
 		t.Error("consentFor")
+	}
+}
+
+func TestRemoteTerminalSession(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("uses a real Linux pseudo terminal")
+	}
+	e := newEnv(t)
+	admin, _ := e.signedInAdmin()
+	_, info := e.createToken(admin, 1)
+	consent := &fakeConsent{allow: false}
+	a := newTestAgent(t, e, info.Token, "SRV-01", false)
+	a.Notify = consent
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	go a.Run(ctx)
+
+	var list deviceList
+	for range 100 {
+		if admin.do("GET", "/api/v1/devices?status=online", nil, &list); list.Total == 1 {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if list.Total != 1 {
+		t.Fatal("agent did not come online")
+	}
+	id := list.Items[0].ID
+	if code := admin.do("POST", "/api/v1/devices/"+id+"/remote", map[string]string{"kind": "terminal", "shell": "bash"}, nil); code != 400 {
+		t.Errorf("unknown shell: %d", code)
+	}
+	var rs store.RemoteSession
+	if code := admin.do("POST", "/api/v1/devices/"+id+"/remote", map[string]any{"kind": "terminal", "cols": 90, "rows": 25}, &rs); code != 201 {
+		t.Fatalf("start: %d", code)
+	}
+	// A terminal never asks the signed-in user, whatever the group says.
+	if rs.Kind != "terminal" || rs.Consent != "direct" {
+		t.Errorf("session: %+v", rs)
+	}
+	v := admin.openViewer(rs.ID)
+	v.waitState("active")
+	var ti remote.TermInfo
+	if err := json.Unmarshal(v.waitBinary(remote.MsgTermInfo)[1:], &ti); err != nil || ti.Platform != "linux" || ti.Shell == "" || ti.User == "" {
+		t.Fatalf("terminal info: %+v %v", ti, err)
+	}
+	waitOutput := func(want string) {
+		t.Helper()
+		var got strings.Builder
+		for !strings.Contains(got.String(), want) {
+			got.Write(v.waitBinary(remote.MsgTermOutput)[1:])
+		}
+	}
+	v.send(append([]byte{remote.MsgTermInput}, "echo fw-$((6*7)) $(tput cols)x$(tput lines)\n"...))
+	waitOutput("fw-42 90x25")
+	v.send(remote.EncodeTermResize(120, 40))
+	v.send(append([]byte{remote.MsgTermInput}, "echo size=$(tput cols)x$(tput lines)\n"...))
+	waitOutput("size=120x40")
+	v.send(append([]byte{remote.MsgTermInput}, "exit 3\n"...))
+	var ex remote.TermExit
+	if err := json.Unmarshal(v.waitBinary(remote.MsgTermExit)[1:], &ex); err != nil || ex.Code != 3 {
+		t.Errorf("exit: %+v %v", ex, err)
+	}
+	done := waitRemote(t, admin, rs.ID, func(r store.RemoteSession) bool { return r.EndedAt != nil })
+	if done.State != "ended" || done.Reason != "shell_exited" || done.BytesUp == 0 {
+		t.Errorf("log: %+v", done)
+	}
+	consent.mu.Lock()
+	asked := len(consent.asked)
+	consent.mu.Unlock()
+	if asked != 0 {
+		t.Errorf("the user was asked %d times", asked)
+	}
+
+	// The operator ends a running shell.
+	admin.do("POST", "/api/v1/devices/"+id+"/remote", map[string]any{"kind": "terminal"}, &rs)
+	v = admin.openViewer(rs.ID)
+	v.waitState("active")
+	v.waitBinary(remote.MsgTermInfo)
+	v.send(remote.EncodeTermResize(80, 24))
+	if code := admin.do("POST", "/api/v1/remote/sessions/"+rs.ID+"/end", nil, nil); code != 204 {
+		t.Fatalf("end: %d", code)
+	}
+	done = waitRemote(t, admin, rs.ID, func(r store.RemoteSession) bool { return r.EndedAt != nil })
+	if done.Reason != "operator_ended" {
+		t.Errorf("ended: %+v", done)
+	}
+	// The desktop is still Windows only.
+	if code := admin.do("POST", "/api/v1/devices/"+id+"/remote", map[string]string{"kind": "desktop"}, nil); code != 400 {
+		t.Errorf("desktop on Linux: %d", code)
 	}
 }
