@@ -50,6 +50,7 @@ your own password at the first sign-in. Lost it? Run
 - Software deployment: [docs/software.md](docs/software.md)
 - Remote control: [docs/remote.md](docs/remote.md)
 - Power management (Wake-on-LAN, scheduled restarts and shutdowns): [docs/power.md](docs/power.md)
+- Management without taking over (processes, services, event logs, files): [docs/manage.md](docs/manage.md)
 - Reports and scheduled report mails: [docs/reports.md](docs/reports.md)
 - Alerts: [docs/alerts.md](docs/alerts.md)
 - Secure gateway in the DMZ for agents outside the network: [docs/gateway.md](docs/gateway.md)

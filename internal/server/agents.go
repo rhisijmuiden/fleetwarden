@@ -162,6 +162,26 @@ func (h *agentHub) send(id, typ string, v any) bool {
 	}
 }
 
+// sendID queues a signed message with an id (a request the agent answers).
+func (h *agentHub) sendID(id, typ, msgID string, v any) bool {
+	h.mu.RLock()
+	c := h.conns[id]
+	h.mu.RUnlock()
+	if c == nil {
+		return false
+	}
+	e, err := c.sess.Seal(typ, msgID, v)
+	if err != nil {
+		return false
+	}
+	select {
+	case c.out <- e:
+		return true
+	default:
+		return false
+	}
+}
+
 // sendChanged sends a settings message unless the session already got the
 // same value.
 func (h *agentHub) sendChanged(id, key, typ string, v any) {
@@ -512,6 +532,8 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 		return s.handlePowerStatusMsg(ctx, c, e)
 	case agentproto.TypeRemoteStatus:
 		return s.handleRemoteStatusMsg(c, e)
+	case agentproto.TypeManageResult:
+		return s.handleManageResultMsg(c, e)
 	default:
 		return fmt.Errorf("unknown message type %q", e.Type)
 	}

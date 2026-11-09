@@ -14,9 +14,10 @@ import { SourceBadge } from "../software/util";
 import { RemoteButton, TerminalButton } from "../remote/Remote";
 import { DeviceConfigsTab } from "../configurations/DeviceConfigs";
 import { PowerButtons } from "../power/DevicePower";
+import { DeviceManageTab } from "../manage/Manage";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
-type Tab = "overview" | "software" | "updates" | "drivers" | "configurations" | "notes";
+type Tab = "overview" | "manage" | "software" | "updates" | "drivers" | "configurations" | "notes";
 
 export function DeviceDetail() {
   const { id = "" } = useParams();
@@ -115,8 +116,10 @@ export function DeviceDetail() {
       {error && <Alert tone="danger">{error}</Alert>}
       {notice && <Alert tone="success">{notice}</Alert>}
 
-      <div className="flex gap-1 border-b border-line" role="tablist">
-        {(["overview", "software", "updates", "drivers", "configurations", "notes"] as Tab[]).map((k) => (
+      <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+        {(["overview", "manage", "software", "updates", "drivers", "configurations", "notes"] as Tab[])
+          .filter((k) => k !== "manage" || can("remote.manage"))
+          .map((k) => (
           <button
             key={k}
             role="tab"
@@ -235,6 +238,7 @@ export function DeviceDetail() {
           </Card>
         </div>
       )}
+      {tab === "manage" && <DeviceManageTab device={device} />}
       {tab === "software" && <SoftwareTab device={device} />}
       {tab === "updates" && <DevicePatchesTab device={device} />}
       {tab === "drivers" && <DeviceDriversTab device={device} />}

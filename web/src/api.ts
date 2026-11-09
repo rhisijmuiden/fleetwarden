@@ -23,7 +23,8 @@ export type Permission =
   | "config.manage"
   | "drivers.manage"
   | "power.control"
-  | "power.manage";
+  | "power.manage"
+  | "remote.manage";
 
 export type Role = "administrator" | "technician" | "readonly";
 
