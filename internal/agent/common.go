@@ -43,6 +43,7 @@ func networkInterfaces() []agentproto.NetIface {
 				continue
 			}
 			n.IPs = append(n.IPs, ipn.IP.String())
+			n.CIDRs = append(n.CIDRs, ipn.String())
 		}
 		if len(n.IPs) > 0 || n.MAC != "" {
 			out = append(out, n)

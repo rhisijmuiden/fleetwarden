@@ -188,6 +188,12 @@ export function PolicyForm({
         </section>
 
         <section className="space-y-3">
+          <h3 className="text-sm font-semibold">{t("patches.powerSection")}</h3>
+          <Switch checked={d.wakeForWindow} onChange={(v) => set("wakeForWindow", v)} label={t("patches.wakeForWindow")} description={t("patches.wakeForWindowHint")} />
+          <Switch checked={d.shutdownAfter} onChange={(v) => set("shutdownAfter", v)} label={t("patches.shutdownAfter")} description={t("patches.shutdownAfterHint")} />
+        </section>
+
+        <section className="space-y-3">
           <h3 className="text-sm font-semibold">{t("patches.restartAndUsers")}</h3>
           <Field label={t("patches.rebootPolicy")} hint={t(`patches.rebootHints.${d.reboot}`)}>
             {(id) => (

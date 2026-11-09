@@ -61,6 +61,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.backupTick(ctx)
 			s.agentUpdateTick(ctx)
 			s.patchTick(ctx)
+			s.powerTick(ctx)
 			s.driversTick(ctx)
 			s.softwareTick(ctx)
 			s.configTick(ctx)
@@ -85,6 +86,9 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			}
 			if err := s.st.PurgePatchRuns(ctx, 400*24*time.Hour); err != nil {
 				s.log.Warn("purge patch history", "err", err)
+			}
+			if err := s.st.PurgePowerActions(ctx, powerHistoryDay*24*time.Hour); err != nil {
+				s.log.Warn("purge power history", "err", err)
 			}
 			if err := s.st.PurgeSoftwareJobs(ctx, 400*24*time.Hour); err != nil {
 				s.log.Warn("purge software history", "err", err)

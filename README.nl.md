@@ -35,6 +35,7 @@ eerste login kies je je eigen wachtwoord. Kwijt? Voer
 - Kwetsbaarheden (CVE's): [docs/vulnerabilities.nl.md](docs/vulnerabilities.nl.md)
 - Software uitrollen: [docs/software.nl.md](docs/software.nl.md)
 - Overnemen op afstand: [docs/remote.nl.md](docs/remote.nl.md)
+- Energiebeheer (Wake-on-LAN, geplande herstarts en afsluiten): [docs/power.nl.md](docs/power.nl.md)
 - Beheer zonder overname (processen, services, logboeken, bestanden): [docs/manage.nl.md](docs/manage.nl.md)
 - Rapporten en geplande rapportmails: [docs/reports.nl.md](docs/reports.nl.md)
 - Meldingen: [docs/alerts.nl.md](docs/alerts.nl.md)

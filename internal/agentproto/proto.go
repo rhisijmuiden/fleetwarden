@@ -302,6 +302,10 @@ type NetIface struct {
 	Name string   `json:"name"`
 	MAC  string   `json:"mac"`
 	IPs  []string `json:"ips"`
+	// CIDRs are the addresses with their prefix length ("192.168.1.20/24"),
+	// so the server knows which devices share a network for Wake-on-LAN.
+	// Older agents leave it out.
+	CIDRs []string `json:"cidrs,omitempty"`
 }
 
 // Software is one installed program or package.
