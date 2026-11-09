@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -531,44 +532,59 @@ type VulnStats struct {
 	Checked       int            `json:"checked"` // devices matched at least once
 }
 
-// VulnStats counts the open vulnerabilities of the devices in scope.
+// VulnStats counts the open vulnerabilities of the devices in scope. A fleet
+// of unpatched Windows devices easily has millions of device matches, so the
+// counts avoid count(DISTINCT) over all of them: the first query reduces the
+// matches to one row per CVE, the second counts devices.
 func (s *Store) VulnStats(ctx context.Context, sc Scope) (VulnStats, error) {
 	st := VulnStats{BySeverity: map[string]int{}}
-	q := `WITH m AS (SELECT dv.device_id, dv.cve_id, dv.fix, ` + vulnSeverity + ` AS sev, v.kev
-		FROM device_vulnerabilities dv JOIN devices d ON d.id = dv.device_id LEFT JOIN vulnerabilities v ON v.cve_id = dv.cve_id
-		WHERE ($1 OR d.group_id = ANY($2)) AND ` + vulnOpen + `)
-		SELECT sev, count(DISTINCT cve_id)::int FROM m GROUP BY sev`
-	rows, err := s.pool.Query(ctx, q, sc.All, sc.groups())
+	rows, err := s.pool.Query(ctx, `WITH c AS (SELECT dv.cve_id, bool_or(dv.fix IN ('patch', 'software')) AS fixable
+			FROM device_vulnerabilities dv JOIN devices d ON d.id = dv.device_id
+			WHERE ($1 OR d.group_id = ANY($2)) AND `+vulnOpen+` GROUP BY dv.cve_id)
+		SELECT c.cve_id, `+vulnSeverity+`, COALESCE(v.kev, false), c.fixable
+		FROM c LEFT JOIN vulnerabilities v ON v.cve_id = c.cve_id`, sc.All, sc.groups())
 	if err != nil {
 		return st, err
 	}
+	var critical []string
 	for rows.Next() {
-		var sev string
-		var n int
-		if err := rows.Scan(&sev, &n); err != nil {
+		var cve, sev string
+		var kev, fixable bool
+		if err := rows.Scan(&cve, &sev, &kev, &fixable); err != nil {
 			rows.Close()
 			return st, err
 		}
 		if sev == "" {
 			sev = "none"
 		}
-		st.BySeverity[sev] += n
-		st.CVEs += n
+		st.BySeverity[sev]++
+		st.CVEs++
+		if kev {
+			st.KEV++
+		}
+		if fixable {
+			st.Fixable++
+		}
+		if sev == "critical" || kev {
+			critical = append(critical, cve)
+		}
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
 		return st, err
 	}
-	err = s.pool.QueryRow(ctx, `WITH m AS (SELECT dv.device_id, dv.cve_id, dv.fix, `+vulnSeverity+` AS sev, COALESCE(v.kev, false) AS kev
-		FROM device_vulnerabilities dv JOIN devices d ON d.id = dv.device_id LEFT JOIN vulnerabilities v ON v.cve_id = dv.cve_id
-		WHERE ($1 OR d.group_id = ANY($2)) AND `+vulnOpen+`)
-		SELECT (SELECT count(DISTINCT cve_id)::int FROM m WHERE kev),
-			(SELECT count(DISTINCT device_id)::int FROM m),
-			(SELECT count(DISTINCT device_id)::int FROM m WHERE sev = 'critical' OR kev),
-			(SELECT count(DISTINCT cve_id)::int FROM m WHERE fix IN ('patch', 'software')),
+	if critical == nil {
+		critical = []string{}
+	}
+	// One index probe per device (LIMIT 1) instead of a pass over all matches.
+	err = s.pool.QueryRow(ctx, `SELECT
+			count(*) FILTER (WHERE (SELECT true FROM device_vulnerabilities dv WHERE dv.device_id = d.id AND `+vulnOpen+` LIMIT 1))::int,
+			count(*) FILTER (WHERE (SELECT true FROM device_vulnerabilities dv WHERE dv.device_id = d.id AND dv.cve_id = ANY($3)
+				AND `+vulnOpen+` LIMIT 1))::int,
 			(SELECT count(*)::int FROM vuln_exceptions x WHERE x.expires_at IS NULL OR x.expires_at > now()),
-			(SELECT count(*)::int FROM devices d WHERE d.vuln_checked_at IS NOT NULL AND ($1 OR d.group_id = ANY($2)))`,
-		sc.All, sc.groups()).Scan(&st.KEV, &st.Devices, &st.CriticalHosts, &st.Fixable, &st.Accepted, &st.Checked)
+			count(*) FILTER (WHERE d.vuln_checked_at IS NOT NULL)::int
+		FROM devices d WHERE ($1 OR d.group_id = ANY($2))`,
+		sc.All, sc.groups(), critical).Scan(&st.Devices, &st.CriticalHosts, &st.Accepted, &st.Checked)
 	return st, err
 }
 
@@ -605,6 +621,11 @@ type VulnSummary struct {
 }
 
 // ListVulns returns the CVEs found on devices in scope, worst first.
+//
+// A large unpatched fleet has millions of device matches. Counting distinct
+// devices, products and kinds for every CVE is slow (seconds), so the first
+// query only counts matches per CVE to pick and order the page, and the
+// second computes the exact numbers for the CVEs on that page.
 func (s *Store) ListVulns(ctx context.Context, q VulnQuery) ([]VulnSummary, error) {
 	where := []string{"($1 OR d.group_id = ANY($2))"}
 	args := []any{q.Scope.All, q.Scope.groups()}
@@ -617,14 +638,11 @@ func (s *Store) ListVulns(ctx context.Context, q VulnQuery) ([]VulnSummary, erro
 	} else {
 		where = append(where, vulnOpen)
 	}
+	from := "device_vulnerabilities dv JOIN devices d ON d.id = dv.device_id"
 	if q.Search != "" {
-		add(`(dv.cve_id ILIKE ? OR v.title ILIKE ? OR dv.product ILIKE ? OR v.summary ILIKE ?)`, "%"+likeEscape(q.Search)+"%")
-	}
-	if q.Severity != "" {
-		add(vulnSeverity+" = ?", q.Severity)
-	}
-	if q.KEV {
-		where = append(where, "COALESCE(v.kev, false)")
+		// The CVE texts are searched once, not once per device match.
+		add(`(dv.cve_id ILIKE ? OR dv.product ILIKE ? OR dv.cve_id IN (SELECT vs.cve_id FROM vulnerabilities vs
+			WHERE vs.title ILIKE ? OR vs.summary ILIKE ?))`, "%"+likeEscape(q.Search)+"%")
 	}
 	if q.Fixable {
 		where = append(where, "dv.fix IN ('patch', 'software')")
@@ -638,35 +656,113 @@ func (s *Store) ListVulns(ctx context.Context, q VulnQuery) ([]VulnSummary, erro
 	if q.DeviceID != "" {
 		add("dv.device_id::text = ?", q.DeviceID)
 	}
+	// Severity and KEV belong to the CVE, so they filter the grouped rows.
+	var cveWhere []string
+	if q.Severity != "" {
+		args = append(args, q.Severity)
+		cveWhere = append(cveWhere, fmt.Sprintf("%s = $%d", vulnSeverity, len(args)))
+	}
+	if q.KEV {
+		cveWhere = append(cveWhere, "COALESCE(v.kev, false)")
+	}
+	outer := ""
+	if len(cveWhere) > 0 {
+		outer = "WHERE " + strings.Join(cveWhere, " AND ")
+	}
 	limit := q.Limit
 	if limit <= 0 || limit > 2000 {
 		limit = 500
 	}
-	rows, err := s.pool.Query(ctx, `SELECT dv.cve_id, COALESCE(NULLIF(max(v.title), ''), max(v.kev_name), ''), COALESCE(max(v.summary), ''),
-		COALESCE(max(`+vulnSeverity+`), 'none'), COALESCE(max(`+vulnScore+`), 0)::float8, COALESCE(bool_or(v.kev), false),
-		COALESCE(bool_or(v.exploited), false), COALESCE(bool_or(v.kev_ransomware), false), max(v.published_at),
-		count(DISTINCT dv.device_id)::int, count(DISTINCT dv.device_id) FILTER (WHERE dv.fix IN ('patch', 'software'))::int,
-		(array_agg(DISTINCT dv.product))[1:5], array_agg(DISTINCT dv.kind), min(dv.first_seen_at)
-		FROM device_vulnerabilities dv JOIN devices d ON d.id = dv.device_id LEFT JOIN vulnerabilities v ON v.cve_id = dv.cve_id
-		WHERE `+strings.Join(where, " AND ")+`
-		GROUP BY dv.cve_id
-		ORDER BY bool_or(COALESCE(v.kev, false)) DESC, array_position(ARRAY['critical', 'high', 'medium', 'low', 'none'],
-			COALESCE(max(`+vulnSeverity+`), 'none')), COALESCE(max(`+vulnScore+`), 0) DESC, count(DISTINCT dv.device_id) DESC, dv.cve_id DESC
+	rowWhere := strings.Join(where, " AND ")
+	rows, err := s.pool.Query(ctx, `SELECT c.cve_id, COALESCE(NULLIF(v.title, ''), v.kev_name, ''), COALESCE(v.summary, ''),
+		`+vulnSeverity+`, COALESCE(`+vulnScore+`, 0)::float8, COALESCE(v.kev, false),
+		COALESCE(v.exploited, false), COALESCE(v.kev_ransomware, false), v.published_at, c.n
+		FROM (SELECT dv.cve_id, count(*)::int AS n FROM `+from+` WHERE `+rowWhere+` GROUP BY dv.cve_id) c
+		LEFT JOIN vulnerabilities v ON v.cve_id = c.cve_id `+outer+`
+		ORDER BY COALESCE(v.kev, false) DESC, array_position(ARRAY['critical', 'high', 'medium', 'low', 'none'], `+vulnSeverity+`),
+			COALESCE(`+vulnScore+`, 0) DESC, c.n DESC, c.cve_id DESC
 		LIMIT `+fmt.Sprint(limit), args...)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	out := []VulnSummary{}
+	ids := []string{}
 	for rows.Next() {
 		var v VulnSummary
 		if err := rows.Scan(&v.CVE, &v.Title, &v.Summary, &v.Severity, &v.Score, &v.KEV, &v.Exploited, &v.Ransomware, &v.Published,
-			&v.Devices, &v.Fixable, &v.Products, &v.Kinds, &v.FirstSeen); err != nil {
+			&v.Devices); err != nil {
+			rows.Close()
 			return nil, err
 		}
+		if v.Severity == "" {
+			v.Severity = "none"
+		}
 		out = append(out, v)
+		ids = append(ids, v.CVE)
 	}
-	return out, rows.Err()
+	rows.Close()
+	if err := rows.Err(); err != nil || len(out) == 0 {
+		return out, err
+	}
+
+	// Exact numbers for this page only.
+	args = append(args[:len(args)-len(cveArgs(q))], ids)
+	rows, err = s.pool.Query(ctx, `SELECT dv.cve_id, count(DISTINCT dv.device_id)::int,
+		count(DISTINCT dv.device_id) FILTER (WHERE dv.fix IN ('patch', 'software'))::int,
+		(array_agg(DISTINCT dv.product))[1:5], array_agg(DISTINCT dv.kind), min(dv.first_seen_at)
+		FROM `+from+` WHERE `+rowWhere+fmt.Sprintf(" AND dv.cve_id = ANY($%d)", len(args))+` GROUP BY dv.cve_id`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	idx := make(map[string]int, len(out))
+	for i, v := range out {
+		idx[v.CVE] = i
+	}
+	for rows.Next() {
+		var cve string
+		var devices, fixable int
+		var products, kinds []string
+		var first time.Time
+		if err := rows.Scan(&cve, &devices, &fixable, &products, &kinds, &first); err != nil {
+			return nil, err
+		}
+		if i, ok := idx[cve]; ok {
+			v := &out[i]
+			v.Devices, v.Fixable, v.Products, v.Kinds, v.FirstSeen = devices, fixable, products, kinds, first
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// The page was ordered by matches; order it by devices like before.
+	rank := map[string]int{"critical": 0, "high": 1, "medium": 2, "low": 3, "none": 4}
+	sort.SliceStable(out, func(i, j int) bool {
+		a, b := out[i], out[j]
+		if a.KEV != b.KEV {
+			return a.KEV
+		}
+		if rank[a.Severity] != rank[b.Severity] {
+			return rank[a.Severity] < rank[b.Severity]
+		}
+		if a.Score != b.Score {
+			return a.Score > b.Score
+		}
+		if a.Devices != b.Devices {
+			return a.Devices > b.Devices
+		}
+		return a.CVE > b.CVE
+	})
+	return out, nil
+}
+
+// cveArgs are the query arguments of the CVE-level filters of ListVulns,
+// which come last.
+func cveArgs(q VulnQuery) []any {
+	if q.Severity != "" {
+		return []any{q.Severity}
+	}
+	return nil
 }
 
 // VulnDetail is a CVE with everything the sources say.

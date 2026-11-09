@@ -22,7 +22,12 @@ const migrationLock = 0x46574d47 // "FWMG"
 
 // Open connects to PostgreSQL and applies pending migrations.
 func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(ctx, url)
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		return nil, fmt.Errorf("database: %w", err)
+	}
+	tune(cfg, url)
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("database: %w", err)
 	}
@@ -31,6 +36,20 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 	return pool, nil
+}
+
+// tune sets defaults for a server with a few thousand agents, unless the
+// database URL sets them itself. pgx's default pool (as many connections as
+// CPUs) is too small for agents, background jobs and the web interface at
+// the same time, and PostgreSQL's JIT compiler costs more than it saves on
+// the dashboard queries (hundreds of milliseconds per query).
+func tune(cfg *pgxpool.Config, url string) {
+	if !strings.Contains(url, "pool_max_conns") {
+		cfg.MaxConns = 20
+	}
+	if _, ok := cfg.ConnConfig.RuntimeParams["jit"]; !ok {
+		cfg.ConnConfig.RuntimeParams["jit"] = "off"
+	}
 }
 
 // Migrate applies every embedded migration that has not been applied yet.

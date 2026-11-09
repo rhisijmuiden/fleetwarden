@@ -70,7 +70,9 @@ func (s *Server) sendSoftwareJobs(ctx context.Context, ids []string) {
 	}
 	due, err := s.st.DueSoftwareJobs(ctx, ids, softwareJobsPerTick)
 	if err != nil {
-		s.log.Warn("software jobs", "err", err)
+		if !canceled(err) {
+			s.log.Warn("software jobs", "err", err)
+		}
 		return
 	}
 	for _, d := range due {

@@ -74,6 +74,27 @@ type agentConn struct {
 	since    time.Time
 	gateway  int64             // the gateway the agent came through; 0 for direct
 	sent     map[string]string // last value of settings messages, guarded by the hub
+	// sendMu makes signing and queueing one step: the agent rejects a
+	// message whose sequence number is lower than the previous one, so two
+	// goroutines must not queue their messages in a different order than
+	// they were numbered.
+	sendMu sync.Mutex
+}
+
+// enqueue signs a message and queues it; false when the queue is full.
+func (c *agentConn) enqueue(typ, msgID string, v any) bool {
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+	e, err := c.sess.Seal(typ, msgID, v)
+	if err != nil {
+		return false
+	}
+	select {
+	case c.out <- e:
+		return true
+	default:
+		return false
+	}
 }
 
 type agentHub struct {
@@ -150,16 +171,7 @@ func (h *agentHub) send(id, typ string, v any) bool {
 	if c == nil {
 		return false
 	}
-	e, err := c.sess.Seal(typ, "", v)
-	if err != nil {
-		return false
-	}
-	select {
-	case c.out <- e:
-		return true
-	default:
-		return false
-	}
+	return c.enqueue(typ, "", v)
 }
 
 // sendID queues a signed message with an id (a request the agent answers).
@@ -170,16 +182,7 @@ func (h *agentHub) sendID(id, typ, msgID string, v any) bool {
 	if c == nil {
 		return false
 	}
-	e, err := c.sess.Seal(typ, msgID, v)
-	if err != nil {
-		return false
-	}
-	select {
-	case c.out <- e:
-		return true
-	default:
-		return false
-	}
+	return c.enqueue(typ, msgID, v)
 }
 
 // sendChanged sends a settings message unless the session already got the
@@ -363,7 +366,7 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 		apiError(w, http.StatusTooManyRequests, "rate_limited")
 		return
 	}
-	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{CompressionMode: websocket.CompressionContextTakeover})
+	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{CompressionMode: websocket.CompressionNoContextTakeover})
 	if err != nil {
 		return
 	}
@@ -462,7 +465,7 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 			ws.Close(4401, "bad signature") //nolint:errcheck
 			return
 		}
-		if err := s.handleAgentMessage(ctx, c, ip, e); err != nil {
+		if err := s.handleAgentMessage(ctx, c, ip, e); err != nil && !canceled(err) {
 			s.log.Warn("agent message", "device", dev.ID, "type", e.Type, "err", err)
 		}
 	}
