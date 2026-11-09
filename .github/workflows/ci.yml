@@ -1,0 +1,296 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, test]
+  push:
+    branches: [main, test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  meta:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      channel: ${{ steps.v.outputs.channel }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          base=$(cat VERSION)
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "main" ]]; then
+            echo "version=$base" >> "$GITHUB_OUTPUT"; echo "channel=production" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "test" ]]; then
+            echo "version=$base-test.$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"; echo "channel=test" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"; echo "channel=test" >> "$GITHUB_OUTPUT"
+          fi
+
+  go:
+    name: Go (vet, test, build)
+    needs: meta
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: fwtest
+          POSTGRES_PASSWORD: fwtest
+          POSTGRES_DB: fwtest
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U fwtest" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      FW_TEST_DATABASE_URL: postgres://fwtest:fwtest@127.0.0.1:5432/fwtest?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; echo "Run gofmt -w ."; exit 1; }
+      - run: go vet ./...
+      - name: PostgreSQL 17 client tools (pg_dump must match the server)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get -o Acquire::Retries=5 update -q
+          sudo apt-get -o Acquire::Retries=5 install -y -q postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
+      - name: FTP and FTPS test servers
+        run: |
+          pip install --quiet pyftpdlib pyopenssl
+          openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj /CN=localhost -keyout "$RUNNER_TEMP/ftp.key" -out "$RUNNER_TEMP/ftp.crt"
+          cat "$RUNNER_TEMP/ftp.key" "$RUNNER_TEMP/ftp.crt" > "$RUNNER_TEMP/ftp.pem"
+          mkdir -p "$RUNNER_TEMP/ftp" "$RUNNER_TEMP/ftps"
+          setsid nohup python3 tests/ftpserver.py "$RUNNER_TEMP/ftp" 2121 > "$RUNNER_TEMP/ftp.log" 2>&1 < /dev/null &
+          setsid nohup python3 tests/ftpserver.py "$RUNNER_TEMP/ftps" 2990 "$RUNNER_TEMP/ftp.pem" > "$RUNNER_TEMP/ftps.log" 2>&1 < /dev/null &
+          for p in 2121 2990; do
+            for _ in $(seq 30); do (exec 3<>/dev/tcp/127.0.0.1/$p) 2>/dev/null && break; sleep 1; done
+          done
+          echo "FW_TEST_FTP_ADDR=127.0.0.1:2121" >> "$GITHUB_ENV"
+          echo "FW_TEST_FTPS_ADDR=127.0.0.1:2990" >> "$GITHUB_ENV"
+      - run: go test -race ./...
+      - name: Build server, agents and gateway
+        run: make server agents gateways VERSION=${{ needs.meta.outputs.version }} CHANNEL=${{ needs.meta.outputs.channel }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+          retention-days: 7
+
+  web:
+    name: Web (i18n, typecheck, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:i18n
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: web/dist/
+          retention-days: 7
+
+  security:
+    name: Security (govulncheck, npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: govulncheck (Go modules and standard library)
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          "$(go env GOPATH)/bin/govulncheck" ./...
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npm audit (web interface dependencies)
+        working-directory: web
+        run: npm audit --omit=dev --audit-level=high
+
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck installer/*.sh packaging/scripts/*.sh packaging/updater/fleetwarden-update tests/*.sh packaging/agent/*.sh packaging/agent/config packaging/gateway/*.sh packaging/gateway/fleetwarden-gateway-update
+
+  msi:
+    name: Windows installer (MSI)
+    needs: [meta, go]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build the MSI
+        run: ./packaging/windows/build-msi.ps1 -Version '${{ needs.meta.outputs.version }}' -AgentExe dist/windows-amd64/fleetwarden-agent.exe -OutDir dist/msi
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Agent tests on Windows (tray pipe, tray app, Windows Update mapping, real software installs, configurations, drivers, processes, services and event logs, security status)
+        env:
+          FW_TRAY_EXE: ${{ github.workspace }}\packaging\windows\Tray\bin\Release\net472\FleetWardenTray.exe
+          FW_TEST_SOFTWARE: "1"
+        run: go test ./internal/agent/ -run 'Tray|WUA|Software|Browser|Config|Driver|Manage|Power|Security' -count=1 -v -timeout 60m
+      - name: Remote desktop on Windows (screen capture, mouse, keyboard, clipboard)
+        env:
+          FW_REMOTE_SHOT: ${{ runner.temp }}\tray
+        run: go test ./internal/remote/ -count=1 -v -timeout 5m
+      - name: Remote terminal on Windows (ConPTY with PowerShell and Command Prompt)
+        run: go test ./internal/terminal/ -count=1 -v -timeout 5m
+      - name: Build a newer MSI for the self-update test
+        run: ./packaging/windows/build-msi.ps1 -Version 9.9.9 -AgentExe dist/windows-amd64/fleetwarden-agent.exe -OutDir dist/msi-next
+      - name: Install, check, self-update and uninstall
+        run: ./packaging/windows/test-msi.ps1 -Msi (Get-ChildItem dist/msi/*.msi | Select-Object -First 1).FullName -NextMsi dist/msi-next/fleetwarden-agent_9.9.9_x64.msi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: msi
+          path: dist/msi/*.msi
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tray-screenshots
+          path: ${{ runner.temp }}/tray/*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
+  package:
+    name: Debian package
+    needs: [meta, go, web, msi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: web/dist/
+      - uses: actions/download-artifact@v4
+        with:
+          name: msi
+          path: dist/agent/
+      - run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
+      - name: Agent packages (bundled with the server package)
+        run: VERSION=${{ needs.meta.outputs.version }} packaging/agent/build-debs.sh
+      - name: Gateway packages
+        run: VERSION=${{ needs.meta.outputs.version }} packaging/gateway/build-debs.sh
+      # nfpm turns 0.1.0-test.5 into the Debian version 0.1.0~test.5 (sorts below 0.1.0).
+      # The file keeps the semver name because GitHub rewrites "~" in asset names.
+      - run: VERSION=${{ needs.meta.outputs.version }} nfpm package -f packaging/nfpm-server.yaml -p deb -t "dist/fleetwarden-server_${{ needs.meta.outputs.version }}_amd64.deb"
+      - name: Check the Debian version
+        run: |
+          v=$(dpkg-deb -f dist/fleetwarden-server_*_amd64.deb Version)
+          echo "Debian version: $v"
+          dpkg --compare-versions "$v" lt "$(cat VERSION)" || [[ "$v" == "$(cat VERSION)" ]] || { echo "bad Debian version $v"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb
+          path: |
+            dist/*.deb
+            dist/agent/
+            dist/gateway/
+          retention-days: 7
+
+  install-test:
+    name: Install on Debian 13
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: deb
+          path: dist/
+      - name: Install in a clean debian:trixie container
+        run: docker run --rm -v "$PWD:/src" -w /src debian:trixie bash -c 'tests/install-test.sh dist/fleetwarden-server_*_amd64.deb'
+
+  install-gateway-test:
+    name: Secure gateway on Debian 13
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: deb
+          path: dist/
+      - name: Install server and gateway in a clean debian:trixie container, pair and enroll through the gateway
+        run: docker run --rm -v "$PWD:/src" -w /src debian:trixie bash -c 'tests/install-gateway-test.sh dist/fleetwarden-server_*_amd64.deb dist/gateway/fleetwarden-gateway_*_amd64.deb'
+
+  release:
+    name: Publish release
+    if: github.event_name == 'push'
+    needs: [meta, install-test, install-gateway-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+      - name: Collect release assets
+        run: |
+          mkdir -p release
+          cp artifacts/deb/*.deb release/
+          cp artifacts/deb/agent/*.deb artifacts/deb/agent/*.msi release/
+          cp artifacts/deb/gateway/*.deb release/
+          v=${{ needs.meta.outputs.version }}
+          for p in linux-amd64 linux-arm64; do
+            cp "artifacts/binaries/$p/fleetwarden-agent" "release/fleetwarden-agent_${v}_${p}"
+          done
+          cp artifacts/binaries/windows-amd64/fleetwarden-agent.exe "release/fleetwarden-agent_${v}_windows-amd64.exe"
+          cp installer/install.sh release/install.sh
+          cp installer/install-gateway.sh release/install-gateway.sh
+          (cd release && sha256sum * > SHA256SUMS)
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          CHANNEL: ${{ needs.meta.outputs.channel }}
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::notice::Release $tag already exists; bump VERSION to publish a new production release."
+            exit 0
+          fi
+          flags=(--target "$GITHUB_SHA" --title "FleetWarden $VERSION" --generate-notes)
+          [[ "$CHANNEL" == "test" ]] && flags+=(--prerelease)
+          gh release create "$tag" "${flags[@]}" release/*

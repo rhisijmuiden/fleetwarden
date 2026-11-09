@@ -1,0 +1,20 @@
+[Unit]
+Description=FleetWarden endpoint agent
+Documentation=https://github.com/rhisijmuiden/fleetwarden
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# The agent installs updates and packages, so it runs as root.
+ExecStart=/usr/bin/fleetwarden-agent run
+Restart=on-failure
+RestartSec=10s
+# Self-updates replace the package from a separate transient unit; let that
+# finish instead of killing it with the agent.
+KillMode=process
+StateDirectory=fleetwarden-agent
+StateDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# FleetWarden privileged updater. Started by fleetwarden-update.path when the
+# server writes /var/lib/fleetwarden/update/request.json ("Update now" in the UI).
+#
+# 1. downloads the requested release from GitHub and verifies SHA256SUMS,
+# 2. makes a backup (database dump, configuration, secret key),
+# 3. installs the package and waits for the server to answer with the new version,
+# 4. on failure reinstalls the previous version and restores the database.
+#
+# Only versions from the official repository are accepted; the request file only
+# carries a version number, never a URL or a command.
+set -euo pipefail
+
+REPO="${FW_UPDATE_REPO:-rhisijmuiden/fleetwarden}"
+REQUEST=/var/lib/fleetwarden/update/request.json
+STATE_DIR=/var/lib/fleetwarden-update
+STATUS=$STATE_DIR/status.json
+BACKUP_DIR=$STATE_DIR/backups
+CACHE_DIR=/var/cache/fleetwarden
+HEALTH_URL="${FW_HEALTH_URL:-http://127.0.0.1:8080/healthz}"
+DB_NAME=fleetwarden
+KEEP_BACKUPS=3
+
+ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+STARTED="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+FROM=""
+TO=""
+
+status() { # state message
+    local tmp
+    tmp=$(mktemp "$STATE_DIR/.status.XXXXXX")
+    jq -n --arg id "$ID" --arg state "$1" --arg msg "${2:-}" --arg from "$FROM" --arg to "$TO" \
+        --arg started "$STARTED" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        '{id: $id, state: $state, message: $msg, fromVersion: $from, toVersion: $to, startedAt: $started, updatedAt: $now}' >"$tmp"
+    chmod 0644 "$tmp"
+    mv -f "$tmp" "$STATUS"
+    echo "fleetwarden-update: $1 ${2:-}"
+}
+
+installed_version() {
+    /usr/bin/fleetwarden-server -version 2>/dev/null | awk '{print $2}'
+}
+
+download_release() { # version destdir -> prints path of the verified .deb
+    local version="$1" dest="$2" base deb
+    base="https://github.com/$REPO/releases/download/v$version"
+    deb="fleetwarden-server_${version}_amd64.deb"
+    # Called in an `if` context, where set -e does not apply: check every step.
+    curl -fsSL --retry 3 -o "$dest/SHA256SUMS" "$base/SHA256SUMS" || return 1
+    curl -fsSL --retry 3 -o "$dest/$deb" "$base/$deb" || return 1
+    (cd "$dest" && grep -E "  $deb\$" SHA256SUMS | sha256sum -c --status) || { echo "checksum mismatch for $deb" >&2; return 1; }
+    echo "$dest/$deb"
+}
+
+wait_healthy() { # expected version
+    local body
+    for _ in $(seq 1 60); do
+        if body=$(curl -fsS --max-time 3 "$HEALTH_URL" 2>/dev/null); then
+            if [[ "$(jq -r .version <<<"$body")" == "$1" && "$(jq -r .database <<<"$body")" == "ok" ]]; then
+                return 0
+            fi
+        fi
+        sleep 2
+    done
+    return 1
+}
+
+backup() { # -> prints the backup directory
+    local dir="$BACKUP_DIR/pre-update-${FROM}-${ID}"
+    install -d -m 0700 "$dir"
+    runuser -u postgres -- pg_dump --format=custom "$DB_NAME" >"$dir/database.dump" || return 1
+    tar -C / -czf "$dir/config.tar.gz" etc/fleetwarden var/lib/fleetwarden/secret.key 2>/dev/null ||
+        tar -C / -czf "$dir/config.tar.gz" etc/fleetwarden
+    # Keep the newest backups only.
+    find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -name 'pre-update-*' -printf '%T@ %p\n' |
+        sort -rn | tail -n +$((KEEP_BACKUPS + 1)) | cut -d' ' -f2- | xargs -r rm -rf
+    echo "$dir"
+}
+
+restore_database() { # backup dir
+    systemctl stop fleetwarden-server.service || true
+    runuser -u postgres -- pg_restore --clean --if-exists --no-owner --role=fleetwarden -d "$DB_NAME" "$1/database.dump"
+}
+
+main() {
+    install -d -m 0755 "$STATE_DIR" "$CACHE_DIR"
+    install -d -m 0700 "$BACKUP_DIR"
+    [[ -f "$REQUEST" && ! -L "$REQUEST" ]] || { rm -f "$REQUEST"; exit 0; }
+    TO=$(jq -r '.version // empty' "$REQUEST" 2>/dev/null || true)
+    rm -f "$REQUEST"
+    FROM=$(installed_version)
+    if [[ ! "$TO" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-test\.[0-9]+)?$ ]]; then
+        status failed "invalid version requested"
+        exit 1
+    fi
+
+    local work new_deb old_deb="" bdir
+    work=$(mktemp -d)
+    trap 'rm -rf "$work"' EXIT
+
+    status downloading "Downloading $TO"
+    if ! new_deb=$(download_release "$TO" "$work"); then
+        status failed "Download or checksum verification of $TO failed"
+        exit 1
+    fi
+    cp -f "$new_deb" "$CACHE_DIR/"
+    # Keep the running version's package for a rollback.
+    if [[ -f "$CACHE_DIR/fleetwarden-server_${FROM}_amd64.deb" ]]; then
+        old_deb="$CACHE_DIR/fleetwarden-server_${FROM}_amd64.deb"
+    elif mkdir -p "$work/old" && old=$(download_release "$FROM" "$work/old" 2>/dev/null); then
+        cp -f "$old" "$CACHE_DIR/" && old_deb="$CACHE_DIR/$(basename "$old")"
+    fi
+
+    status backup "Backing up database and configuration"
+    if ! bdir=$(backup); then
+        status failed "Backup failed; nothing was changed"
+        exit 1
+    fi
+
+    status installing "Installing $TO"
+    export DEBIAN_FRONTEND=noninteractive
+    if apt-get install -y -q --allow-downgrades "$CACHE_DIR/$(basename "$new_deb")" && wait_healthy "$TO"; then
+        status completed "Updated from $FROM to $TO (backup: $bdir)"
+        find "$CACHE_DIR" -name 'fleetwarden-server_*.deb' ! -name "$(basename "$new_deb")" ! -name "$(basename "${old_deb:-none}")" -delete
+        exit 0
+    fi
+
+    status rolling-back "Update to $TO failed; restoring $FROM"
+    if [[ -z "$old_deb" ]]; then
+        status failed "Update to $TO failed and the package of $FROM is not available; database backup in $bdir"
+        exit 1
+    fi
+    if restore_database "$bdir" && apt-get install -y -q --allow-downgrades "$old_deb" && wait_healthy "$FROM"; then
+        status rolled-back "Update to $TO failed; $FROM was restored"
+    else
+        status failed "Update to $TO failed and the rollback did not complete; backup in $bdir"
+    fi
+    exit 1
+}
+
+main "$@"

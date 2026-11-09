@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# FleetWarden gateway updater. Started by fleetwarden-gateway-update.path when
+# the gateway writes /var/lib/fleetwarden-gateway/update/request.json on behalf
+# of the paired management server ("Update gateway" in the web interface).
+#
+# Downloads the requested release from GitHub, verifies SHA256SUMS, installs
+# it and checks that the gateway comes back with the new version; otherwise it
+# reinstalls the previous package. Only a version number is read from the
+# request, never a URL or a command.
+set -euo pipefail
+
+REPO="${FW_UPDATE_REPO:-rhisijmuiden/fleetwarden}"
+REQUEST=/var/lib/fleetwarden-gateway/update/request.json
+STATE_DIR=/var/lib/fleetwarden-gateway-update
+STATUS=$STATE_DIR/status.json
+CACHE_DIR=/var/cache/fleetwarden-gateway
+ARCH="$(dpkg --print-architecture)"
+FROM=""
+TO=""
+
+status() { # state message
+    local tmp
+    tmp=$(mktemp "$STATE_DIR/.status.XXXXXX")
+    jq -n --arg state "$1" --arg msg "${2:-}" --arg from "$FROM" --arg to "$TO" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        '{state: $state, message: $msg, fromVersion: $from, toVersion: $to, updatedAt: $now}' >"$tmp"
+    chmod 0644 "$tmp"
+    mv -f "$tmp" "$STATUS"
+    echo "fleetwarden-gateway-update: $1 ${2:-}"
+}
+
+installed_version() {
+    /usr/bin/fleetwarden-gateway -version 2>/dev/null | awk '{print $2}'
+}
+
+download_release() { # version destdir -> prints the path of the verified .deb
+    local version="$1" dest="$2" base deb
+    base="https://github.com/$REPO/releases/download/v$version"
+    deb="fleetwarden-gateway_${version}_${ARCH}.deb"
+    curl -fsSL --retry 3 -o "$dest/SHA256SUMS" "$base/SHA256SUMS" || return 1
+    curl -fsSL --retry 3 -o "$dest/$deb" "$base/$deb" || return 1
+    (cd "$dest" && grep -E "  $deb\$" SHA256SUMS | sha256sum -c --status) || { echo "checksum mismatch for $deb" >&2; return 1; }
+    echo "$dest/$deb"
+}
+
+running_version() { # waits until the service runs the expected version
+    for _ in $(seq 1 30); do
+        if systemctl is-active --quiet fleetwarden-gateway.service && [[ "$(installed_version)" == "$1" ]]; then
+            sleep 3
+            systemctl is-active --quiet fleetwarden-gateway.service && return 0
+        fi
+        sleep 2
+    done
+    return 1
+}
+
+main() {
+    install -d -m 0755 "$STATE_DIR" "$CACHE_DIR"
+    [[ -f "$REQUEST" && ! -L "$REQUEST" ]] || { rm -f "$REQUEST"; exit 0; }
+    TO=$(jq -r '.version // empty' "$REQUEST" 2>/dev/null || true)
+    rm -f "$REQUEST"
+    FROM=$(installed_version)
+    if [[ ! "$TO" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-test\.[0-9]+)?$ ]]; then
+        status failed "invalid version requested"
+        exit 1
+    fi
+    if [[ "$TO" == "$FROM" ]]; then
+        status completed "Already on $TO"
+        exit 0
+    fi
+    local work new_deb old_deb=""
+    work=$(mktemp -d)
+    trap 'rm -rf "$work"' EXIT
+
+    status downloading "Downloading $TO"
+    if ! new_deb=$(download_release "$TO" "$work"); then
+        status failed "Download or checksum verification of $TO failed"
+        exit 1
+    fi
+    cp -f "$new_deb" "$CACHE_DIR/"
+    if [[ -f "$CACHE_DIR/fleetwarden-gateway_${FROM}_${ARCH}.deb" ]]; then
+        old_deb="$CACHE_DIR/fleetwarden-gateway_${FROM}_${ARCH}.deb"
+    elif mkdir -p "$work/old" && old=$(download_release "$FROM" "$work/old" 2>/dev/null); then
+        cp -f "$old" "$CACHE_DIR/" && old_deb="$CACHE_DIR/$(basename "$old")"
+    fi
+
+    status installing "Installing $TO"
+    export DEBIAN_FRONTEND=noninteractive
+    if apt-get install -y -q --allow-downgrades "$CACHE_DIR/$(basename "$new_deb")" && running_version "$TO"; then
+        status completed "Updated from $FROM to $TO"
+        find "$CACHE_DIR" -name 'fleetwarden-gateway_*.deb' ! -name "$(basename "$new_deb")" ! -name "$(basename "${old_deb:-none}")" -delete
+        exit 0
+    fi
+    if [[ -n "$old_deb" ]] && apt-get install -y -q --allow-downgrades "$old_deb" && running_version "$FROM"; then
+        status failed "Update to $TO failed; $FROM was restored"
+    else
+        status failed "Update to $TO failed and $FROM could not be restored; check: journalctl -u fleetwarden-gateway"
+    fi
+    exit 1
+}
+
+main "$@"

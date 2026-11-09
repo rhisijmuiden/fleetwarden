@@ -1,0 +1,12 @@
+[Unit]
+Description=FleetWarden restore (applies a backup staged in the web interface)
+Documentation=https://github.com/rhisijmuiden/fleetwarden
+After=postgresql.service
+
+[Service]
+Type=oneshot
+# Runs as root only to stop and start the server; the restore itself runs as
+# the fleetwarden user. The request file only names the staged backup.
+ExecStart=/usr/bin/fleetwarden-server restore-apply
+TimeoutStartSec=2h
+PrivateTmp=true

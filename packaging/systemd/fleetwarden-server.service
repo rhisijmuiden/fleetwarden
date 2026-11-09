@@ -1,0 +1,44 @@
+[Unit]
+Description=FleetWarden management server
+Documentation=https://github.com/rhisijmuiden/fleetwarden
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+
+[Service]
+Type=simple
+User=fleetwarden
+Group=fleetwarden
+EnvironmentFile=/etc/fleetwarden/server.env
+ExecStart=/usr/bin/fleetwarden-server
+Restart=on-failure
+RestartSec=5s
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ProtectKernelLogs=true
+ProtectClock=true
+ProtectHostname=true
+RestrictNamespaces=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+# Every agent keeps a WebSocket open; leave room for a few thousand.
+LimitNOFILE=65536
+ReadWritePaths=/var/lib/fleetwarden /var/log/fleetwarden
+StateDirectory=fleetwarden
+LogsDirectory=fleetwarden
+
+[Install]
+WantedBy=multi-user.target

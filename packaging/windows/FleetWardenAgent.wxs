@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FleetWarden agent for Windows (x64), built with WiX Toolset v5.
+
+  Interactive: a wizard asks for the server address and an enrollment token and
+  can test the connection. Unattended:
+    msiexec /i fleetwarden-agent.msi /qn SERVER=https://fleet.example.com TOKEN=fwe_...
+  Optional: GROUP=<device group name> and FORCEENROLL=1 (replace an existing
+  enrollment). Without SERVER and TOKEN an existing configuration is kept, so
+  updates only need "msiexec /i <new msi> /qn".
+
+  Build (see .github/workflows/ci.yml):
+    wix build -arch x64 -ext WixToolset.Util.wixext -ext WixToolset.UI.wixext
+      -d Version=0.1.0.5 -d AgentExe=...\fleetwarden-agent.exe
+      -d CADll=...\FleetWardenCA.CA.dll -o fleetwarden-agent.msi FleetWardenAgent.wxs
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="FleetWarden Agent"
+           Manufacturer="FleetWarden"
+           Version="$(var.Version)"
+           UpgradeCode="5BD8A7F0-DD15-4BF7-94AD-C152A86AC3C9"
+           Scope="perMachine"
+           Compressed="yes"
+           Language="1033">
+    <SummaryInformation Description="FleetWarden endpoint agent" />
+    <MajorUpgrade AllowDowngrades="yes" Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Launch Condition="Installed OR VersionNT &gt;= 603" Message="FleetWarden Agent needs Windows 10, Windows Server 2016 or later." />
+
+    <!-- Enrollment settings. A server-side download sets SERVER and TOKEN in
+         the Property table, so a double-click install needs no input. -->
+    <Property Id="SERVER" Secure="yes" />
+    <Property Id="TOKEN" Secure="yes" Hidden="yes" />
+    <Property Id="GROUP" Secure="yes" />
+    <Property Id="FORCEENROLL" Secure="yes" />
+
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/rhisijmuiden/fleetwarden" />
+    <Property Id="ARPCOMMENTS" Value="Reports inventory to a FleetWarden server and applies its management actions." />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="FleetWarden Agent">
+        <Component Id="AgentService" Bitness="always64">
+          <File Id="AgentExe" Source="$(var.AgentExe)" Name="fleetwarden-agent.exe" KeyPath="yes" />
+          <ServiceInstall Id="AgentService"
+                          Name="FleetWardenAgent"
+                          DisplayName="FleetWarden Agent"
+                          Description="Reports inventory to the FleetWarden server and applies its management actions."
+                          Type="ownProcess"
+                          Start="auto"
+                          ErrorControl="normal"
+                          Account="LocalSystem"
+                          Vital="yes">
+            <util:ServiceConfig FirstFailureActionType="restart"
+                                SecondFailureActionType="restart"
+                                ThirdFailureActionType="restart"
+                                RestartServiceDelayInSeconds="30"
+                                ResetPeriodInDays="1" />
+          </ServiceInstall>
+          <ServiceControl Id="AgentService" Name="FleetWardenAgent" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+          <!-- Event log source for the service (the same message file Go's
+               eventlog.InstallAsEventCreate uses). -->
+          <RegistryKey Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\FleetWardenAgent">
+            <RegistryValue Name="EventMessageFile" Type="expandable" Value="%SystemRoot%\System32\EventCreate.exe" />
+            <RegistryValue Name="TypesSupported" Type="integer" Value="7" />
+            <RegistryValue Name="CustomSource" Type="integer" Value="1" />
+          </RegistryKey>
+        </Component>
+        <!-- The tray app shows patch prompts to logged-on users. It starts at
+             logon; the agent also starts it in open sessions when it has
+             something to ask. -->
+        <Component Id="TrayApp" Bitness="always64">
+          <File Id="TrayExe" Source="$(var.TrayExe)" Name="FleetWardenTray.exe" KeyPath="yes" />
+          <File Id="TrayConfig" Source="$(var.TrayExe).config" Name="FleetWardenTray.exe.config" />
+          <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run" Name="FleetWardenTray" Type="string" Value="&quot;[#TrayExe]&quot;" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Close running tray apps (in every session) before files are replaced
+         or removed, so an update needs no restart. -->
+    <util:CloseApplication Id="CloseTray" Target="FleetWardenTray.exe" CloseMessage="yes" ElevatedCloseMessage="yes" TerminateProcess="0" Timeout="5" RebootPrompt="no" />
+
+    <Feature Id="Agent" Title="FleetWarden Agent" Level="1">
+      <ComponentRef Id="AgentService" />
+      <ComponentRef Id="TrayApp" />
+    </Feature>
+
+    <!-- Write the enrollment settings before the service starts. The command
+         line holds the token, so it stays out of the log (HideTarget). -->
+    <SetProperty Id="FW_FORCE_ARG" Sequence="execute" Before="SetConfigureAgent" Value="--force" Condition="FORCEENROLL" />
+    <SetProperty Id="ConfigureAgent" Sequence="execute" Before="ConfigureAgent"
+                 Value="&quot;[#AgentExe]&quot; configure [FW_FORCE_ARG] --server &quot;[SERVER]&quot; --token &quot;[TOKEN]&quot; --group &quot;[GROUP]&quot;" />
+    <CustomAction Id="ConfigureAgent" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="check" HideTarget="yes" />
+
+    <!-- Remove the local enrollment on a real uninstall (not on an upgrade).
+         The device stays in FleetWarden until an admin deletes it. -->
+    <SetProperty Id="ForgetAgent" Sequence="execute" Before="ForgetAgent"
+                 Value="&quot;[#AgentExe]&quot; forget" />
+    <CustomAction Id="ForgetAgent" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="ConfigureAgent" After="InstallFiles" Condition="SERVER AND TOKEN AND NOT REMOVE" />
+      <Custom Action="ForgetAgent" Before="RemoveFiles" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+    <!-- Wizard -->
+    <Binary Id="FleetWardenCA" SourceFile="$(var.CADll)" />
+    <CustomAction Id="FwTestConnection" BinaryRef="FleetWardenCA" DllEntry="TestConnection" Execute="immediate" Return="ignore" />
+
+    <UI Id="FleetWardenUI">
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="9" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+      <Property Id="WixUI_Mode" Value="Minimal" />
+
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FatalError" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="PrepareDlg" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="ResumeDlg" />
+      <DialogRef Id="UserExit" />
+      <DialogRef Id="WelcomeDlg" />
+      <DialogRef Id="VerifyReadyDlg" />
+      <DialogRef Id="MaintenanceWelcomeDlg" />
+      <DialogRef Id="MaintenanceTypeDlg" />
+
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
+
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="ServerDlg" Condition="NOT Installed" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="ServerDlg" Order="1" Condition="NOT Installed" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Order="2" Condition="Installed" />
+
+      <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog" Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog" Value="MaintenanceWelcomeDlg" />
+
+      <Dialog Id="ServerDlg" Width="370" Height="270" Title="FleetWarden Agent Setup">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="290" Height="15" Transparent="yes" NoPrefix="yes"
+                 Text="{\WixUI_Font_Title}Connect to your FleetWarden server" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="290" Height="15" Transparent="yes" NoPrefix="yes"
+                 Text="Enter the server address and an enrollment token from FleetWarden." />
+
+        <Control Id="ServerLabel" Type="Text" X="20" Y="54" Width="330" Height="12"
+                 Text="&amp;Server address, for example https://fleet.example.com:" />
+        <Control Id="ServerEdit" Type="Edit" X="20" Y="67" Width="330" Height="18" Property="SERVER" Text="{255}" />
+        <Control Id="TokenLabel" Type="Text" X="20" Y="92" Width="330" Height="12" Text="Enrollment &amp;token:" />
+        <Control Id="TokenEdit" Type="Edit" X="20" Y="105" Width="330" Height="18" Property="TOKEN" Password="yes" Text="{100}" />
+        <Control Id="GroupLabel" Type="Text" X="20" Y="130" Width="330" Height="12"
+                 Text="Device &amp;group (optional, overrides the token's group):" />
+        <Control Id="GroupEdit" Type="Edit" X="20" Y="143" Width="330" Height="18" Property="GROUP" Text="{100}" />
+        <Control Id="Hint" Type="Text" X="20" Y="168" Width="330" Height="30" NoPrefix="yes"
+                 Text="Create a token in FleetWarden under Device groups, or use Add client. Leave both fields empty to keep the current settings when you update an installed agent." />
+        <Control Id="TestButton" Type="PushButton" X="20" Y="205" Width="100" Height="17" Text="Test &amp;connection"
+                 DisableCondition="NOT SERVER" EnableCondition="SERVER">
+          <Publish Event="DoAction" Value="FwTestConnection" Order="1" />
+          <Publish Event="SpawnDialog" Value="TestResultDlg" Order="2" />
+        </Control>
+
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back">
+          <Publish Event="NewDialog" Value="WelcomeDlg" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next"
+                 DisableCondition="(SERVER AND NOT TOKEN) OR (TOKEN AND NOT SERVER)"
+                 EnableCondition="(SERVER AND TOKEN) OR (NOT SERVER AND NOT TOKEN)">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+
+      <!-- Opened after the test so its text shows the fresh results. -->
+      <Dialog Id="TestResultDlg" Width="300" Height="170" Title="Test connection">
+        <Control Id="Message" Type="Text" X="15" Y="12" Width="270" Height="36" NoPrefix="yes" Text="[FW_TEST_MSG]" />
+        <Control Id="CertTitle" Type="Text" X="15" Y="52" Width="270" Height="12" NoPrefix="yes" Text="{\WixUI_Font_Title}Server certificate" />
+        <Control Id="Subject" Type="Text" X="15" Y="67" Width="270" Height="20" NoPrefix="yes" Text="Subject: [FW_CERT_SUBJECT]" />
+        <Control Id="Issuer" Type="Text" X="15" Y="88" Width="270" Height="20" NoPrefix="yes" Text="Issuer: [FW_CERT_ISSUER]" />
+        <Control Id="Expires" Type="Text" X="15" Y="109" Width="270" Height="12" NoPrefix="yes" Text="Valid until: [FW_CERT_EXPIRES]" />
+        <Control Id="Thumb" Type="Text" X="15" Y="122" Width="270" Height="20" NoPrefix="yes" Text="SHA-256: [FW_CERT_THUMB]" />
+        <Control Id="Close" Type="PushButton" X="122" Y="146" Width="56" Height="17" Default="yes" Cancel="yes" Text="OK">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+    </UI>
+    <UIRef Id="WixUI_Common" />
+  </Package>
+</Wix>

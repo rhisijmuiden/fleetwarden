@@ -1,0 +1,19 @@
+Template: fleetwarden-agent/server
+Type: string
+Description: FleetWarden management server address:
+ Enter the address of your FleetWarden management server, for example
+ https://em.example.com. Leave it empty to configure the agent later with
+ "fleetwarden-agent configure".
+Description-nl.UTF-8: Adres van de FleetWarden management server:
+ Vul het adres van je FleetWarden management server in, bijvoorbeeld
+ https://em.example.com. Laat het leeg om de agent later in te stellen met
+ "fleetwarden-agent configure".
+
+Template: fleetwarden-agent/token
+Type: password
+Description: Enrollment token:
+ Enter the enrollment token from the "Add client" wizard of the management
+ server. The token decides which device group this machine joins.
+Description-nl.UTF-8: Enrollment-token:
+ Vul het enrollment-token in uit de "Add client"-wizard van de management
+ server. Het token bepaalt in welke apparaatgroep deze machine komt.

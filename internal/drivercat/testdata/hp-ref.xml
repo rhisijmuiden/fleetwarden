@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ImagePal>
+  <Version>3</Version>
+  <Solutions>
+    <UpdateInfo Supersedes="sp173296" ColId="COL98979" ItemId="ob-367585-1">
+      <Id>sp174024</Id>
+      <Name>HP BIOS and System Firmware (S70, S73)</Name>
+      <Category>BIOS - System Firmware</Category>
+      <Version>01.25.00</Version>
+      <Vendor>HP</Vendor>
+      <ReleaseType>Critical</ReleaseType>
+      <SSMCompliant>true</SSMCompliant>
+      <DPBCompliant>false</DPBCompliant>
+      <SilentInstall>"HpFirmwareUpdRec.exe" -r -b -s</SilentInstall>
+      <Url>ftp.hp.com/pub/softpaq/sp174001-174500/sp174024.exe</Url>
+      <ReleaseNotesUrl>ftp.hp.com/pub/softpaq/sp174001-174500/sp174024.html</ReleaseNotesUrl>
+      <CvaUrl>ftp.hp.com/pub/softpaq/sp174001-174500/sp174024.cva</CvaUrl>
+      <MD5>AF5508C24C7AA7BA94D84CBA3711A1EB</MD5>
+      <SHA256>4E81F5C28F85350BE25B5FD5935FB10AFD6AC4D5E907ABC1A8CCC7A921FC9887</SHA256>
+      <Size>40749400</Size>
+      <DateReleased>2026-08-06</DateReleased>
+      <SupportedLanguages>0001,0804,0404,0405,0406,0013,0009,0025,040B,000C,0007,0408,040D,040E,0021,0010,0011,0412,0026,0027,0014,0415,0416,0816,0419,000A,041D,041E,041F,041A,041B,0424,0C04,0402,0018,081A,None</SupportedLanguages>
+      <SupportedOS>W11, WT64</SupportedOS>
+      <Description>This package creates files that contain an image of the System BIOS (ROM) for the supported computer models with an S70 or S73 family ROM.</Description>
+      <DetailFileInformation>
+        <BiosDetail>
+          <BinFile>S70_01250000.bin</BinFile>
+          <BiosFamily>S70</BiosFamily>
+          <BiosVersion>01.25.00</BiosVersion>
+          <BiosDate>06/13/2026</BiosDate>
+        </BiosDetail>
+        <BiosDetail>
+          <BinFile>S73_01250000.bin</BinFile>
+          <BiosFamily>S73</BiosFamily>
+          <BiosVersion>01.25.00</BiosVersion>
+          <BiosDate>06/13/2026</BiosDate>
+        </BiosDetail>
+      </DetailFileInformation>
+    </UpdateInfo>
+    <UpdateInfo ColId="COL72598,COL92150" ItemId="ob-239658-2,vc-232084-2">
+      <Id>sp95997</Id>
+      <Name>HP Mac Address Manager</Name>
+      <Category>Software - Solutions</Category>
+      <Version>1.1.19.1</Version>
+      <Vendor>HP Inc.</Vendor>
+      <ReleaseType>Recommended</ReleaseType>
+      <SSMCompliant>true</SSMCompliant>
+      <DPBCompliant>false</DPBCompliant>
+      <SilentInstall>"Setup.exe" /s /v/qn</SilentInstall>
+      <Url>ftp.hp.com/pub/softpaq/sp95501-96000/sp95997.exe</Url>
+      <ReleaseNotesUrl>ftp.hp.com/pub/softpaq/sp95501-96000/sp95997.html</ReleaseNotesUrl>
+      <CvaUrl>ftp.hp.com/pub/softpaq/sp95501-96000/sp95997.cva</CvaUrl>
+      <MD5>5fdaa6a5a84dd87e7ff237f58706982c</MD5>
+      <SHA256>5559C6359AAA6B61E2D05A290C16EFCEC20382B06403BC53F729B3D8DC2618D5</SHA256>
+      <Size>2929008</Size>
+      <DateReleased>2019-04-29</DateReleased>
+      <SupportedLanguages>0001,0804,0404,0405,0406,0013,0009,0025,040B,000C,0007,0408,040D,040E,0021,0010,0011,0412,0026,0027,0014,0415,0416,0816,0419,000A,041D,041E,041F,041A,041B,0424,0C04,0402,0018,081A,None</SupportedLanguages>
+      <SupportedOS>W11_21H2, W11_22H2, W11_23H2, W11_24H2, WT32_1507, WT32_1511, WT32_1607, WT32_1703, WT32_1709, WT32_1803, WT32_1809, WT32_1903, WT32_2004, WT64_1507, WT64_1511, WT64_1607, WT64_1703, WT64_1709, WT64_1803, WT64_1809, WT64_1903, WT64_1909, WT64_2004, WT64_2009, WT64_21H1, WT64_21H2, WT64_22H2, WTIOT32, WTIOT64_1607, WTIOT64_1809</SupportedOS>
+      <Description>This package provides HP MAC Address Manager for supported models running a supported operating system. In a distributed working environment where docks are used and the docks are not specifically assigned to a single user, it is impossible to uniquely track and/or manage the user based on the MAC address. HP MAC Address Manager enables customers to use MAC addresses to manage computer assets in a distributed environment by providing a unique platform MAC address to the network for device drivers that are updated to support this HBMA protocol.</Description>
+      <DetailFileInformation>
+        <FileDetail>
+          <FileName>HPMAMSrv.EXE</FileName>
+          <Directory>&lt;PROGRAMFILESDIRX86&gt;\HP\HP Mac Address Manager\</Directory>
+          <Version>1.1.19.1</Version>
+          <OS>W11_21H2</OS>
+        </FileDetail>
+        <FileDetail>
+          <FileName>HPMAMSrv.EXE</FileName>
+          <Directory>&lt;PROGRAMFILESDIRX86&gt;\HP\HP Mac Address Manager\</Directory>
+          <Version>1.1.19.1</Version>
+          <OS>W11_22H2</OS>
+        </FileDetail>
+        <FileDetail>
+          <FileName>HPMAMSrv.EXE</FileName>
+          <Directory>&lt;PROGRAMFILESDIRX86&gt;\HP\HP Mac Address Manager\</Directory>
+          <Version>1.1.19.1</Version>
+          <OS>W11_23H2</OS>
+        </FileDetail>
+        <FileDetail>
+          <FileName>HPMAMSrv.EXE</FileName>
+          <Directory>&lt;PROGRAMFILESDIRX86&gt;\HP\HP Mac Address Manager\</Directory>
+          <Version>1.1.19.1</Version>
+          <OS>W11_24H2</OS>
+        </FileDetail>
+      </DetailFileInformation>
+    </UpdateInfo>
+  </Solutions>
+  <Solutions-Superseded>
+    <UpdateInfo ColId="COL98979" ItemId="ob-304672-1">
+      <Id>sp144498</Id>
+      <Name>HP BIOS and System Firmware (S70, S73)</Name>
+      <Category>BIOS - System Firmware</Category>
+      <Version>01.12.00</Version>
+      <Vendor>HP Inc.</Vendor>
+      <ReleaseType>Critical</ReleaseType>
+      <SSMCompliant>true</SSMCompliant>
+      <DPBCompliant>false</DPBCompliant>
+      <SilentInstall>"HpFirmwareUpdRec.exe" -r -b -s</SilentInstall>
+      <Url>ftp.hp.com/pub/softpaq/sp144001-144500/sp144498.exe</Url>
+      <ReleaseNotesUrl>ftp.hp.com/pub/softpaq/sp144001-144500/sp144498.html</ReleaseNotesUrl>
+      <CvaUrl>ftp.hp.com/pub/softpaq/sp144001-144500/sp144498.cva</CvaUrl>
+      <MD5>9c6621585aac8c419f3d836b1f1a710d</MD5>
+      <SHA256>2AA88F0073D34830CD85628193C150308C8F70E655A1CD568663EEA478EA2681</SHA256>
+      <Size>40269152</Size>
+      <DateReleased>2023-02-14</DateReleased>
+      <SupportedLanguages>0001,0804,0404,0405,0406,0013,0009,0025,040B,000C,0007,0408,040D,040E,0021,0010,0011,0412,0026,0027,0014,0415,0416,0816,0419,000A,041D,041E,041F,041A,041B,0424,0C04,0402,0018,081A,None</SupportedLanguages>
+      <SupportedOS>W11, WT64</SupportedOS>
+      <Description>This package creates files that contain an image of the System BIOS (ROM) for the supported computer models with an S70/S73 family ROM.</Description>
+    </UpdateInfo>
+  </Solutions-Superseded>
+</ImagePal>

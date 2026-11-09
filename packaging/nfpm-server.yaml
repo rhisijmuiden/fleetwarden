@@ -1,0 +1,57 @@
+# nfpm configuration for the fleetwarden-server Debian package.
+# Build with: VERSION=0.1.0 nfpm package -f packaging/nfpm-server.yaml -p deb -t dist/fleetwarden-server_0.1.0_amd64.deb
+# A semver pre-release (0.1.0-test.5) becomes the Debian version 0.1.0~test.5,
+# which sorts below 0.1.0 as it should. Name the file with the semver version:
+# GitHub rewrites "~" in release asset names.
+name: fleetwarden-server
+arch: amd64
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: FleetWarden <https://github.com/rhisijmuiden/fleetwarden>
+description: |
+  FleetWarden management server.
+  Self-hosted, agent-based endpoint management for Windows and Linux.
+vendor: FleetWarden
+homepage: https://github.com/rhisijmuiden/fleetwarden
+license: AGPL-3.0-only WITH Commons-Clause
+depends:
+  - postgresql (>= 15)
+  - adduser
+  - ca-certificates
+  - curl
+  - jq
+  - cabextract # unpacks the Dell and HP BIOS catalogs
+recommends:
+  - msitools # bakes the server address and token into the Windows agent MSI
+contents:
+  - src: dist/linux-amd64/fleetwarden-server
+    dst: /usr/bin/fleetwarden-server
+    file_info: { mode: 0755 }
+  - src: web/dist/
+    dst: /usr/share/fleetwarden/web/
+    type: tree # keep web/dist/assets/ (a plain directory entry is flattened)
+  - src: packaging/systemd/fleetwarden-server.service
+    dst: /lib/systemd/system/fleetwarden-server.service
+  - src: packaging/systemd/fleetwarden-update.service
+    dst: /lib/systemd/system/fleetwarden-update.service
+  - src: packaging/systemd/fleetwarden-update.path
+    dst: /lib/systemd/system/fleetwarden-update.path
+  - src: packaging/systemd/fleetwarden-restore.service
+    dst: /lib/systemd/system/fleetwarden-restore.service
+  - src: packaging/systemd/fleetwarden-restore.path
+    dst: /lib/systemd/system/fleetwarden-restore.path
+  - src: packaging/updater/fleetwarden-update
+    dst: /usr/lib/fleetwarden/fleetwarden-update
+    file_info: { mode: 0755 }
+  # Agent installers of the same version, handed out by the Add client wizard
+  # until the server downloads newer agent releases.
+  - src: dist/agent/
+    dst: /usr/share/fleetwarden/agent/
+    type: tree
+  - src: LICENSE
+    dst: /usr/share/doc/fleetwarden-server/copyright
+scripts:
+  postinstall: packaging/scripts/postinstall.sh
+  preremove: packaging/scripts/preremove.sh

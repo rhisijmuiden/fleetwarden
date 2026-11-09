@@ -1,0 +1,46 @@
+/*
+ * FleetWarden default theme. Generated from tokens.json; keep both in sync.
+ * Every colour is a CSS custom property so the white-label settings can
+ * override them at runtime without rebuilding the UI.
+ */
+:root {
+  --fw-radius-sm: 6px;
+  --fw-radius-md: 8px;
+  --fw-radius-lg: 12px;
+
+  --fw-background: #f6f7f9;
+  --fw-surface: #ffffff;
+  --fw-surface-muted: #f1f3f6;
+  --fw-border: #e3e6eb;
+  --fw-text: #0f1729;
+  --fw-text-muted: #5b6578;
+  --fw-primary: #2f5bea;
+  --fw-primary-hover: #2449c4;
+  --fw-primary-contrast: #ffffff;
+  --fw-sidebar: #0e1525;
+  --fw-sidebar-text: #c3cad6;
+  --fw-sidebar-active: #1c2742;
+  --fw-success: #12a150;
+  --fw-warning: #d98a00;
+  --fw-danger: #dc3545;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --fw-background: #0a0e17;
+  --fw-surface: #111827;
+  --fw-surface-muted: #161f31;
+  --fw-border: #222c3f;
+  --fw-text: #e6e9ef;
+  --fw-text-muted: #98a2b3;
+  --fw-primary: #5b7fff;
+  --fw-primary-hover: #7a97ff;
+  --fw-primary-contrast: #ffffff;
+  --fw-sidebar: #070a11;
+  --fw-sidebar-text: #aeb6c4;
+  --fw-sidebar-active: #162038;
+  --fw-success: #2bc46b;
+  --fw-warning: #f5a524;
+  --fw-danger: #f0566a;
+  color-scheme: dark;
+}

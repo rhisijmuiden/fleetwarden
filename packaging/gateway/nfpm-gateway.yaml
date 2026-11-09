@@ -1,0 +1,40 @@
+# nfpm configuration for the fleetwarden-gateway Debian package (secure gateway in the DMZ).
+# Build with: packaging/gateway/build-debs.sh (copies each architecture's binary to dist/gateway-stage first).
+name: fleetwarden-gateway
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: FleetWarden <https://github.com/rhisijmuiden/fleetwarden>
+description: |
+  FleetWarden secure gateway.
+  Relays agents outside the network to a FleetWarden management server that
+  stays internal; the server opens the tunnel to the gateway.
+vendor: FleetWarden
+homepage: https://github.com/rhisijmuiden/fleetwarden
+license: AGPL-3.0-only WITH Commons-Clause
+depends:
+  - adduser
+  - ca-certificates
+  - curl
+  - jq
+contents:
+  - src: dist/gateway-stage/fleetwarden-gateway
+    dst: /usr/bin/fleetwarden-gateway
+    file_info: { mode: 0755 }
+  - src: packaging/gateway/fleetwarden-gateway.service
+    dst: /lib/systemd/system/fleetwarden-gateway.service
+  - src: packaging/gateway/fleetwarden-gateway-update.service
+    dst: /lib/systemd/system/fleetwarden-gateway-update.service
+  - src: packaging/gateway/fleetwarden-gateway-update.path
+    dst: /lib/systemd/system/fleetwarden-gateway-update.path
+  - src: packaging/gateway/fleetwarden-gateway-update
+    dst: /usr/lib/fleetwarden-gateway/fleetwarden-gateway-update
+    file_info: { mode: 0755 }
+  - src: LICENSE
+    dst: /usr/share/doc/fleetwarden-gateway/copyright
+scripts:
+  postinstall: packaging/gateway/postinst.sh
+  preremove: packaging/gateway/prerm.sh
+  postremove: packaging/gateway/postrm.sh
