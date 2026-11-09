@@ -249,7 +249,8 @@ func TestConfigApplyRepairAndRemove(t *testing.T) {
 func TestConfigScriptTriggers(t *testing.T) {
 	be := newFakeConfig()
 	a := testConfigAgent(t, be)
-	a.Minute = time.Millisecond
+	// A 5-minute interval is 250ms here: enough headroom for a slow CI run.
+	a.Minute = 50 * time.Millisecond
 	script := func(id int64, rev int, trigger, runAs string) agentproto.ConfigItem {
 		return agentproto.ConfigItem{ID: id, Revision: rev, Type: agentproto.ConfigScript, Script: &agentproto.ScriptConfig{
 			Shell: "powershell", Content: trigger + "-" + runAs, RunAs: runAs, Trigger: trigger, IntervalMinutes: 5, TimeoutMinutes: 1}}
@@ -275,7 +276,7 @@ func TestConfigScriptTriggers(t *testing.T) {
 	if len(be.runs) != 0 {
 		t.Errorf("second run: %v", be.runs)
 	}
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(260 * time.Millisecond)
 	a.applyConfig(ctx, pol, nil, nil)
 	if strings.Join(be.runs, ",") != "interval-system@system" {
 		t.Errorf("interval: %v", be.runs)

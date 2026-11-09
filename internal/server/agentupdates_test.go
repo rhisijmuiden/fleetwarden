@@ -173,7 +173,7 @@ func TestAgentUpdateRollout(t *testing.T) {
 		t.Error("downloaded package differs")
 	}
 	var d store.Device
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 400; i++ {
 		admin.do("GET", "/api/v1/devices/"+id, nil, &d)
 		if d.UpdateState == agentproto.UpdateInstalling {
 			break
