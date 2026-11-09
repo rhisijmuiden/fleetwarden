@@ -90,9 +90,9 @@ the secure gateway, the installer and the packaging. It combined:
 1. **Put the server behind your reverse proxy only.** Keep the default
    `FW_LISTEN=127.0.0.1:8080`, or firewall port 8080 so only the proxy reaches
    it. Set `FW_TRUSTED_PROXIES` to the proxy's address only.
-2. **Use HTTPS everywhere** and turn on HSTS under *Admin > Reverse proxy*
+2. **Use HTTPS everywhere** and turn on HSTS under *Administration > Reverse proxy*
    once the certificate works.
-3. **Set the public URL** under *Admin > Reverse proxy*, so links and agent
+3. **Set the public URL** under *Administration > Reverse proxy*, so links and agent
    installers never depend on the `Host` header.
 4. **Enable TOTP** for every local account, or use Entra ID sign-in with
    multi-factor authentication. Limit the emergency administrator to your

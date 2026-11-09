@@ -99,9 +99,9 @@ secure gateway, de installer en de packaging. Daarbij is:
    standaard `FW_LISTEN=127.0.0.1:8080` aan, of zet een firewall op poort 8080
    zodat alleen de proxy erbij kan. Zet in `FW_TRUSTED_PROXIES` alleen het adres
    van de proxy.
-2. **Gebruik overal HTTPS** en zet HSTS aan onder *Beheer > Reverse proxy* zodra
+2. **Gebruik overal HTTPS** en zet HSTS aan onder *Administratie > Reverse proxy* zodra
    het certificaat werkt.
-3. **Stel de publieke URL in** onder *Beheer > Reverse proxy*, zodat links en
+3. **Stel de publieke URL in** onder *Administratie > Reverse proxy*, zodat links en
    agent-installers nooit van de `Host`-header afhangen.
 4. **Zet TOTP aan** voor elk lokaal account, of gebruik inloggen met Entra ID
    met meervoudige verificatie. Beperk de nood-beheerder tot je
