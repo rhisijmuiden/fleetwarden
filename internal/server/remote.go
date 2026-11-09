@@ -173,6 +173,7 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	b := s.loadBranding(r.Context())
+	snap := rs.RemoteSession // the agent can end the session as soon as it is shared
 	s.remote.put(rs)
 	if !s.hub.send(dev.ID, agentproto.TypeRemoteStart, agentproto.RemoteStart{
 		SessionID: rs.ID, Kind: rs.Kind, Operator: operator, Consent: rs.Consent, ConsentSeconds: remoteConsentSeconds,
@@ -182,9 +183,9 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 		apiError(w, http.StatusConflict, "device_offline")
 		return
 	}
-	s.audit(r, "remote.start", dev.Hostname, true, map[string]any{"session": rs.ID, "deviceId": dev.ID, "kind": rs.Kind, "consent": rs.Consent})
+	s.audit(r, "remote.start", dev.Hostname, true, map[string]any{"session": snap.ID, "deviceId": dev.ID, "kind": snap.Kind, "consent": snap.Consent})
 	go s.watchRemote(rs)
-	writeJSON(w, http.StatusCreated, rs.RemoteSession)
+	writeJSON(w, http.StatusCreated, snap)
 }
 
 // watchRemote ends sessions whose viewer or agent never shows up.
