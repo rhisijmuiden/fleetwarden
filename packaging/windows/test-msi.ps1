@@ -49,7 +49,7 @@ $run = if ($runKey.PSObject.Properties['FleetWardenTray']) { $runKey.FleetWarden
 if ($run -ne "`"$tray`"") { throw "tray app Run entry is '$run'" }
 $shots = Join-Path $env:RUNNER_TEMP 'tray'
 New-Item -ItemType Directory -Force $shots | Out-Null
-foreach ($demo in @('install', 'en', '--light'), @('reboot', 'nl', '--dark'), @('install', 'nl', '--light'), @('browser', 'en', '--light'), @('browser', 'nl', '--dark'), @('remote', 'en', '--light'), @('remote', 'nl', '--dark'), @('banner', 'en', '--light'), @('banner', 'nl', '--dark')) {
+foreach ($demo in @('install', 'en', '--light'), @('reboot', 'nl', '--dark'), @('install', 'nl', '--light'), @('browser', 'en', '--light'), @('browser', 'nl', '--dark'), @('restart', 'en', '--light'), @('shutdown', 'nl', '--dark'), @('remote', 'en', '--light'), @('remote', 'nl', '--dark'), @('banner', 'en', '--light'), @('banner', 'nl', '--dark')) {
     $png = Join-Path $shots "popup-$($demo[0])-$($demo[1]).png"
     $p = Start-Process $tray -ArgumentList '--demo', $demo[0], '--lang', $demo[1], $demo[2], '--screenshot', "`"$png`"" -PassThru
     if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "tray app hung rendering $($demo -join ' ')" }

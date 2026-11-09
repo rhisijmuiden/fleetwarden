@@ -142,7 +142,7 @@ jobs:
         env:
           FW_TRAY_EXE: ${{ github.workspace }}\packaging\windows\Tray\bin\Release\net472\FleetWardenTray.exe
           FW_TEST_SOFTWARE: "1"
-        run: go test ./internal/agent/ -run 'Tray|WUA|Software|Browser|Config|Driver|Manage|Security' -count=1 -v -timeout 60m
+        run: go test ./internal/agent/ -run 'Tray|WUA|Software|Browser|Config|Driver|Manage|Power|Security' -count=1 -v -timeout 60m
       - name: Remote desktop on Windows (screen capture, mouse, keyboard, clipboard)
         env:
           FW_REMOTE_SHOT: ${{ runner.temp }}\tray

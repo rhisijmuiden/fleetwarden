@@ -45,6 +45,7 @@ import { JobDialog, JobsTable } from "../software/Deployments";
 import { SourceBadge } from "../software/util";
 import { RemoteButton, TerminalButton } from "../remote/Remote";
 import { DeviceConfigsTab } from "../configurations/DeviceConfigs";
+import { PowerButtons } from "../power/DevicePower";
 import { DeviceAssetCard } from "../assets/DeviceAsset";
 import { DeviceManageTab } from "../manage/Manage";
 import { DeviceSecurityTab } from "../security/DeviceSecurity";
@@ -152,7 +153,7 @@ export function DeviceDetail() {
             </div>
           </div>
         </div>
-        {(manage || can("remote.control")) && (
+        {(manage || can("remote.control") || can("power.control")) && (
           <div className="flex flex-wrap gap-2">
             {can("remote.control") && device.platform !== "linux" && (
               <RemoteButton device={device} />
@@ -161,6 +162,15 @@ export function DeviceDetail() {
               <TerminalButton
                 device={device}
                 variant={device.platform === "linux" ? "primary" : "secondary"}
+              />
+            )}
+            {can("power.control") && (
+              <PowerButtons
+                device={device}
+                onDone={(m) => {
+                  setNotice(m);
+                  setTimeout(load, 5000);
+                }}
               />
             )}
             {manage && (

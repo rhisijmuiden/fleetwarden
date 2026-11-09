@@ -19,7 +19,7 @@ namespace FleetWarden.Tray
     public static class Program
     {
         // FleetWardenTray.exe                 runs in the tray (started at logon and by the agent)
-        // FleetWardenTray.exe --demo [install|reboot|browser|remote|banner] [--lang en|nl] [--dark] [--screenshot file.png]
+        // FleetWardenTray.exe --demo [install|reboot|restart|shutdown|browser|remote|banner] [--lang en|nl] [--dark] [--screenshot file.png]
         //                                     shows an example pop-up, or saves it as an image
         // FleetWardenTray.exe --pipe name     uses another pipe (tests); its server need not be a service
         [STAThread]
@@ -60,7 +60,7 @@ namespace FleetWarden.Tray
             var remote = kind == Prompt.Remote || kind == "banner";
             var p = new Prompt
             {
-                Id = "demo", Kind = kind == Prompt.Reboot || kind == Prompt.Browser || remote ? (remote ? Prompt.Remote : kind) : Prompt.Install, Updates = 4,
+                Id = "demo", Kind = kind == Prompt.Reboot || kind == Prompt.Browser || kind == Prompt.Restart || kind == Prompt.Shutdown || remote ? (remote ? Prompt.Remote : kind) : Prompt.Install, Updates = 4,
                 CanPostpone = !remote, PostponesLeft = 2, PostponeMinutes = 60, CountdownSeconds = kind == Prompt.Browser ? 60 : remote ? 30 : 300, ProductName = "FleetWarden",
                 Apps = kind == Prompt.Browser ? new[] { "Google Chrome", "Microsoft Edge" } : null,
                 Operator = remote ? "Reinder" : null,

@@ -38,6 +38,7 @@ import { Alerts } from "./pages/alerts/Alerts";
 import { Security } from "./pages/security/Security";
 import { ConfigDetail, ConfigEditor, Configurations } from "./pages/configurations/Configurations";
 import { ConfigProfiles, ProfileEditor } from "./pages/configurations/Profiles";
+import { PowerPage } from "./pages/power/Power";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
@@ -64,6 +65,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/configurations/profiles/:id", perm: "devices.view", element: <ProfileEditor /> },
   { path: "/configurations/:id", perm: "devices.view", element: <ConfigDetail /> },
   { path: "/configurations/:id/edit", perm: "config.manage", element: <ConfigEditor key="edit" /> },
+  { path: "/power", perm: "devices.view", element: <PowerPage /> },
   { path: "/remote", perm: "remote.control", element: <Remote /> },
   { path: "/reports", perm: "devices.view", element: <Reports /> },
   { path: "/alerts", perm: "devices.view", element: <Alerts /> },

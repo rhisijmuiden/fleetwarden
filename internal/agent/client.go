@@ -72,6 +72,11 @@ type Agent struct {
 	// and BitLocker actions; both default to the platform implementation.
 	Security    func(ctx context.Context) (agentproto.SecurityReport, error)
 	SecurityRun func(ctx context.Context, act agentproto.SecurityAction) (string, error)
+	// Power restarts and shuts down the device; defaults to the platform
+	// backend.
+	Power PowerBackend
+	// LoggedOnUser names the logged-on users; tests replace it.
+	LoggedOnUser func() string
 	// Manage lists and controls processes, services and event logs;
 	// defaults to the platform backend.
 	Manage ManageBackend
@@ -91,6 +96,7 @@ type Agent struct {
 	remote   remoteState
 	config   configRunner
 	security securityState
+	power    powerState
 	ctx      context.Context // of Run: jobs outlive a single session
 	// installMu keeps patch installs and software jobs apart: Windows
 	// Installer and dpkg run one installation at a time.
@@ -471,6 +477,12 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 				a.handleSecurityRequest()
 			case agentproto.TypeSecurityAction:
 				a.handleSecurityAction(e)
+			case agentproto.TypePowerWake:
+				a.handlePowerWake(e)
+			case agentproto.TypePowerAction:
+				a.handlePowerAction(e)
+			case agentproto.TypePowerConfig:
+				a.handlePowerConfig(e)
 			case agentproto.TypeManageRequest:
 				a.handleManage(e, reply)
 			default:

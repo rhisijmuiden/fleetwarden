@@ -39,6 +39,7 @@
     "drivers": "Drivers & firmware",
     "vulnerabilities": "Vulnerabilities",
     "assets": "Assets",
+    "power": "Power",
     "security": "Security"
   },
   "dashboard": {
@@ -372,6 +373,13 @@
     "invalid_csv": "The file is not a CSV file with a heading row and at least one row.",
     "too_many_rows": "The file has more than 5,000 rows.",
     "csv_columns": "The file needs a column with the host name or serial number, and at least one column to import (owner, location, warranty end, ...).",
+    "invalid_power_action": "Choose wake, restart or shut down.",
+    "invalid_schedule_time": "Choose a valid time.",
+    "schedule_exists": "A schedule with this name already exists.",
+    "device_online": "The device is already online.",
+    "power_action_open": "This device is still busy with an earlier wake, restart or shutdown.",
+    "wake_impossible": "This device cannot be woken",
+    "invalid_wake_port": "Choose port 9 or 7.",
     "invalid_filter": "Unknown filter.",
     "invalid_volume": "Choose a drive letter such as C:.",
     "invalid_security_action": "Unknown security action.",
@@ -503,7 +511,9 @@
     "drivers_manage": "Add drivers and firmware to the repository",
     "vulns_manage": "Manage vulnerability sources and accepted risks",
     "remote_manage": "Manage devices without taking over (processes, services, logs, files)",
-    "assets_manage": "Manage assets and software licences"
+    "assets_manage": "Manage assets and software licences",
+    "power_control": "Wake, restart and shut down devices",
+    "power_manage": "Manage power schedules and Wake-on-LAN settings"
   },
   "auth": {
     "title": "Authentication",
@@ -724,7 +734,15 @@
       "device_file_delete": "File deleted on a device",
       "device_file_rename": "File renamed on a device",
       "device_file_download": "File downloaded from a device",
-      "device_file_upload": "File uploaded to a device"
+      "device_file_upload": "File uploaded to a device",
+      "power_wake": "Device woken",
+      "power_restart": "Device restarted",
+      "power_shutdown": "Device shut down",
+      "power_schedule_create": "Power schedule created",
+      "power_schedule_update": "Power schedule changed",
+      "power_schedule_delete": "Power schedule deleted",
+      "power_schedule_run": "Power schedule run by hand",
+      "power_settings": "Power settings changed"
     }
   },
   "backup": {
@@ -1413,7 +1431,12 @@
     "drivers": "Install drivers from the repository",
     "driversHint": "Also stops Windows from fetching drivers by itself when a device is plugged in.",
     "firmware": "Install firmware (BIOS/UEFI) from the repository",
-    "firmwareHint": "Firmware needs a restart. On Windows BitLocker is suspended for that one restart. Test on a few devices first."
+    "firmwareHint": "Firmware needs a restart. On Windows BitLocker is suspended for that one restart. Test on a few devices first.",
+    "powerSection": "Power",
+    "wakeForWindow": "Wake devices for the window",
+    "wakeForWindowHint": "Devices that are switched off when the window opens are woken with Wake-on-LAN, so they get their updates tonight.",
+    "shutdownAfter": "Shut down woken devices afterwards",
+    "shutdownAfterHint": "Devices that were woken for the window are shut down again once their updates are installed (never while someone is logged on)."
   },
   "software": {
     "title": "Software",
@@ -3400,6 +3423,135 @@
       "licensesOver": "Licences over-used",
       "warranty": "Warranty ended or ending soon",
       "noWarranty": "No warranty ends soon."
+    }
+  },
+  "power": {
+    "title": "Power",
+    "subtitle": "Wake devices with Wake-on-LAN, restart and shut them down by hand or on a schedule.",
+    "tabs": {
+      "devices": "Devices",
+      "schedules": "Schedules",
+      "history": "History",
+      "settings": "Settings"
+    },
+    "actions": {
+      "wake": "Wake",
+      "restart": "Restart",
+      "shutdown": "Shut down"
+    },
+    "dialogTitle": {
+      "wake": "Wake {{name}}",
+      "restart": "Restart {{name}}",
+      "shutdown": "Shut down {{name}}"
+    },
+    "sentOne": {
+      "wake": "The wake-up packet for {{name}} was sent. The device shows as online when it has started.",
+      "restart": "{{name}} restarts.",
+      "shutdown": "{{name}} shuts down."
+    },
+    "sentMany": "Sent to {{sent}} devices; {{skipped}} skipped (offline, already on or busy).",
+    "wakeExplain": "An online device in the same network sends the wake-up packet (Wake-on-LAN). Wake-on-LAN must be on in the BIOS or UEFI of the device.",
+    "notifyUsers": "Warn the logged-on user",
+    "notifyUsersHint": "Shows a pop-up with a countdown; the user can postpone.",
+    "skipIfUser": "Only when nobody is logged on",
+    "skipIfUserHint": "Devices where someone works are left alone.",
+    "onlyIfReboot": "Only when updates wait for a restart",
+    "onlyIfRebootHint": "Devices without a pending restart are skipped.",
+    "stats": {
+      "devices": "Devices",
+      "online": "Online",
+      "wakeable": "Can be woken",
+      "noRoute": "Cannot be woken"
+    },
+    "devicesTitle": "Devices",
+    "devicesHint": "Select devices to wake, restart or shut them down. A switched-off device can be woken when an online device in its network can send the packet.",
+    "search": "Search by name or MAC address",
+    "filter": "Filter",
+    "filters": {
+      "all": "All devices",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "noDevices": "No devices found.",
+    "selectAll": "Select all",
+    "device": "Device",
+    "group": "Group",
+    "status": "Status",
+    "network": "Network",
+    "wakeRoute": "Wake-on-LAN",
+    "noMac": "No MAC address yet",
+    "route": {
+      "noMac": "No MAC address known",
+      "noRelay": "No online device in its network",
+      "via": "Via {{names}}"
+    },
+    "devicesCount_one": "{{count}} device",
+    "devicesCount_other": "{{count}} devices",
+    "weekdays": "Monday to Friday",
+    "schedules": "Schedules",
+    "schedulesHint": "Wake, restart or shut down the devices of groups at set times, for example shut down every workstation at 19:00 and wake them at 07:30.",
+    "addSchedule": "Add schedule",
+    "editSchedule": "Edit schedule",
+    "noSchedules": "No schedules yet.",
+    "noGroups": "no groups",
+    "nextRun": "Next: {{when}}",
+    "runNow": "Run now",
+    "ranNow_one": "{{name}}: sent to {{count}} device.",
+    "ranNow_other": "{{name}}: sent to {{count}} devices.",
+    "deleteSchedule": "Delete schedule",
+    "deleteScheduleConfirm": "Delete {{name}}? Devices are no longer woken, restarted or shut down by it.",
+    "patchWindowTitle": "Wake devices for patching",
+    "patchWindowText": "A patch policy can wake the devices that are off when its window opens and shut them down again when their updates are installed.",
+    "patchWindowLink": "Open the patch policies",
+    "plansTitle": "Power plans",
+    "plansText": "Sleep, hibernate and screen timeouts are set with a Windows settings configuration (Power).",
+    "plansLink": "Open configurations",
+    "scheduleName": "Name",
+    "action": "Action",
+    "enabled": "Schedule on",
+    "enabledHint": "Off keeps the schedule without carrying it out.",
+    "when": "When",
+    "at": "Time",
+    "groups": "Device groups",
+    "groupsHint": "The schedule applies to every device in these groups.",
+    "users": "Users",
+    "wakeScheduleHint": "Devices that are off are woken; devices that are on are left alone.",
+    "trigger": "Started by",
+    "triggers": {
+      "manual": "By hand",
+      "schedule": "Schedule",
+      "patch-window": "Patch window",
+      "after-patch": "After patching"
+    },
+    "details": "Details",
+    "relays": "Sent by {{names}}",
+    "theServer": "the server",
+    "state": {
+      "sent": "Sent",
+      "waking": "Waking up",
+      "waiting-user": "Waiting for the user",
+      "postponed": "Postponed",
+      "skipped": "Skipped",
+      "completed": "Done",
+      "failed": "Failed"
+    },
+    "history": "History",
+    "historyHint": "Every wake, restart and shutdown of the last 400 days.",
+    "noActions": "Nothing yet.",
+    "wolTitle": "Wake-on-LAN",
+    "wolHint": "A wake-up packet does not cross routers, so an online agent in the same network sends it for the server.",
+    "prepareWake": "Prepare devices for Wake-on-LAN",
+    "prepareWakeHint": "The agents turn on \"wake on magic packet\" for the wired network adapters and, on Windows, turn off Fast Startup (a computer shut down with Fast Startup often does not wake up). Turning this off puts Fast Startup back.",
+    "serverWake": "Send from the server too",
+    "serverWakeHint": "Helps when the server is in the same network as the devices.",
+    "port": "UDP port",
+    "portHint": "Port 9 works for almost every network card.",
+    "requirementsTitle": "What Wake-on-LAN needs",
+    "requirements": {
+      "bios": "Wake-on-LAN (or \"Power on by PCI-E\") is on in the BIOS or UEFI.",
+      "relay": "Another device with the agent is online in the same network, or the server is in that network.",
+      "wired": "The device is connected with a cable; Wi-Fi adapters rarely wake from shutdown.",
+      "vlan": "Routers and firewalls do not forward broadcasts: every network (VLAN) needs its own online relay."
     }
   },
   "security": {

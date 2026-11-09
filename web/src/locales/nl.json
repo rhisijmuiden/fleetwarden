@@ -39,6 +39,7 @@
     "drivers": "Drivers & firmware",
     "vulnerabilities": "Kwetsbaarheden",
     "assets": "Assets",
+    "power": "Energiebeheer",
     "security": "Beveiliging"
   },
   "dashboard": {
@@ -372,6 +373,13 @@
     "invalid_csv": "Het bestand is geen CSV-bestand met een kopregel en minstens één regel.",
     "too_many_rows": "Het bestand heeft meer dan 5.000 regels.",
     "csv_columns": "Het bestand heeft een kolom met de hostnaam of het serienummer nodig, en minstens één kolom om te importeren (eigenaar, locatie, garantie tot, ...).",
+    "invalid_power_action": "Kies wekken, herstarten of afsluiten.",
+    "invalid_schedule_time": "Kies een geldige tijd.",
+    "schedule_exists": "Er bestaat al een schema met deze naam.",
+    "device_online": "Het apparaat is al online.",
+    "power_action_open": "Dit apparaat is nog bezig met een eerdere wek-, herstart- of afsluitopdracht.",
+    "wake_impossible": "Dit apparaat kan niet worden gewekt",
+    "invalid_wake_port": "Kies poort 9 of 7.",
     "invalid_filter": "Onbekend filter.",
     "invalid_volume": "Kies een stationsletter zoals C:.",
     "invalid_security_action": "Onbekende beveiligingsactie.",
@@ -503,7 +511,9 @@
     "drivers_manage": "Drivers en firmware aan de repository toevoegen",
     "vulns_manage": "Kwetsbaarheidsbronnen en geaccepteerde risico's beheren",
     "remote_manage": "Apparaten beheren zonder overname (processen, services, logboeken, bestanden)",
-    "assets_manage": "Assets en softwarelicenties beheren"
+    "assets_manage": "Assets en softwarelicenties beheren",
+    "power_control": "Apparaten wekken, herstarten en afsluiten",
+    "power_manage": "Energieschema's en Wake-on-LAN-instellingen beheren"
   },
   "auth": {
     "title": "Authenticatie",
@@ -724,7 +734,15 @@
       "device_file_delete": "Bestand verwijderd op een apparaat",
       "device_file_rename": "Bestand hernoemd op een apparaat",
       "device_file_download": "Bestand gedownload van een apparaat",
-      "device_file_upload": "Bestand geüpload naar een apparaat"
+      "device_file_upload": "Bestand geüpload naar een apparaat",
+      "power_wake": "Apparaat gewekt",
+      "power_restart": "Apparaat herstart",
+      "power_shutdown": "Apparaat afgesloten",
+      "power_schedule_create": "Energieschema aangemaakt",
+      "power_schedule_update": "Energieschema gewijzigd",
+      "power_schedule_delete": "Energieschema verwijderd",
+      "power_schedule_run": "Energieschema handmatig uitgevoerd",
+      "power_settings": "Energie-instellingen gewijzigd"
     }
   },
   "backup": {
@@ -1413,7 +1431,12 @@
     "drivers": "Drivers uit de repository installeren",
     "driversHint": "Voorkomt ook dat Windows zelf drivers ophaalt als er een apparaat wordt aangesloten.",
     "firmware": "Firmware (BIOS/UEFI) uit de repository installeren",
-    "firmwareHint": "Firmware vraagt een herstart. Op Windows wordt BitLocker voor die ene herstart onderbroken. Test eerst op een paar apparaten."
+    "firmwareHint": "Firmware vraagt een herstart. Op Windows wordt BitLocker voor die ene herstart onderbroken. Test eerst op een paar apparaten.",
+    "powerSection": "Energie",
+    "wakeForWindow": "Apparaten wekken voor het venster",
+    "wakeForWindowHint": "Apparaten die uit staan als het venster opent, worden gewekt met Wake-on-LAN, zodat ze vannacht hun updates krijgen.",
+    "shutdownAfter": "Gewekte apparaten daarna weer afsluiten",
+    "shutdownAfterHint": "Apparaten die voor het venster zijn gewekt, worden weer afgesloten zodra hun updates zijn geïnstalleerd (nooit terwijl iemand is aangemeld)."
   },
   "software": {
     "title": "Software",
@@ -3400,6 +3423,135 @@
       "licensesOver": "Licenties overschreden",
       "warranty": "Garantie verlopen of binnenkort verlopen",
       "noWarranty": "Er loopt binnenkort geen garantie af."
+    }
+  },
+  "power": {
+    "title": "Energiebeheer",
+    "subtitle": "Wek apparaten met Wake-on-LAN en herstart of sluit ze af, handmatig of volgens een schema.",
+    "tabs": {
+      "devices": "Apparaten",
+      "schedules": "Schema's",
+      "history": "Geschiedenis",
+      "settings": "Instellingen"
+    },
+    "actions": {
+      "wake": "Wekken",
+      "restart": "Herstarten",
+      "shutdown": "Afsluiten"
+    },
+    "dialogTitle": {
+      "wake": "{{name}} wekken",
+      "restart": "{{name}} herstarten",
+      "shutdown": "{{name}} afsluiten"
+    },
+    "sentOne": {
+      "wake": "Het wekpakket voor {{name}} is verstuurd. Het apparaat staat online zodra het is opgestart.",
+      "restart": "{{name}} wordt herstart.",
+      "shutdown": "{{name}} wordt afgesloten."
+    },
+    "sentMany": "Verstuurd naar {{sent}} apparaten; {{skipped}} overgeslagen (offline, al aan of bezig).",
+    "wakeExplain": "Een online apparaat in hetzelfde netwerk verstuurt het wekpakket (Wake-on-LAN). Wake-on-LAN moet aan staan in het BIOS of UEFI van het apparaat.",
+    "notifyUsers": "Aangemelde gebruiker waarschuwen",
+    "notifyUsersHint": "Toont een melding met aftellen; de gebruiker kan uitstellen.",
+    "skipIfUser": "Alleen als niemand is aangemeld",
+    "skipIfUserHint": "Apparaten waarop iemand werkt, worden overgeslagen.",
+    "onlyIfReboot": "Alleen als updates op een herstart wachten",
+    "onlyIfRebootHint": "Apparaten zonder openstaande herstart worden overgeslagen.",
+    "stats": {
+      "devices": "Apparaten",
+      "online": "Online",
+      "wakeable": "Kan worden gewekt",
+      "noRoute": "Kan niet worden gewekt"
+    },
+    "devicesTitle": "Apparaten",
+    "devicesHint": "Selecteer apparaten om ze te wekken, herstarten of af te sluiten. Een uitgeschakeld apparaat kan worden gewekt als een online apparaat in zijn netwerk het pakket kan versturen.",
+    "search": "Zoek op naam of MAC-adres",
+    "filter": "Filter",
+    "filters": {
+      "all": "Alle apparaten",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "noDevices": "Geen apparaten gevonden.",
+    "selectAll": "Alles selecteren",
+    "device": "Apparaat",
+    "group": "Groep",
+    "status": "Status",
+    "network": "Netwerk",
+    "wakeRoute": "Wake-on-LAN",
+    "noMac": "Nog geen MAC-adres",
+    "route": {
+      "noMac": "Geen MAC-adres bekend",
+      "noRelay": "Geen online apparaat in zijn netwerk",
+      "via": "Via {{names}}"
+    },
+    "devicesCount_one": "{{count}} apparaat",
+    "devicesCount_other": "{{count}} apparaten",
+    "weekdays": "Maandag t/m vrijdag",
+    "schedules": "Schema's",
+    "schedulesHint": "Wek, herstart of sluit de apparaten van groepen af op vaste tijden, bijvoorbeeld alle werkplekken om 19:00 uit en om 07:30 weer aan.",
+    "addSchedule": "Schema toevoegen",
+    "editSchedule": "Schema bewerken",
+    "noSchedules": "Nog geen schema's.",
+    "noGroups": "geen groepen",
+    "nextRun": "Volgende: {{when}}",
+    "runNow": "Nu uitvoeren",
+    "ranNow_one": "{{name}}: verstuurd naar {{count}} apparaat.",
+    "ranNow_other": "{{name}}: verstuurd naar {{count}} apparaten.",
+    "deleteSchedule": "Schema verwijderen",
+    "deleteScheduleConfirm": "{{name}} verwijderen? Apparaten worden er niet meer door gewekt, herstart of afgesloten.",
+    "patchWindowTitle": "Apparaten wekken voor patches",
+    "patchWindowText": "Een patchbeleid kan de apparaten die uit staan wekken als het venster opent, en ze weer afsluiten als hun updates zijn geïnstalleerd.",
+    "patchWindowLink": "Naar de patchbeleidsregels",
+    "plansTitle": "Energiebeheerschema's",
+    "plansText": "Slaapstand, sluimerstand en schermtime-outs stel je in met een configuratie van het type Windows-instellingen (Energie).",
+    "plansLink": "Naar configuraties",
+    "scheduleName": "Naam",
+    "action": "Actie",
+    "enabled": "Schema aan",
+    "enabledHint": "Uit bewaart het schema zonder het uit te voeren.",
+    "when": "Wanneer",
+    "at": "Tijd",
+    "groups": "Apparaatgroepen",
+    "groupsHint": "Het schema geldt voor alle apparaten in deze groepen.",
+    "users": "Gebruikers",
+    "wakeScheduleHint": "Apparaten die uit staan worden gewekt; apparaten die aan staan blijven ongemoeid.",
+    "trigger": "Gestart door",
+    "triggers": {
+      "manual": "Handmatig",
+      "schedule": "Schema",
+      "patch-window": "Patchvenster",
+      "after-patch": "Na patchen"
+    },
+    "details": "Details",
+    "relays": "Verstuurd door {{names}}",
+    "theServer": "de server",
+    "state": {
+      "sent": "Verstuurd",
+      "waking": "Wordt gewekt",
+      "waiting-user": "Wacht op gebruiker",
+      "postponed": "Uitgesteld",
+      "skipped": "Overgeslagen",
+      "completed": "Klaar",
+      "failed": "Mislukt"
+    },
+    "history": "Geschiedenis",
+    "historyHint": "Alle wek-, herstart- en afsluitopdrachten van de afgelopen 400 dagen.",
+    "noActions": "Nog niets.",
+    "wolTitle": "Wake-on-LAN",
+    "wolHint": "Een wekpakket gaat niet over routers heen, daarom verstuurt een online agent in hetzelfde netwerk het namens de server.",
+    "prepareWake": "Apparaten voorbereiden op Wake-on-LAN",
+    "prepareWakeHint": "De agents zetten \"wake on magic packet\" aan voor de bekabelde netwerkkaarten en zetten op Windows Snel opstarten uit (een computer die met Snel opstarten is afgesloten, wordt vaak niet wakker). Uitzetten zet Snel opstarten terug.",
+    "serverWake": "Ook vanaf de server versturen",
+    "serverWakeHint": "Helpt als de server in hetzelfde netwerk staat als de apparaten.",
+    "port": "UDP-poort",
+    "portHint": "Poort 9 werkt voor bijna elke netwerkkaart.",
+    "requirementsTitle": "Wat Wake-on-LAN nodig heeft",
+    "requirements": {
+      "bios": "Wake-on-LAN (of \"Power on by PCI-E\") staat aan in het BIOS of UEFI.",
+      "relay": "Een ander apparaat met de agent is online in hetzelfde netwerk, of de server staat in dat netwerk.",
+      "wired": "Het apparaat is met een kabel aangesloten; wifi-adapters worden zelden wakker uit uitgeschakelde stand.",
+      "vlan": "Routers en firewalls sturen broadcasts niet door: elk netwerk (VLAN) heeft een eigen online relay nodig."
     }
   },
   "security": {

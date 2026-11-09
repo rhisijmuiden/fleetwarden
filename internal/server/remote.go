@@ -210,6 +210,9 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	b := s.loadBranding(r.Context())
+	// Copy for the response before the agent can update the state (on its
+	// own connection) once the session is visible.
+	resp := rs.RemoteSession
 	s.remote.put(rs)
 	if !s.hub.send(dev.ID, agentproto.TypeRemoteStart, agentproto.RemoteStart{
 		SessionID: rs.ID, Kind: rs.Kind, Operator: operator, Consent: rs.Consent, ConsentSeconds: remoteConsentSeconds,
@@ -225,12 +228,8 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 		details["shell"] = req.Shell
 	}
 	s.audit(r, "remote.start", dev.Hostname, true, details)
-	// The agent may already report progress: copy the session under its lock.
-	rs.mu.Lock()
-	out := rs.RemoteSession
-	rs.mu.Unlock()
 	go s.watchRemote(rs)
-	writeJSON(w, http.StatusCreated, out)
+	writeJSON(w, http.StatusCreated, resp)
 }
 
 // watchRemote ends sessions whose viewer or agent never shows up.
