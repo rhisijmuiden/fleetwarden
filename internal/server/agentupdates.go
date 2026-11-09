@@ -313,11 +313,14 @@ func (s *Server) agentUpdateTick(ctx context.Context) {
 		if !ok {
 			continue
 		}
+		// Record the attempt before sending: the agent's progress reports only
+		// count for the recorded version, and can arrive before a later write.
+		if err := s.st.StartDeviceUpdate(ctx, d.DeviceID, t.ID, t.Version); err != nil {
+			s.log.Warn("agent update", "device", d.DeviceID, "err", err)
+			continue
+		}
 		if s.hub.send(d.DeviceID, agentproto.TypeUpdate, msg) {
 			sent++
-			if err := s.st.StartDeviceUpdate(ctx, d.DeviceID, t.ID, t.Version); err != nil {
-				s.log.Warn("agent update", "device", d.DeviceID, "err", err)
-			}
 			s.log.Info("agent update sent", "device", d.DeviceID, "host", d.Hostname, "from", d.AgentVersion, "to", t.Version)
 		}
 	}

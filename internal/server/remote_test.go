@@ -297,15 +297,23 @@ func TestRemoteDesktopSession(t *testing.T) {
 	}
 
 	// The audit log has the starts and ends.
-	entries, _ := e.st.ListAudit(context.Background(), store.AuditQuery{Search: "remote."})
+	// endRemote writes the audit entry just after the end time, so wait for it.
 	starts, ends := 0, 0
-	for _, en := range entries {
-		switch en.Action {
-		case "remote.start":
-			starts++
-		case "remote.end":
-			ends++
+	for i := 0; i < 100; i++ {
+		entries, _ := e.st.ListAudit(context.Background(), store.AuditQuery{Search: "remote."})
+		starts, ends = 0, 0
+		for _, en := range entries {
+			switch en.Action {
+			case "remote.start":
+				starts++
+			case "remote.end":
+				ends++
+			}
 		}
+		if ends >= 3 {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 	if starts != 3 || ends != 3 {
 		t.Errorf("audit: %d starts, %d ends", starts, ends)
