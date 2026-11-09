@@ -22,6 +22,7 @@ import { Backup } from "./pages/admin/backup/Backup";
 import { Devices } from "./pages/devices/Devices";
 import { DeviceDetail } from "./pages/devices/DeviceDetail";
 import { Groups } from "./pages/devices/Groups";
+import { Assets } from "./pages/assets/Assets";
 import { AgentUpdates } from "./pages/admin/AgentUpdates";
 import { Gateways } from "./pages/admin/Gateways";
 import { Patches } from "./pages/patches/Patches";
@@ -45,6 +46,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/devices", perm: "devices.view", element: <Devices /> },
   { path: "/devices/:id", perm: "devices.view", element: <DeviceDetail /> },
   { path: "/groups", perm: "devices.view", element: <Groups /> },
+  { path: "/asset-management", perm: "devices.view", element: <Assets /> },
   { path: "/patches", perm: "devices.view", element: <Patches /> },
   { path: "/drivers", perm: "devices.view", element: <Drivers /> },
   { path: "/software", perm: "devices.view", element: <Software /> },

@@ -37,6 +37,7 @@ eerste login kies je je eigen wachtwoord. Kwijt? Voer
 - Beheer zonder overname (processen, services, logboeken, bestanden): [docs/manage.nl.md](docs/manage.nl.md)
 - Rapporten en geplande rapportmails: [docs/reports.nl.md](docs/reports.nl.md)
 - Meldingen: [docs/alerts.nl.md](docs/alerts.nl.md)
+- Assetbeheer (eigenaar, locatie, garantie, softwarelicenties): [docs/assets.nl.md](docs/assets.nl.md)
 
 ## Licentie
 
