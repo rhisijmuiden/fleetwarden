@@ -98,6 +98,8 @@ func (s *Server) remoteRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/v1/remote/sessions/{sid}/end", ctl(s.handleEndRemote))
 	mux.Handle("GET /api/v1/remote/sessions/{sid}/ws", ctl(s.handleRemoteViewer))
 	mux.HandleFunc("GET "+agentproto.PathRemote+"{sid}/{key}", s.handleRemoteAgent)
+	mux.Handle("GET /api/v1/settings/remote", s.authed(auth.PermSettingsManage, 0, s.handleGetRemoteSettings))
+	mux.Handle("PUT /api/v1/settings/remote", s.authed(auth.PermSettingsManage, 0, s.handlePutRemoteSettings))
 }
 
 // consentFor resolves a group's setting for a device: "auto" takes servers
@@ -210,6 +212,12 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	b := s.loadBranding(r.Context())
+	var rtc *rtcConfig
+	if !terminal {
+		if rset := s.loadRemoteSettings(r.Context()); !rset.DirectOff {
+			rtc = &rtcConfig{ICEServers: rset.STUNServers}
+		}
+	}
 	// Copy for the response before the agent can update the state (on its
 	// own connection) once the session is visible.
 	resp := rs.RemoteSession
@@ -217,6 +225,7 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 	if !s.hub.send(dev.ID, agentproto.TypeRemoteStart, agentproto.RemoteStart{
 		SessionID: rs.ID, Kind: rs.Kind, Operator: operator, Consent: rs.Consent, ConsentSeconds: remoteConsentSeconds,
 		ServerKey: key.Public(), ProductName: b.ProductName, AccentColor: b.PrimaryColor,
+		Direct: rtc != nil, ICEServers: rtcServers(rtc),
 		Shell: req.Shell, Cols: min(max(req.Cols, 0), 1000), Rows: min(max(req.Rows, 0), 500),
 	}) {
 		s.endRemote(rs, agentproto.RemoteStateFailed, "device_offline")
@@ -229,7 +238,24 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, "remote.start", dev.Hostname, true, details)
 	go s.watchRemote(rs)
-	writeJSON(w, http.StatusCreated, resp)
+	writeJSON(w, http.StatusCreated, startRemoteResp{RemoteSession: resp, RTC: rtc})
+}
+
+// rtcConfig tells the viewer it may set up the direct path.
+type rtcConfig struct {
+	ICEServers []string `json:"iceServers"`
+}
+
+type startRemoteResp struct {
+	store.RemoteSession
+	RTC *rtcConfig `json:"rtc,omitempty"`
+}
+
+func rtcServers(c *rtcConfig) []string {
+	if c == nil {
+		return nil
+	}
+	return c.ICEServers
 }
 
 // watchRemote ends sessions whose viewer or agent never shows up.

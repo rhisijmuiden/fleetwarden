@@ -6,11 +6,13 @@ export const Msg = {
   Frame: 0x02,
   Clipboard: 0x03,
   Event: 0x04,
+  RTC: 0x05,
   Mouse: 0x81,
   Key: 0x82,
   Ack: 0x83,
   SetClip: 0x84,
   Control: 0x85,
+  RTCAnswer: 0x86,
 } as const;
 
 export const Mouse = { Move: 0, Down: 1, Up: 2, Wheel: 3, HWheel: 4 } as const;
@@ -31,7 +33,7 @@ export type Info = {
 
 export type Quality = "low" | "medium" | "high";
 
-export type RemoteEvent = { type: "desktop" | "error" | "notice"; desktop?: string; code?: string; message?: string };
+export type RemoteEvent = { type: "desktop" | "error" | "notice" | "path"; desktop?: string; code?: string; message?: string };
 
 export type Tile = { x: number; y: number; w: number; h: number; enc: number; data: Uint8Array<ArrayBuffer> };
 
@@ -116,6 +118,30 @@ export type Control =
 
 export function control(c: Control): ArrayBuffer {
   return withType(Msg.Control, utf8.encode(JSON.stringify(c)));
+}
+
+// The direct path (WebRTC data channel), set up over the relay.
+export type RTCSignal = { type: "request" | "offer" | "answer" | "failed"; sdp?: string };
+
+export function rtcSignal(s: RTCSignal): ArrayBuffer {
+  return withType(Msg.RTCAnswer, utf8.encode(JSON.stringify(s)));
+}
+
+// Data channel messages carry a session message in chunks: the first byte
+// says whether more follow (0) or this is the last one (1).
+export const ChunkSize = 64 * 1024 - 1;
+
+export function* chunks(m: ArrayBuffer): Generator<ArrayBuffer> {
+  const src = new Uint8Array(m);
+  for (let off = 0; ; ) {
+    const end = Math.min(off + ChunkSize, src.length);
+    const c = new Uint8Array(1 + end - off);
+    c[0] = end === src.length ? 1 : 0;
+    c.set(src.subarray(off, end), 1);
+    yield c.buffer;
+    off = end;
+    if (end === src.length) return;
+  }
 }
 
 // PC/AT set 1 scan codes by KeyboardEvent.code; 0xE0xx are extended keys.

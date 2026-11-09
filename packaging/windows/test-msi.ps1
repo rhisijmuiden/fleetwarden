@@ -34,6 +34,14 @@ if (Select-String -Path "$env:RUNNER_TEMP\install.log" -SimpleMatch $token -Quie
 $acl = (Get-Acl $config).Access | Where-Object { $_.IdentityReference -match 'Users|Everyone' }
 if ($acl) { throw "agent config is readable by $($acl.IdentityReference -join ', ')" }
 if (-not (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\FleetWardenAgent' -ErrorAction SilentlyContinue)) { throw "event log source missing" }
+$fwRules = @(Get-NetFirewallRule -DisplayName 'FleetWarden Agent (direct remote control*' -ErrorAction SilentlyContinue)
+if ($fwRules.Count -ne 2) { throw "expected 2 firewall rules for the direct remote control path, found $($fwRules.Count)" }
+foreach ($r in $fwRules) {
+    $app = ($r | Get-NetFirewallApplicationFilter).Program
+    $proto = ($r | Get-NetFirewallPortFilter).Protocol
+    Write-Host "firewall rule: $($r.DisplayName) $($r.Direction) $($r.Profile) $proto $app"
+    if ($r.Direction -ne 'Inbound' -or $proto -ne 'UDP' -or $app -ne $exe) { throw "firewall rule $($r.DisplayName) looks wrong" }
+}
 
 # The inventory collector must work on a real Windows machine.
 $inv = & $exe inventory | ConvertFrom-Json
@@ -134,5 +142,6 @@ if (Get-Service FleetWardenAgent -ErrorAction SilentlyContinue) { throw "service
 if (Test-Path $exe) { throw "agent executable still present after uninstall" }
 if (Test-Path $config) { throw "agent configuration still present after uninstall" }
 if (Test-Path $tray) { throw "tray app still present after uninstall" }
+if (Get-NetFirewallRule -DisplayName 'FleetWarden Agent (direct remote control*' -ErrorAction SilentlyContinue) { throw "firewall rules still present after uninstall" }
 if ((Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).PSObject.Properties['FleetWardenTray']) { throw "tray Run entry still present after uninstall" }
 Write-Host "MSI test passed"

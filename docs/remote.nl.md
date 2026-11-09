@@ -111,13 +111,33 @@ het `2` was (toegankelijkheidsapps). Een groepsbeleid *Software Secure
 Attention Sequence uitschakelen of inschakelen* dat iets anders zegt gaat
 voor; zet dat op *Services* (of *Services en toegankelijkheidstoepassingen*).
 
+## Directe verbinding
+
+Zodra het scherm er is, vraagt de viewer de agent om een directe verbinding:
+een WebRTC-datakanaal tussen de browser en het apparaat. Als de browser het
+apparaat kan bereiken (hetzelfde netwerk, een VPN, of door NAT heen met een
+STUN-server), gaan het scherm en de invoer daarover en toont de werkbalk
+**Direct**; anders blijft de sessie gewoon **Via server**. Valt de directe
+verbinding weg, dan gaat de sessie zonder onderbreking via de server verder.
+
+- Het aanbod en het antwoord gaan over de versleutelde sessieverbinding, dus
+  de DTLS-sleutels van het datakanaal zijn van begin tot eind gecontroleerd;
+  het datakanaal zelf is versleuteld met DTLS.
+- **Instellingen > Overnemen op afstand** zet het uit (alle sessies via de
+  server) en neemt optionele STUN-servers (`stun:host:poort`). Zonder
+  STUN-servers worden alleen de eigen adressen van het apparaat geprobeerd.
+  Er wordt geen TURN-server gebruikt: waar geen directe route is, is de relay
+  via de server de terugval.
+- Het Windows-installatieprogramma voegt twee inkomende firewallregels toe
+  voor UDP naar `fleetwarden-agent.exe`, alleen op domein- en privénetwerken.
+
 ## Ontwerpkeuzes
 
-Het plan noemde WebRTC met H.264. Deze versie stuurt gewijzigde tegels van
-64×64 als JPEG via de WebSocket-relay: dat werkt door elke proxy en firewall
-die HTTPS doorlaat, heeft geen codec op de machines en geen TURN-server nodig,
-en doordat elk beeld bevestigd wordt blijft de vertraging laag op trage
-lijnen. Een direct WebRTC-pad volgt in de volgende stap.
+Het plan noemde WebRTC met H.264. Beide paden sturen in plaats daarvan
+dezelfde gewijzigde tegels van 64×64 als JPEG: dat werkt door elke proxy en
+firewall die HTTPS doorlaat, heeft geen codec op de machines nodig, en doordat
+elk beeld bevestigd wordt blijft de vertraging laag op trage lijnen. Het
+directe pad haalt de omweg via de server en diens bandbreedte weg.
 
 ## Problemen oplossen
 

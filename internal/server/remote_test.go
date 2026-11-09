@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/pion/webrtc/v4"
 
 	"github.com/rhisijmuiden/fleetwarden/internal/agent"
 	"github.com/rhisijmuiden/fleetwarden/internal/agentproto"
@@ -427,5 +428,170 @@ func TestRemoteTerminalSession(t *testing.T) {
 	// The desktop is still Windows only.
 	if code := admin.do("POST", "/api/v1/devices/"+id+"/remote", map[string]string{"kind": "desktop"}, nil); code != 400 {
 		t.Errorf("desktop on Linux: %d", code)
+	}
+}
+
+// rtcViewer is the browser's side of the direct path, with pion.
+type rtcViewer struct {
+	pc   *webrtc.PeerConnection
+	msgs chan []byte
+	dcC  chan *webrtc.DataChannel
+}
+
+func newRTCViewer(t *testing.T, offer string) (*rtcViewer, string) {
+	t.Helper()
+	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { pc.Close() })
+	v := &rtcViewer{pc: pc, msgs: make(chan []byte, 256), dcC: make(chan *webrtc.DataChannel, 1)}
+	pc.OnDataChannel(func(dc *webrtc.DataChannel) {
+		dc.OnOpen(func() { v.dcC <- dc })
+		var buf []byte
+		dc.OnMessage(func(m webrtc.DataChannelMessage) {
+			buf = append(buf, m.Data[1:]...)
+			if m.Data[0] == remote.ChunkLast {
+				v.msgs <- buf
+				buf = nil
+			}
+		})
+	})
+	if err := pc.SetRemoteDescription(webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: offer}); err != nil {
+		t.Fatal(err)
+	}
+	ans, err := pc.CreateAnswer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := webrtc.GatheringCompletePromise(pc)
+	if err := pc.SetLocalDescription(ans); err != nil {
+		t.Fatal(err)
+	}
+	<-done
+	return v, pc.LocalDescription().SDP
+}
+
+func (v *rtcViewer) next(t *testing.T, typ byte) []byte {
+	t.Helper()
+	timeout := time.After(15 * time.Second)
+	for {
+		select {
+		case m := <-v.msgs:
+			if len(m) > 0 && m[0] == typ {
+				return m
+			}
+		case <-timeout:
+			t.Fatalf("direct path: no message %x", typ)
+		}
+	}
+}
+
+func TestRemoteDirectPath(t *testing.T) {
+	e := newEnv(t)
+	admin, _ := e.signedInAdmin()
+	_, info := e.createToken(admin, 1)
+	desk := &fakeDesktop{p: remote.NewFakePlatform()}
+	a := newTestAgent(t, e, info.Token, "PC-02", false)
+	a.Remote = desk
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	go a.Run(ctx)
+	var list deviceList
+	for range 100 {
+		if admin.do("GET", "/api/v1/devices?status=online", nil, &list); list.Total == 1 {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if list.Total != 1 {
+		t.Fatal("agent did not come online")
+	}
+	id := list.Items[0].ID
+	setPlatform(t, id, "windows")
+	admin.do("PUT", "/api/v1/groups/1", groupReq{Name: "Default", UpdateRing: 1, RemoteConsent: "direct"}, nil)
+
+	// Settings: on by default; STUN servers are checked.
+	var rset remoteSettingsView
+	if admin.do("GET", "/api/v1/settings/remote", nil, &rset); !rset.Direct || len(rset.STUNServers) != 0 {
+		t.Errorf("default settings: %+v", rset)
+	}
+	if code := admin.do("PUT", "/api/v1/settings/remote", remoteSettingsView{Direct: true, STUNServers: []string{"http://x"}}, nil); code != 400 {
+		t.Errorf("bad STUN server: %d", code)
+	}
+
+	var rs startRemoteResp
+	if code := admin.do("POST", "/api/v1/devices/"+id+"/remote", map[string]string{"kind": "desktop"}, &rs); code != 201 || rs.RTC == nil {
+		t.Fatalf("start: %d %+v", code, rs)
+	}
+	v := admin.openViewer(rs.ID)
+	v.waitState("active")
+	seq, _, _ := remote.DecodeFrame(v.waitBinary(remote.MsgFrame))
+	v.send(remote.EncodeAck(seq))
+	v.send(remote.JSONMessage(remote.MsgRTCAns, remote.RTCSignal{Type: "request"}))
+	var offer remote.RTCSignal
+	if err := json.Unmarshal(v.waitBinary(remote.MsgRTC)[1:], &offer); err != nil || offer.Type != "offer" || !strings.Contains(offer.SDP, "a=fingerprint") {
+		t.Fatalf("offer: %+v %v", offer, err)
+	}
+	rv, answer := newRTCViewer(t, offer.SDP)
+	v.send(remote.JSONMessage(remote.MsgRTCAns, remote.RTCSignal{Type: "answer", SDP: answer}))
+
+	var ev remote.Event
+	if err := json.Unmarshal(rv.next(t, remote.MsgEvent)[1:], &ev); err != nil || ev.Type != "path" || ev.Code != remote.PathDirect {
+		t.Fatalf("path event: %+v %v", ev, err)
+	}
+	// The refresh after the switch sends the whole screen on the direct path.
+	seq, tiles, err := remote.DecodeFrame(rv.next(t, remote.MsgFrame))
+	if err != nil || len(tiles) == 0 {
+		t.Fatalf("frame on the direct path: %v", err)
+	}
+	// Acknowledgements and input go over the direct path too.
+	dc := <-rv.dcC
+	dc.Send(append([]byte{remote.ChunkLast}, remote.EncodeAck(seq)...))
+	dc.Send(append([]byte{remote.ChunkLast}, remote.EncodeKey(remote.KeyInput{Down: true, Scan: 0x1e})...))
+	for range 100 {
+		if _, keys, _, _ := desk.p.Snapshot(); len(keys) == 1 {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if _, keys, _, _ := desk.p.Snapshot(); len(keys) != 1 || keys[0].Scan != 0x1e {
+		t.Errorf("keys over the direct path: %+v", keys)
+	}
+	// When the direct path goes away the screen comes over the relay again.
+	rv.pc.Close()
+	for {
+		st, m := v.next()
+		if st.State != "" && st.State != "active" {
+			t.Fatalf("session %s (%s)", st.State, st.Reason)
+		}
+		if len(m) > 0 && m[0] == remote.MsgEvent {
+			var ev remote.Event
+			if json.Unmarshal(m[1:], &ev) == nil && ev.Type == "path" && ev.Code == remote.PathRelay {
+				break
+			}
+		}
+	}
+	v.waitBinary(remote.MsgFrame)
+	if done := waitRemote(t, admin, rs.ID, func(r store.RemoteSession) bool { return r.State == "active" }); done.EndedAt != nil {
+		t.Fatal("session ended")
+	}
+
+	// Direct path off: the agent answers "failed" and the relay keeps working.
+	admin.do("POST", "/api/v1/remote/sessions/"+rs.ID+"/end", nil, nil)
+	if code := admin.do("PUT", "/api/v1/settings/remote", remoteSettingsView{Direct: false, STUNServers: []string{"stun:stun.example.org:3478"}}, &rset); code != 200 || rset.Direct {
+		t.Fatalf("settings: %d %+v", code, rset)
+	}
+	rs = startRemoteResp{}
+	admin.do("POST", "/api/v1/devices/"+id+"/remote", map[string]string{"kind": "desktop"}, &rs)
+	if rs.RTC != nil {
+		t.Errorf("rtc offered while off: %+v", rs.RTC)
+	}
+	v = admin.openViewer(rs.ID)
+	v.waitState("active")
+	v.send(remote.JSONMessage(remote.MsgRTCAns, remote.RTCSignal{Type: "request"}))
+	var sig remote.RTCSignal
+	if err := json.Unmarshal(v.waitBinary(remote.MsgRTC)[1:], &sig); err != nil || sig.Type != "failed" {
+		t.Errorf("signal while off: %+v %v", sig, err)
 	}
 }

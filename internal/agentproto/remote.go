@@ -58,6 +58,10 @@ type RemoteStart struct {
 	ServerKey      []byte `json:"serverKey"` // X25519 public key
 	ProductName    string `json:"productName,omitempty"`
 	AccentColor    string `json:"accentColor,omitempty"`
+	// Direct allows the direct path (WebRTC) for a desktop session, with
+	// these STUN servers ("stun:host:port"); none means local networks only.
+	Direct     bool     `json:"direct,omitempty"`
+	ICEServers []string `json:"iceServers,omitempty"`
 	// Shell is the shell of a terminal session on Windows: "powershell"
 	// (the default) or "cmd". Linux runs root's login shell.
 	Shell string `json:"shell,omitempty"`
