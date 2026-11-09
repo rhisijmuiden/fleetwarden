@@ -49,6 +49,7 @@ your own password at the first sign-in. Lost it? Run
 - Drivers and firmware (own repository): [docs/drivers.md](docs/drivers.md)
 - Software deployment: [docs/software.md](docs/software.md)
 - Remote control: [docs/remote.md](docs/remote.md)
+- Management without taking over (processes, services, event logs, files): [docs/manage.md](docs/manage.md)
 - Reports and scheduled report mails: [docs/reports.md](docs/reports.md)
 - Alerts: [docs/alerts.md](docs/alerts.md)
 - Secure gateway in the DMZ for agents outside the network: [docs/gateway.md](docs/gateway.md)
