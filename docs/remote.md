@@ -34,6 +34,33 @@ UAC prompts work too: the helper follows the desktop that receives input.
 Only users with the permission **Control devices remotely** (`remote.control`; the
 Administrator and Technician roles have it) can start or end sessions.
 
+## Terminal
+
+Windows and Linux devices also have a **Terminal**: a shell in the browser,
+without SSH or RDP. It opens in its own tab from the device page or from
+**Remote control**.
+
+- **Linux and Proxmox**: the login shell of root (from `/etc/passwd`, usually
+  bash) on a pseudo terminal, with `TERM=xterm-256color` and the system
+  locale. Full-screen programs such as `htop`, `nano`, `vim` and `mc` work.
+- **Windows**: PowerShell, or Command Prompt (choose it in the toolbar), as
+  SYSTEM on a ConPTY pseudo console.
+
+The toolbar copies the selection (Ctrl+Shift+C; on Windows also Ctrl+C when
+text is selected) and pastes (Ctrl+Shift+V; on Windows also Ctrl+V), and makes
+the text smaller or larger. When the shell exits (`exit`), the output stays on
+screen and **New session** starts another one.
+
+A terminal has full control over the device, so it needs its own permission,
+**Open a terminal on devices** (`remote.terminal`; Administrator and
+Technician). It does not ask the signed-in user, whatever the group's consent
+setting says: nothing of their screen is shown, as with SSH. Every terminal
+session is in the session log and the audit log, like a screen session. Closing
+the tab or **End session** hangs up the shell (SIGHUP on Linux, then SIGKILL
+after 3 seconds; the shell and its console are ended on Windows).
+
+A device runs at most 3 terminals and 2 screen sessions at the same time.
+
 ## Consent
 
 Per device group, **Remote control** decides what the signed-in user sees:
@@ -65,7 +92,7 @@ end are also written to the audit log. The log is kept for 400 days.
 - The agent leg is encrypted end to end between agent and server with
   X25519 + AES-256-GCM on top of TLS, with a new key per session.
 - The helper's named pipe only accepts the agent service (SYSTEM).
-- An agent runs at most 4 sessions at the same time; a session has one viewer.
+- An agent runs at most 6 sessions at the same time; a session has one viewer.
 
 ## Ctrl+Alt+Del
 
@@ -82,12 +109,16 @@ The plan named WebRTC with H.264. This version sends changed 64×64 tiles as
 JPEG over the WebSocket relay instead: it works through every proxy and
 firewall that allows HTTPS, needs no codec on the machines and no TURN
 server, and frame acknowledgements keep latency low on slow links. A direct
-WebRTC path and a web terminal for Linux follow in the next step.
+WebRTC path follows in the next step.
 
 ## Troubleshooting
 
-- *Remote control is only available for Windows devices*: Linux support (a
-  terminal) comes later.
+- *Taking over the screen is available for Windows devices*: Linux devices
+  have a terminal instead.
+- A terminal that says *The shell could not be started*: on Linux, check that
+  root has a shell (`getent passwd root`); on Windows, that PowerShell is
+  present (`%SystemRoot%\System32\WindowsPowerShell\v1.0`). The agent log has
+  the error.
 - On the machine, `fleetwarden-agent remote-test --screenshot C:\shot.png`
   (as SYSTEM, for example with `psexec -s`) starts the helper like a session
   and saves the first frame.

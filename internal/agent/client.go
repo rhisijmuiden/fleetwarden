@@ -63,6 +63,9 @@ type Agent struct {
 	// Remote opens remote desktop sessions; defaults to the platform
 	// backend (nil where there is none).
 	Remote RemoteBackend
+	// Terminal starts shells for remote terminal sessions; defaults to
+	// terminal.Start.
+	Terminal TerminalStarter
 	// Config applies configurations; defaults to the platform backend.
 	Config ConfigBackend
 	// Power restarts and shuts down the device; defaults to the platform

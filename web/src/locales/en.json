@@ -219,8 +219,8 @@
     "unsupported_file": "Only .msi, .exe and .deb files can be uploaded.",
     "upload_failed": "The upload failed. Try again.",
     "no_browsers": "Pick at least one browser.",
-    "remote_unsupported": "Remote control is available for Windows devices.",
-    "remote_busy": "This device already has two remote sessions.",
+    "remote_unsupported": "This device does not support this kind of remote session.",
+    "remote_busy": "This device already has the maximum number of remote sessions of this kind.",
     "remote_viewer_connected": "This session is already open in another tab.",
     "invalid_consent": "Choose a valid remote control setting.",
     "name_taken": "This name is already in use.",
@@ -331,7 +331,8 @@
     "device_online": "The device is already online.",
     "power_action_open": "This device is still busy with an earlier wake, restart or shutdown.",
     "wake_impossible": "This device cannot be woken",
-    "invalid_wake_port": "Choose port 9 or 7."
+    "invalid_wake_port": "Choose port 9 or 7.",
+    "invalid_terminal_shell": "Choose PowerShell or Command Prompt."
   },
   "login": {
     "title": "Sign in",
@@ -451,6 +452,7 @@
     "software_manage": "Manage the software library",
     "software_deploy": "Deploy and uninstall software",
     "remote_control": "Control devices remotely",
+    "remote_terminal": "Open a terminal on devices (root or SYSTEM)",
     "reports_manage": "Manage report schedules and compliance rules",
     "alerts_manage": "Acknowledge alerts and manage alert rules",
     "config_manage": "Manage configurations (browser policies, registry, scripts)",
@@ -1617,12 +1619,12 @@
   },
   "remote": {
     "title": "Remote control",
-    "subtitle": "See and control the screen of a Windows computer or server from your browser, also on the sign-in screen and UAC prompts.",
+    "subtitle": "Take over the screen of a Windows computer or server, also on the sign-in screen and UAC prompts, or open a terminal on Windows and Linux devices.",
     "connect": "Remote control",
     "connectHint": "Opens the remote screen in a new tab.",
-    "windowsOnly": "Remote control is available for Windows devices. A terminal for Linux follows.",
+    "windowsOnly": "Taking over the screen is available for Windows devices. Linux devices have a terminal.",
     "connectTitle": "Connect",
-    "connectText": "Online Windows devices. The session opens in a new tab.",
+    "connectText": "Online Windows and Linux devices. The session opens in a new tab.",
     "searchPlaceholder": "Search by name, user or IP address",
     "noDevices": "No online Windows device matches.",
     "activeTitle": "Active sessions",
@@ -1636,7 +1638,8 @@
       "started": "Started",
       "duration": "Duration",
       "consent": "Consent",
-      "result": "Result"
+      "result": "Result",
+      "kind": "Type"
     },
     "states": {
       "starting": "Starting",
@@ -1687,7 +1690,9 @@
       "server_restart": "The server restarted.",
       "server_stopping": "The server is stopping.",
       "internal": "Something went wrong on the device.",
-      "unknown": "The session ended."
+      "unknown": "The session ended.",
+      "shell_exited": "The shell was closed.",
+      "shell_failed": "The shell could not be started on the device."
     },
     "closeWindow": "Close tab",
     "reconnect": "Reconnect",
@@ -1743,6 +1748,36 @@
     "notices": {
       "cad_failed": "Ctrl+Alt+Del could not be sent.",
       "helper_restarting": "The screen is reconnecting (the user may be signing in or out)…"
+    },
+    "kinds": {
+      "desktop": "Screen",
+      "terminal": "Terminal"
+    },
+    "term": {
+      "title": "Terminal",
+      "open": "Terminal",
+      "hint": {
+        "linux": "Open a shell on this device as root",
+        "windows": "Open PowerShell on this device as SYSTEM"
+      },
+      "unsupported": "A terminal is available for Windows and Linux devices.",
+      "shell": "Shell",
+      "shells": {
+        "powershell": "PowerShell",
+        "cmd": "Command Prompt"
+      },
+      "copy": "Copy selection (Ctrl+Shift+C)",
+      "paste": "Paste (Ctrl+Shift+V)",
+      "copied": "Copied to the clipboard.",
+      "nothingSelected": "Select text in the terminal first.",
+      "pasteBlocked": "The browser did not allow reading the clipboard. Use Ctrl+Shift+V.",
+      "smaller": "Smaller text",
+      "larger": "Larger text",
+      "privileged": "Full control",
+      "privilegedHint": "Commands run as {{user}}, with full control over this device. Everything is logged.",
+      "exited": "The shell exited with code {{code}}.",
+      "newSession": "New session",
+      "screen": "Terminal on {{host}}"
     }
   },
   "reports": {

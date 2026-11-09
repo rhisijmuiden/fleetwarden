@@ -37,6 +37,35 @@ Alleen gebruikers met het recht **Apparaten op afstand overnemen** (`remote.cont
 de rollen Beheerder en Technicus hebben het) kunnen sessies starten of
 beëindigen.
 
+## Terminal
+
+Windows- en Linux-apparaten hebben ook een **Terminal**: een shell in de
+browser, zonder SSH of RDP. Die opent in een eigen tabblad vanaf de
+apparaatpagina of vanuit **Op afstand overnemen**.
+
+- **Linux en Proxmox**: de loginshell van root (uit `/etc/passwd`, meestal
+  bash) op een pseudoterminal, met `TERM=xterm-256color` en de taal van het
+  systeem. Schermvullende programma's zoals `htop`, `nano`, `vim` en `mc`
+  werken.
+- **Windows**: PowerShell, of Opdrachtprompt (te kiezen in de werkbalk), als
+  SYSTEM op een ConPTY-pseudoconsole.
+
+De werkbalk kopieert de selectie (Ctrl+Shift+C; op Windows ook Ctrl+C als er
+tekst geselecteerd is) en plakt (Ctrl+Shift+V; op Windows ook Ctrl+V), en
+maakt de tekst kleiner of groter. Als de shell stopt (`exit`), blijft de
+uitvoer staan en start **Nieuwe sessie** een volgende.
+
+Een terminal heeft volledige rechten op het apparaat en vraagt daarom een
+eigen recht, **Een terminal openen op apparaten** (`remote.terminal`;
+Beheerder en Technicus). De aangemelde gebruiker wordt niet gevraagd, wat de
+toestemmingsinstelling van de groep ook is: er wordt niets van het scherm
+getoond, net als bij SSH. Elke terminalsessie staat in het sessielogboek en
+het auditlog, net als een schermsessie. Het tabblad sluiten of **Sessie
+beëindigen** hangt de shell op (SIGHUP op Linux, na 3 seconden SIGKILL; op
+Windows worden de shell en zijn console beëindigd).
+
+Een apparaat draait maximaal 3 terminals en 2 schermsessies tegelijk.
+
 ## Toestemming
 
 Per apparaatgroep bepaalt **Overnemen op afstand** wat de aangemelde
@@ -70,7 +99,7 @@ het auditlog. Het logboek wordt 400 dagen bewaard.
 - Het deel tussen agent en server is bovenop TLS nog eens versleuteld met
   X25519 + AES-256-GCM, met een nieuwe sleutel per sessie.
 - De named pipe van de helper accepteert alleen de agentservice (SYSTEM).
-- Een agent draait maximaal 4 sessies tegelijk; een sessie heeft één viewer.
+- Een agent draait maximaal 6 sessies tegelijk; een sessie heeft één viewer.
 
 ## Ctrl+Alt+Del
 
@@ -88,13 +117,16 @@ Het plan noemde WebRTC met H.264. Deze versie stuurt gewijzigde tegels van
 64×64 als JPEG via de WebSocket-relay: dat werkt door elke proxy en firewall
 die HTTPS doorlaat, heeft geen codec op de machines en geen TURN-server nodig,
 en doordat elk beeld bevestigd wordt blijft de vertraging laag op trage
-lijnen. Een direct WebRTC-pad en een webterminal voor Linux volgen in de
-volgende stap.
+lijnen. Een direct WebRTC-pad volgt in de volgende stap.
 
 ## Problemen oplossen
 
-- *Overnemen kan alleen bij Windows-apparaten*: Linux-ondersteuning (een
-  terminal) komt later.
+- *Het scherm overnemen kan bij Windows-apparaten*: Linux-apparaten hebben in
+  plaats daarvan een terminal.
+- Een terminal die zegt *De shell kon niet worden gestart*: kijk op Linux of
+  root een shell heeft (`getent passwd root`), op Windows of PowerShell er is
+  (`%SystemRoot%\System32\WindowsPowerShell\v1.0`). Het agentlog heeft de
+  fout.
 - Op de machine start `fleetwarden-agent remote-test --screenshot C:\shot.png`
   (als SYSTEM, bijvoorbeeld met `psexec -s`) de helper zoals een sessie dat
   doet en bewaart het eerste beeld.
