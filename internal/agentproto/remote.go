@@ -58,6 +58,12 @@ type RemoteStart struct {
 	ServerKey      []byte `json:"serverKey"` // X25519 public key
 	ProductName    string `json:"productName,omitempty"`
 	AccentColor    string `json:"accentColor,omitempty"`
+	// Shell is the shell of a terminal session on Windows: "powershell"
+	// (the default) or "cmd". Linux runs root's login shell.
+	Shell string `json:"shell,omitempty"`
+	// Cols and Rows are the terminal size the viewer starts with.
+	Cols int `json:"cols,omitempty"`
+	Rows int `json:"rows,omitempty"`
 }
 
 // RemoteStop ends a session (the operator closed it, or it was cancelled

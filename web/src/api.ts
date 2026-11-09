@@ -17,6 +17,7 @@ export type Permission =
   | "software.manage"
   | "software.deploy"
   | "remote.control"
+  | "remote.terminal"
   | "reports.manage"
   | "alerts.manage"
   | "config.manage"

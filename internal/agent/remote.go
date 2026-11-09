@@ -58,7 +58,7 @@ func (r *remoteState) add(id string, cancel context.CancelCauseFunc) bool {
 	if r.sessions == nil {
 		r.sessions = map[string]context.CancelCauseFunc{}
 	}
-	if _, dup := r.sessions[id]; dup || len(r.sessions) >= 4 {
+	if _, dup := r.sessions[id]; dup || len(r.sessions) >= remoteMaxSessions {
 		return false
 	}
 	r.sessions[id] = cancel
@@ -96,6 +96,7 @@ const (
 	remoteWriteTimeout   = 30 * time.Second
 	remoteReadLimit      = 4 << 20
 	remoteHelperRetries  = 20
+	remoteMaxSessions    = 6 // desktops and terminals together
 )
 
 func (a *Agent) handleRemoteStart(e *agentproto.Envelope, send func(string, any)) {
@@ -130,6 +131,9 @@ func failed(reason string) remoteEnd { return remoteEnd{agentproto.RemoteStateFa
 
 // runRemote runs one session to its end.
 func (a *Agent) runRemote(ctx context.Context, st agentproto.RemoteStart, send func(string, any)) remoteEnd {
+	if st.Kind == agentproto.RemoteTerminal {
+		return a.runTerminal(ctx, st, send)
+	}
 	if st.Kind != agentproto.RemoteDesktop {
 		return failed("unsupported")
 	}
@@ -172,26 +176,11 @@ func (a *Agent) runRemote(ctx context.Context, st agentproto.RemoteStart, send f
 	if ctx.Err() != nil {
 		return endFromContext(ctx)
 	}
-	send(agentproto.TypeRemoteStatus, agentproto.RemoteStatus{SessionID: st.SessionID, State: agentproto.RemoteStateConnecting})
-
-	key, err := agentproto.NewRemoteKey()
-	if err != nil {
-		return failed("internal")
-	}
-	ciph, err := key.Cipher(st.ServerKey, st.SessionID, true)
-	if err != nil {
-		return failed("bad_key")
-	}
-	ws, err := a.dialRemote(ctx, st.SessionID, key)
-	if err != nil {
-		a.Log.Warn("remote session: connect", "session", st.SessionID, "err", err)
-		if ctx.Err() != nil {
-			return endFromContext(ctx)
-		}
-		return failed("connect_failed")
+	ws, ciph, fail := a.connectRemote(ctx, st, send)
+	if ws == nil {
+		return fail
 	}
 	defer ws.CloseNow() //nolint:errcheck
-	ws.SetReadLimit(remoteReadLimit)
 
 	if banner {
 		notifier.RemoteActive(st.SessionID, prompt, func() {
@@ -201,8 +190,33 @@ func (a *Agent) runRemote(ctx context.Context, st agentproto.RemoteStart, send f
 	}
 	a.Log.Info("remote session started", "session", st.SessionID, "operator", st.Operator, "consent", st.Consent)
 	end := a.relayDesktop(ctx, ws, ciph, backend)
+	send(agentproto.TypeRemoteStatus, agentproto.RemoteStatus{SessionID: st.SessionID, State: end.state, Reason: end.reason})
 	ws.Close(websocket.StatusNormalClosure, end.reason) //nolint:errcheck
 	return end
+}
+
+// connectRemote reports "connecting" and opens the encrypted session
+// socket. On failure ws is nil and the remoteEnd says why.
+func (a *Agent) connectRemote(ctx context.Context, st agentproto.RemoteStart, send func(string, any)) (*websocket.Conn, *agentproto.RemoteCipher, remoteEnd) {
+	send(agentproto.TypeRemoteStatus, agentproto.RemoteStatus{SessionID: st.SessionID, State: agentproto.RemoteStateConnecting})
+	key, err := agentproto.NewRemoteKey()
+	if err != nil {
+		return nil, nil, failed("internal")
+	}
+	ciph, err := key.Cipher(st.ServerKey, st.SessionID, true)
+	if err != nil {
+		return nil, nil, failed("bad_key")
+	}
+	ws, err := a.dialRemote(ctx, st.SessionID, key)
+	if err != nil {
+		a.Log.Warn("remote session: connect", "session", st.SessionID, "err", err)
+		if ctx.Err() != nil {
+			return nil, nil, endFromContext(ctx)
+		}
+		return nil, nil, failed("connect_failed")
+	}
+	ws.SetReadLimit(remoteReadLimit)
+	return ws, ciph, remoteEnd{}
 }
 
 func endFromContext(ctx context.Context) remoteEnd {
