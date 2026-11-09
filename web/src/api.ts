@@ -27,7 +27,9 @@ export type Permission =
   | "remote.manage"
   | "assets.manage"
   | "vulns.manage"
-  | "security.keys";
+  | "security.keys"
+  | "selfservice.manage"
+  | "selfservice.handle";
 
 export type Role = "administrator" | "technician" | "readonly";
 

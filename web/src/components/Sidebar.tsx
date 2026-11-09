@@ -29,11 +29,33 @@ function useOpenAlerts(enabled: boolean) {
   return n;
 }
 
+// useSelfServiceCount polls what waits for a technician: install requests
+// to approve and new help requests.
+function useSelfServiceCount(enabled: boolean) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    const load = () =>
+      get<{ pendingRequests: number; openHelp: number }>("/selfservice/count")
+        .then((r) => setN(r.pendingRequests + r.openHelp))
+        .catch(() => {});
+    load();
+    const id = setInterval(load, 60_000);
+    window.addEventListener("fw:selfservice", load);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("fw:selfservice", load);
+    };
+  }, [enabled]);
+  return n;
+}
+
 export function Sidebar({ collapsed, onToggle, onInfo }: Props) {
   const { t } = useTranslation();
   const { can } = useAuth();
   const { branding, logoUrl } = useBranding();
   const openAlerts = useOpenAlerts(can("devices.view"));
+  const selfService = useSelfServiceCount(can("devices.view"));
   const groups = navigation
     .map((g) => ({ ...g, items: g.items.filter((i) => !i.perm || can(i.perm)) }))
     .filter((g) => g.items.length > 0);
@@ -81,6 +103,13 @@ export function Sidebar({ collapsed, onToggle, onInfo }: Props) {
                             className={`rounded-full bg-danger px-1.5 text-[11px] leading-[18px] font-semibold text-white tabular-nums ${collapsed ? "absolute top-1 right-1" : ""}`}
                           >
                             {openAlerts > 99 ? "99+" : openAlerts}
+                          </span>
+                        )}
+                        {badge === "selfservice" && selfService > 0 && (
+                          <span
+                            className={`rounded-full bg-warning px-1.5 text-[11px] leading-[18px] font-semibold text-white tabular-nums ${collapsed ? "absolute top-1 right-1" : ""}`}
+                          >
+                            {selfService > 99 ? "99+" : selfService}
                           </span>
                         )}
                         {!collapsed && phase !== undefined && (

@@ -402,7 +402,7 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	}
 	welcome, _ := sess.Seal(agentproto.TypeWelcome, "", agentproto.Welcome{
 		DeviceID: dev.ID, HeartbeatSeconds: int(agentHeartbeat / time.Second), InventoryMinutes: intervals.InventoryMinutes,
-		InventoryRequired: inventoryDue(dev.InventoryAt, s.now(), intervals.InventoryMinutes),
+		InventoryRequired: inventoryDue(dev.InventoryAt, s.now(), intervals.InventoryMinutes), SelfService: true,
 	})
 	// The welcome carries the interval, so the scheduler need not resend it.
 	if raw, err := json.Marshal(agentproto.AgentConfig{InventoryMinutes: intervals.InventoryMinutes}); err == nil {
@@ -539,6 +539,8 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 		return s.handleSecurityActionStatusMsg(ctx, c, e)
 	case agentproto.TypeManageResult:
 		return s.handleManageResultMsg(c, e)
+	case agentproto.TypeSelfServiceRequest:
+		return s.handleSelfServiceMsg(ctx, c, e)
 	default:
 		return fmt.Errorf("unknown message type %q", e.Type)
 	}

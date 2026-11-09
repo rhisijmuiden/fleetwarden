@@ -9,6 +9,8 @@ import (
 	"slices"
 	"sync"
 	"time"
+
+	"github.com/rhisijmuiden/fleetwarden/internal/agentproto"
 )
 
 // The tray protocol: one JSON object per line over a local connection (a
@@ -32,6 +34,13 @@ import (
 //	tray  -> agent  {"type":"remote-stop","id":"<session>"}
 //	agent -> tray   {"type":"remote-ended","id":"<session>"}
 //
+// Self-service: the tray's window asks for the catalog and sends the user's
+// requests; the agent forwards them to the server (with the user of the
+// tray's session) and answers with the reply, which carries the new catalog.
+//
+//	tray  -> agent  {"type":"ss","id":"3","op":"install","itemId":7,"reason":"..."}
+//	agent -> tray   {"type":"ss-reply","id":"3","reply":{...SelfServiceReply}}
+//
 // Every connected tray shows the prompt; the first answer counts. A tray
 // that connects while a prompt is open gets it too.
 type trayMsg struct {
@@ -45,6 +54,12 @@ type trayMsg struct {
 	Apps           []CloseApp `json:"apps,omitempty"`
 	Closed         []string   `json:"closed,omitempty"`
 	TimeoutSeconds int        `json:"timeoutSeconds,omitempty"`
+	// ss, ss-reply
+	Op     string                       `json:"op,omitempty"`
+	ItemID int64                        `json:"itemId,omitempty"`
+	Reason string                       `json:"reason,omitempty"`
+	Help   *agentproto.HelpRequest      `json:"help,omitempty"`
+	Reply  *agentproto.SelfServiceReply `json:"reply,omitempty"`
 }
 
 // trayHub implements Notifier for tray apps that connect to the agent.
@@ -56,6 +71,9 @@ type trayHub struct {
 	launch   func(session uint32) error
 	// session returns the session of a connected tray (0 when unknown).
 	session func(c net.Conn) uint32
+	// user returns the account (DOMAIN\name) of a connected tray; nil
+	// leaves it empty.
+	user func(c net.Conn) string
 	// joinWait is how long Ask waits for a launched tray to connect.
 	joinWait time.Duration
 	// grace is the extra time a tray gets after the countdown to answer.
@@ -70,6 +88,8 @@ type trayHub struct {
 	launched map[uint32]time.Time
 	// remote holds the running remote sessions with a banner.
 	remote map[string]remoteBanner
+	// selfService forwards self-service requests to the server.
+	selfService func(ctx context.Context, req agentproto.SelfServiceRequest) agentproto.SelfServiceReply
 }
 
 type remoteBanner struct {
@@ -80,6 +100,8 @@ type remoteBanner struct {
 type trayClient struct {
 	conn    net.Conn
 	session uint32
+	user    string
+	lang    string
 	wmu     sync.Mutex
 }
 
@@ -127,6 +149,9 @@ func (h *trayHub) handle(conn net.Conn) {
 	if h.session != nil {
 		c.session = h.session(conn)
 	}
+	if h.user != nil {
+		c.user = h.user(conn)
+	}
 	sc := bufio.NewScanner(conn)
 	sc.Buffer(make([]byte, 4096), 64<<10)
 	registered := false
@@ -148,6 +173,7 @@ func (h *trayHub) handle(conn net.Conn) {
 				continue
 			}
 			registered = true
+			c.lang = m.Lang
 			h.mu.Lock()
 			h.clients[c] = struct{}{}
 			delete(h.launched, c.session)
@@ -181,6 +207,10 @@ func (h *trayHub) handle(conn net.Conn) {
 					b.stop()
 				}
 			}
+		case "ss":
+			if registered {
+				go h.handleSelfService(c, m)
+			}
 		case "apps-closed":
 			if registered {
 				select {
@@ -189,6 +219,36 @@ func (h *trayHub) handle(conn net.Conn) {
 				}
 			}
 		}
+	}
+}
+
+// SetSelfService sets the function that forwards self-service requests.
+func (h *trayHub) SetSelfService(fn func(ctx context.Context, req agentproto.SelfServiceRequest) agentproto.SelfServiceReply) {
+	h.mu.Lock()
+	h.selfService = fn
+	h.mu.Unlock()
+}
+
+// handleSelfService forwards one request of a tray and sends the reply back.
+// The agent names the user (from the pipe), never the tray.
+func (h *trayHub) handleSelfService(c *trayClient, m trayMsg) {
+	h.mu.Lock()
+	fn := h.selfService
+	h.mu.Unlock()
+	var r agentproto.SelfServiceReply
+	switch {
+	case fn == nil:
+		r.Error = agentproto.SelfServiceErrNoService
+	case h.user != nil && c.user == "":
+		r.Error = agentproto.SelfServiceErrNoUser
+	default:
+		ctx, cancel := context.WithTimeout(context.Background(), selfServiceTimeout+5*time.Second)
+		r = fn(ctx, agentproto.SelfServiceRequest{Op: m.Op, User: c.user, Lang: c.lang, ItemID: m.ItemID, Reason: m.Reason, Help: m.Help})
+		cancel()
+	}
+	r.RequestID = ""
+	if err := c.send(trayMsg{Type: "ss-reply", ID: m.ID, Reply: &r}); err != nil && h.log != nil {
+		h.log.Debug("self-service reply to tray", "err", err)
 	}
 }
 

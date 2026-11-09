@@ -40,7 +40,8 @@
     "vulnerabilities": "Vulnerabilities",
     "assets": "Assets",
     "power": "Power",
-    "security": "Security"
+    "security": "Security",
+    "selfservice": "Self-service"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -384,7 +385,11 @@
     "invalid_volume": "Choose a drive letter such as C:.",
     "invalid_security_action": "Unknown security action.",
     "not_supported": "This is not available on this platform.",
-    "action_open": "This action is already waiting or running on the device."
+    "action_open": "This action is already waiting or running on the device.",
+    "already_in_catalog": "This package is already in the catalog.",
+    "too_many_items": "The catalog is full (500 programs).",
+    "already_decided": "Someone already decided on this request.",
+    "item_removed": "This program is no longer in the catalog."
   },
   "login": {
     "title": "Sign in",
@@ -513,7 +518,9 @@
     "remote_manage": "Manage devices without taking over (processes, services, logs, files)",
     "assets_manage": "Manage assets and software licences",
     "power_control": "Wake, restart and shut down devices",
-    "power_manage": "Manage power schedules and Wake-on-LAN settings"
+    "power_manage": "Manage power schedules and Wake-on-LAN settings",
+    "selfservice_manage": "Manage the self-service catalog and settings",
+    "selfservice_handle": "Approve install requests and handle help requests"
   },
   "auth": {
     "title": "Authentication",
@@ -1272,7 +1279,8 @@
     "trigger": "Trigger",
     "triggers": {
       "window": "Maintenance window",
-      "manual": "By hand"
+      "manual": "By hand",
+      "selfservice": "By the user (self-service)"
     },
     "status": "Status",
     "result": "Result",
@@ -3742,6 +3750,128 @@
       "deviceTitle": "BitLocker recovery keys",
       "deviceHint": "Stored encrypted on the server. Showing a key is recorded in the audit log.",
       "deviceNone": "No recovery password on this device. Add one with manage-bde or a BitLocker policy."
+    }
+  },
+  "selfservice": {
+    "title": "Self-service",
+    "subtitle": "What users ask for from the tray app: programs from the catalog, help requests, and the settings of the self-service window.",
+    "tabs": {
+      "requests": "Install requests",
+      "help": "Help requests",
+      "catalog": "Catalog",
+      "settings": "Settings"
+    },
+    "pendingTitle_one": "{{count}} request waiting for approval",
+    "pendingTitle_other": "{{count}} requests waiting for approval",
+    "pendingHint": "Programs that need approval. Approving installs the program on the user's computer right away.",
+    "noPending": "Nothing waits for approval.",
+    "historyTitle": "Recent requests",
+    "noHistory": "No requests yet.",
+    "noHistoryText": "Users install programs from the tray app: right-click the FleetWarden icon and choose Software and help.",
+    "requestStates": {
+      "pending": "Waiting for approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "requestedBy": "{{user}} on",
+    "requestedAt": "Asked {{when}} ({{date}})",
+    "decided": {
+      "approved": "approved by {{user}} on {{date}}",
+      "rejected": "rejected by {{user}} on {{date}}",
+      "cancelled": "cancelled by {{user}} on {{date}}",
+      "pending": ""
+    },
+    "decidedAuto": "installed without approval",
+    "viewDeployment": "View deployment",
+    "unknownUser": "Unknown user",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approveTitle": "Approve {{name}}",
+    "rejectTitle": "Reject {{name}}",
+    "approveText": "{{name}} is installed on {{device}} for {{user}} right away, or as soon as the device is online.",
+    "rejectText": "{{user}} sees in the tray app that the request for {{name}} was rejected, with your note.",
+    "note": "Note for the user",
+    "noteHint": "Optional. Shown in the tray app, for example why the request was rejected.",
+    "helpTitle": "Help requests",
+    "helpHint": "Questions users sent from the tray app. Your reply shows in their self-service window.",
+    "filter": "Filter",
+    "helpActive": "Open and in progress",
+    "helpAll": "All requests",
+    "noHelp": "No help requests.",
+    "noHelpText": "Users ask for help from the tray app. New requests can also be mailed to the service desk (Settings tab).",
+    "helpStates": {
+      "open": "Open",
+      "in_progress": "In progress",
+      "closed": "Closed"
+    },
+    "assignedTo": "taken by {{user}}",
+    "user": "User",
+    "device": "Device",
+    "online": "Online",
+    "offline": "Offline",
+    "contact": "Contact",
+    "sent": "Sent",
+    "assigned": "Taken by",
+    "noMessage": "No message.",
+    "remote": "Open remote control",
+    "state": "Status",
+    "reply": "Reply to the user",
+    "replyHint": "Shown in the user's self-service window.",
+    "catalogTitle_one": "{{count}} program in the catalog",
+    "catalogTitle_other": "{{count}} programs in the catalog",
+    "catalogHint": "Programs from the software library that users may install themselves. Without approval the install starts at once.",
+    "addItem": "Add program",
+    "editItem": "Edit program",
+    "allAdded": "Every library package is already in the catalog.",
+    "emptyCatalog": "The catalog is empty.",
+    "emptyCatalogText": "Add programs from the software library to let users install them from the tray app.",
+    "emptyLibrary": "First add packages to the software library (Software), then publish them here.",
+    "cols": {
+      "name": "Program",
+      "category": "Category",
+      "visibleTo": "Visible to",
+      "approval": "Approval",
+      "requests": "Requests / installs"
+    },
+    "requestsHint": "Requests and completed installs in the last 30 days",
+    "hidden": "Hidden",
+    "allGroups": "All groups",
+    "needsApproval": "Needs approval",
+    "direct": "Direct",
+    "removeTitle": "Remove from the catalog",
+    "removeText": "Remove {{name}} from the catalog? Requests that wait for approval are cancelled. Installed programs stay installed.",
+    "remove": "Remove",
+    "package": "Package",
+    "packageHint": "A package from the software library. Users of its platform see it.",
+    "displayName": "Name for users",
+    "displayNameHint": "Leave empty to use the package name.",
+    "category": "Category",
+    "categoryHint": "Groups programs in the tray, for example Office or Development.",
+    "description": "Description",
+    "descriptionHint": "Leave empty to use the package description.",
+    "approvalSwitch": "Needs approval",
+    "approvalHint": "A technician approves each request first, for example for programs with a paid licence.",
+    "enabledSwitch": "Show in the catalog",
+    "enabledHint": "Turn off to hide the program without removing it.",
+    "visibleTo": "Visible to",
+    "visibleToHint": "Choose device groups, or none for every group.",
+    "settings": {
+      "trayTitle": "Self-service window",
+      "trayHint": "What users can do from the tray app (Windows). These switches apply to every device.",
+      "software": "Software catalog",
+      "softwareHint": "Users install programs from the catalog themselves.",
+      "updates": "Install updates now",
+      "updatesHint": "Users install the updates their group's patch policy approved, without waiting for the maintenance window. Only for groups with a patch policy.",
+      "help": "Help requests",
+      "helpHint": "Users send a question to the IT department, with the name of their computer.",
+      "helpText": "Text above the help form",
+      "helpTextHint": "For example opening hours or the phone number of the service desk.",
+      "mailTitle": "E-mail notifications",
+      "mailHint": "Who gets an e-mail for each help request and each install request that needs approval. Uses the mail server settings.",
+      "recipients": "Recipients",
+      "recipientsHint": "Up to 20 addresses, separated by commas. Leave empty for no e-mail.",
+      "language": "Language of the e-mails"
     }
   }
 }

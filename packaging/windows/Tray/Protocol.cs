@@ -18,6 +18,12 @@ namespace FleetWarden.Tray
         [DataMember(Name = "apps", EmitDefaultValue = false)] public CloseApp[] Apps;
         [DataMember(Name = "closed", EmitDefaultValue = false)] public string[] Closed;
         [DataMember(Name = "timeoutSeconds", EmitDefaultValue = false)] public int TimeoutSeconds;
+        // Self-service: "ss" requests and their "ss-reply".
+        [DataMember(Name = "op", EmitDefaultValue = false)] public string Op;
+        [DataMember(Name = "itemId", EmitDefaultValue = false)] public long ItemId;
+        [DataMember(Name = "reason", EmitDefaultValue = false)] public string Reason;
+        [DataMember(Name = "help", EmitDefaultValue = false)] public HelpRequest Help;
+        [DataMember(Name = "reply", EmitDefaultValue = false)] public SelfServiceReply Reply;
 
         static readonly DataContractJsonSerializer Serializer = new DataContractJsonSerializer(typeof(TrayMessage));
 
@@ -69,5 +75,69 @@ namespace FleetWarden.Tray
         [DataMember(Name = "process")] public string Process;
         [DataMember(Name = "restoreArgs", EmitDefaultValue = false)] public string RestoreArgs;
         [DataMember(Name = "firefox", EmitDefaultValue = false)] public bool Firefox;
+    }
+
+    // Self-service (internal/agentproto/selfservice.go). Times are RFC 3339
+    // strings: the JSON serializer only knows its own date format.
+    [DataContract]
+    public sealed class HelpRequest
+    {
+        [DataMember(Name = "subject")] public string Subject;
+        [DataMember(Name = "message")] public string Message;
+        [DataMember(Name = "contact", EmitDefaultValue = false)] public string Contact;
+    }
+
+    [DataContract]
+    public sealed class SelfServiceReply
+    {
+        [DataMember(Name = "error", EmitDefaultValue = false)] public string Error;
+        [DataMember(Name = "message", EmitDefaultValue = false)] public string Message;
+        [DataMember(Name = "catalog", EmitDefaultValue = false)] public SelfServiceCatalog Catalog;
+    }
+
+    [DataContract]
+    public sealed class SelfServiceCatalog
+    {
+        [DataMember(Name = "productName")] public string ProductName;
+        [DataMember(Name = "accentColor")] public string AccentColor;
+        [DataMember(Name = "software")] public bool Software;
+        [DataMember(Name = "items")] public SelfServiceItem[] Items;
+        [DataMember(Name = "updates")] public bool Updates;
+        [DataMember(Name = "pendingUpdates")] public int PendingUpdates;
+        [DataMember(Name = "rebootPending")] public bool RebootPending;
+        [DataMember(Name = "updateState", EmitDefaultValue = false)] public string UpdateState;
+        [DataMember(Name = "updateAt", EmitDefaultValue = false)] public string UpdateAt;
+        [DataMember(Name = "lastScan", EmitDefaultValue = false)] public string LastScan;
+        [DataMember(Name = "help")] public bool Help;
+        [DataMember(Name = "helpText", EmitDefaultValue = false)] public string HelpText;
+        [DataMember(Name = "helpRequests")] public HelpTicket[] HelpRequests;
+    }
+
+    [DataContract]
+    public sealed class SelfServiceItem
+    {
+        public const string Available = "available", Pending = "pending", Rejected = "rejected", Queued = "queued",
+            Installing = "installing", Installed = "installed", Failed = "failed";
+
+        [DataMember(Name = "id")] public long Id;
+        [DataMember(Name = "name")] public string Name;
+        [DataMember(Name = "publisher", EmitDefaultValue = false)] public string Publisher;
+        [DataMember(Name = "description", EmitDefaultValue = false)] public string Description;
+        [DataMember(Name = "category", EmitDefaultValue = false)] public string Category;
+        [DataMember(Name = "version", EmitDefaultValue = false)] public string Version;
+        [DataMember(Name = "approval")] public bool Approval;
+        [DataMember(Name = "state")] public string State;
+        [DataMember(Name = "message", EmitDefaultValue = false)] public string Message;
+    }
+
+    [DataContract]
+    public sealed class HelpTicket
+    {
+        [DataMember(Name = "id")] public long Id;
+        [DataMember(Name = "subject")] public string Subject;
+        [DataMember(Name = "state")] public string State;
+        [DataMember(Name = "reply", EmitDefaultValue = false)] public string Reply;
+        [DataMember(Name = "createdAt")] public string CreatedAt;
+        [DataMember(Name = "updatedAt")] public string UpdatedAt;
     }
 }

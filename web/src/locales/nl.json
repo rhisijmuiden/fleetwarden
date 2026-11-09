@@ -40,7 +40,8 @@
     "vulnerabilities": "Kwetsbaarheden",
     "assets": "Assets",
     "power": "Energiebeheer",
-    "security": "Beveiliging"
+    "security": "Beveiliging",
+    "selfservice": "Selfservice"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -384,7 +385,11 @@
     "invalid_volume": "Kies een stationsletter zoals C:.",
     "invalid_security_action": "Onbekende beveiligingsactie.",
     "not_supported": "Dit is niet beschikbaar op dit platform.",
-    "action_open": "Deze actie wacht al of loopt al op het apparaat."
+    "action_open": "Deze actie wacht al of loopt al op het apparaat.",
+    "already_in_catalog": "Dit pakket staat al in de catalogus.",
+    "too_many_items": "De catalogus is vol (500 programma's).",
+    "already_decided": "Iemand heeft al over deze aanvraag beslist.",
+    "item_removed": "Dit programma staat niet meer in de catalogus."
   },
   "login": {
     "title": "Inloggen",
@@ -513,7 +518,9 @@
     "remote_manage": "Apparaten beheren zonder overname (processen, services, logboeken, bestanden)",
     "assets_manage": "Assets en softwarelicenties beheren",
     "power_control": "Apparaten wekken, herstarten en afsluiten",
-    "power_manage": "Energieschema's en Wake-on-LAN-instellingen beheren"
+    "power_manage": "Energieschema's en Wake-on-LAN-instellingen beheren",
+    "selfservice_manage": "Selfservicecatalogus en -instellingen beheren",
+    "selfservice_handle": "Installatieaanvragen goedkeuren en hulpvragen behandelen"
   },
   "auth": {
     "title": "Authenticatie",
@@ -1272,7 +1279,8 @@
     "trigger": "Aanleiding",
     "triggers": {
       "window": "Onderhoudsvenster",
-      "manual": "Handmatig"
+      "manual": "Handmatig",
+      "selfservice": "Door de gebruiker (selfservice)"
     },
     "status": "Status",
     "result": "Resultaat",
@@ -3742,6 +3750,128 @@
       "deviceTitle": "BitLocker-herstelsleutels",
       "deviceHint": "Versleuteld opgeslagen op de server. Het tonen van een sleutel komt in het auditlogboek.",
       "deviceNone": "Geen herstelwachtwoord op dit apparaat. Voeg er een toe met manage-bde of een BitLocker-beleid."
+    }
+  },
+  "selfservice": {
+    "title": "Selfservice",
+    "subtitle": "Waar gebruikers via de tray-app om vragen: programma's uit de catalogus, hulpvragen, en de instellingen van het selfservicevenster.",
+    "tabs": {
+      "requests": "Installatieaanvragen",
+      "help": "Hulpvragen",
+      "catalog": "Catalogus",
+      "settings": "Instellingen"
+    },
+    "pendingTitle_one": "{{count}} aanvraag wacht op goedkeuring",
+    "pendingTitle_other": "{{count}} aanvragen wachten op goedkeuring",
+    "pendingHint": "Programma's waarvoor goedkeuring nodig is. Na goedkeuring wordt het programma direct op de computer van de gebruiker geïnstalleerd.",
+    "noPending": "Er wacht niets op goedkeuring.",
+    "historyTitle": "Recente aanvragen",
+    "noHistory": "Nog geen aanvragen.",
+    "noHistoryText": "Gebruikers installeren programma's via de tray-app: klik met rechts op het FleetWarden-pictogram en kies Software en hulp.",
+    "requestStates": {
+      "pending": "Wacht op goedkeuring",
+      "approved": "Goedgekeurd",
+      "rejected": "Afgewezen",
+      "cancelled": "Geannuleerd"
+    },
+    "requestedBy": "{{user}} op",
+    "requestedAt": "Aangevraagd {{when}} ({{date}})",
+    "decided": {
+      "approved": "goedgekeurd door {{user}} op {{date}}",
+      "rejected": "afgewezen door {{user}} op {{date}}",
+      "cancelled": "geannuleerd door {{user}} op {{date}}",
+      "pending": ""
+    },
+    "decidedAuto": "geïnstalleerd zonder goedkeuring",
+    "viewDeployment": "Uitrol bekijken",
+    "unknownUser": "Onbekende gebruiker",
+    "approve": "Goedkeuren",
+    "reject": "Afwijzen",
+    "approveTitle": "{{name}} goedkeuren",
+    "rejectTitle": "{{name}} afwijzen",
+    "approveText": "{{name}} wordt direct, of zodra het apparaat online is, op {{device}} geïnstalleerd voor {{user}}.",
+    "rejectText": "{{user}} ziet in de tray-app dat de aanvraag voor {{name}} is afgewezen, met jouw toelichting.",
+    "note": "Toelichting voor de gebruiker",
+    "noteHint": "Optioneel. Zichtbaar in de tray-app, bijvoorbeeld waarom de aanvraag is afgewezen.",
+    "helpTitle": "Hulpvragen",
+    "helpHint": "Vragen die gebruikers vanuit de tray-app stuurden. Je antwoord verschijnt in hun selfservicevenster.",
+    "filter": "Filter",
+    "helpActive": "Open en in behandeling",
+    "helpAll": "Alle hulpvragen",
+    "noHelp": "Geen hulpvragen.",
+    "noHelpText": "Gebruikers vragen om hulp via de tray-app. Nieuwe hulpvragen kunnen ook naar de servicedesk worden gemaild (tabblad Instellingen).",
+    "helpStates": {
+      "open": "Open",
+      "in_progress": "In behandeling",
+      "closed": "Gesloten"
+    },
+    "assignedTo": "opgepakt door {{user}}",
+    "user": "Gebruiker",
+    "device": "Apparaat",
+    "online": "Online",
+    "offline": "Offline",
+    "contact": "Contact",
+    "sent": "Verstuurd",
+    "assigned": "Opgepakt door",
+    "noMessage": "Geen bericht.",
+    "remote": "Overname op afstand openen",
+    "state": "Status",
+    "reply": "Antwoord aan de gebruiker",
+    "replyHint": "Zichtbaar in het selfservicevenster van de gebruiker.",
+    "catalogTitle_one": "{{count}} programma in de catalogus",
+    "catalogTitle_other": "{{count}} programma's in de catalogus",
+    "catalogHint": "Programma's uit de softwarebibliotheek die gebruikers zelf mogen installeren. Zonder goedkeuring start de installatie meteen.",
+    "addItem": "Programma toevoegen",
+    "editItem": "Programma bewerken",
+    "allAdded": "Alle pakketten uit de bibliotheek staan al in de catalogus.",
+    "emptyCatalog": "De catalogus is leeg.",
+    "emptyCatalogText": "Voeg programma's uit de softwarebibliotheek toe, zodat gebruikers ze via de tray-app kunnen installeren.",
+    "emptyLibrary": "Voeg eerst pakketten toe aan de softwarebibliotheek (Software) en publiceer ze dan hier.",
+    "cols": {
+      "name": "Programma",
+      "category": "Categorie",
+      "visibleTo": "Zichtbaar voor",
+      "approval": "Goedkeuring",
+      "requests": "Aanvragen / installaties"
+    },
+    "requestsHint": "Aanvragen en voltooide installaties in de afgelopen 30 dagen",
+    "hidden": "Verborgen",
+    "allGroups": "Alle groepen",
+    "needsApproval": "Goedkeuring nodig",
+    "direct": "Direct",
+    "removeTitle": "Uit de catalogus halen",
+    "removeText": "{{name}} uit de catalogus halen? Aanvragen die op goedkeuring wachten worden geannuleerd. Geïnstalleerde programma's blijven staan.",
+    "remove": "Verwijderen",
+    "package": "Pakket",
+    "packageHint": "Een pakket uit de softwarebibliotheek. Gebruikers van dat platform zien het.",
+    "displayName": "Naam voor gebruikers",
+    "displayNameHint": "Laat leeg om de pakketnaam te gebruiken.",
+    "category": "Categorie",
+    "categoryHint": "Groepeert programma's in de tray, bijvoorbeeld Office of Ontwikkeling.",
+    "description": "Omschrijving",
+    "descriptionHint": "Laat leeg om de omschrijving van het pakket te gebruiken.",
+    "approvalSwitch": "Goedkeuring nodig",
+    "approvalHint": "Een medewerker keurt elke aanvraag eerst goed, bijvoorbeeld voor programma's met een betaalde licentie.",
+    "enabledSwitch": "Tonen in de catalogus",
+    "enabledHint": "Zet uit om het programma te verbergen zonder het te verwijderen.",
+    "visibleTo": "Zichtbaar voor",
+    "visibleToHint": "Kies apparaatgroepen, of geen voor alle groepen.",
+    "settings": {
+      "trayTitle": "Selfservicevenster",
+      "trayHint": "Wat gebruikers via de tray-app (Windows) kunnen doen. Deze schakelaars gelden voor alle apparaten.",
+      "software": "Softwarecatalogus",
+      "softwareHint": "Gebruikers installeren zelf programma's uit de catalogus.",
+      "updates": "Updates nu installeren",
+      "updatesHint": "Gebruikers installeren de updates die het patchbeleid van hun groep heeft goedgekeurd, zonder op het onderhoudsvenster te wachten. Alleen voor groepen met een patchbeleid.",
+      "help": "Hulpvragen",
+      "helpHint": "Gebruikers sturen een vraag naar de IT-afdeling, met de naam van hun computer.",
+      "helpText": "Tekst boven het hulpformulier",
+      "helpTextHint": "Bijvoorbeeld de openingstijden of het telefoonnummer van de servicedesk.",
+      "mailTitle": "E-mailmeldingen",
+      "mailHint": "Wie een e-mail krijgt bij elke hulpvraag en elke installatieaanvraag die goedkeuring nodig heeft. Gebruikt de mailserverinstellingen.",
+      "recipients": "Ontvangers",
+      "recipientsHint": "Maximaal 20 adressen, gescheiden door komma's. Laat leeg voor geen e-mail.",
+      "language": "Taal van de e-mails"
     }
   }
 }

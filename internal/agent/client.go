@@ -97,7 +97,9 @@ type Agent struct {
 	config   configRunner
 	security securityState
 	power    powerState
-	ctx      context.Context // of Run: jobs outlive a single session
+	// selfService carries the tray's self-service requests to the server.
+	selfService selfServiceState
+	ctx         context.Context // of Run: jobs outlive a single session
 	// installMu keeps patch installs and software jobs apart: Windows
 	// Installer and dpkg run one installation at a time.
 	installMu sync.Mutex
@@ -227,6 +229,9 @@ func (a *Agent) Run(ctx context.Context) error {
 		}
 		if a.Remote == nil {
 			a.Remote = platformRemote(a.Log)
+		}
+		if h, ok := a.Notify.(SelfServiceHost); ok {
+			h.SetSelfService(a.SelfService)
 		}
 		a.resumePatchJob(ctx)
 		a.resumeSoftwareJob()
@@ -394,6 +399,8 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 		defer a.detachPatchSession(gen)
 		secGen := a.security.attach(trySend)
 		defer a.security.detach(secGen)
+		ssGen := a.attachSelfService(trySend, w.SelfService)
+		defer a.detachSelfService(ssGen)
 		a.mu.Lock()
 		swRunning, swLast := a.software.running, a.software.last
 		a.mu.Unlock()
@@ -485,6 +492,8 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 				a.handlePowerConfig(e)
 			case agentproto.TypeManageRequest:
 				a.handleManage(e, reply)
+			case agentproto.TypeSelfServiceReply:
+				a.handleSelfServiceReply(e)
 			default:
 				a.Log.Debug("ignoring message", "type", e.Type)
 			}
