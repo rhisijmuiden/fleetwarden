@@ -11,6 +11,7 @@ import { CategoryBadge } from "../patches/util";
 import { DeployDialog, type DeployTarget } from "../software/DeployDialog";
 import { Schedules } from "./Schedules";
 import { ReportSettingsCard } from "./Settings";
+import { AssetsReportView } from "./AssetsReport";
 
 type Tab = ReportKind | "schedules" | "settings";
 
@@ -19,11 +20,11 @@ export function Reports() {
   const { can } = useAuth();
   const [params, setParams] = useSearchParams();
   const manage = can("reports.manage");
-  const tabs: Tab[] = ["compliance", "patches", "software", ...(manage ? (["schedules", "settings"] as Tab[]) : [])];
+  const tabs: Tab[] = ["compliance", "patches", "software", "assets", ...(manage ? (["schedules", "settings"] as Tab[]) : [])];
   const tab = (tabs.includes(params.get("tab") as Tab) ? params.get("tab") : "compliance") as Tab;
   const group = params.get("group") ?? "";
   const groups = useGroups();
-  const isReport = tab === "compliance" || tab === "patches" || tab === "software";
+  const isReport = tab === "compliance" || tab === "patches" || tab === "software" || tab === "assets";
 
   const setTab = (k: Tab) => {
     const next = new URLSearchParams(params);
@@ -92,13 +93,14 @@ export function Reports() {
       {tab === "compliance" && <Compliance query={query} />}
       {tab === "patches" && <Patches query={query} />}
       {tab === "software" && <Software query={query} />}
+      {tab === "assets" && <AssetsReportView query={query} />}
       {tab === "schedules" && <Schedules />}
       {tab === "settings" && <ReportSettingsCard />}
     </div>
   );
 }
 
-function useReport<T>(kind: ReportKind, query: string) {
+export function useReport<T>(kind: ReportKind, query: string) {
   const errorText = useErrorText();
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +119,7 @@ function useReport<T>(kind: ReportKind, query: string) {
   return { data, error, reload };
 }
 
-function Tile({
+export function Tile({
   label,
   value,
   sub,
@@ -155,7 +157,7 @@ const scoreTone = (s: number) => (s >= 90 ? "text-success" : s >= 70 ? "text-war
 const barTone = (s: number) => (s >= 90 ? "bg-success" : s >= 70 ? "bg-warning" : "bg-danger");
 const warn = (n: number) => (n > 0 ? "text-warning" : "");
 
-function Generated({ at }: { at: string }) {
+export function Generated({ at }: { at: string }) {
   const { t, i18n } = useTranslation();
   return <p className="text-xs text-muted">{t("reports.generated", { date: formatDate(at, i18n.language) })}</p>;
 }

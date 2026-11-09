@@ -37,7 +37,7 @@ export function ReportSettingsCard() {
     <div className="space-y-6">
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Card title={t("reports.settings.title")} description={t("reports.settings.subtitle")}>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label={t("reports.settings.offlineDays")} hint={t("reports.settings.offlineHint")}>
             {(id) => <Input id={id} type="number" min={1} max={365} value={rs.offlineDays} onChange={num("offlineDays")} />}
           </Field>
@@ -46,6 +46,9 @@ export function ReportSettingsCard() {
           </Field>
           <Field label={t("reports.settings.diskPercent")} hint={t("reports.settings.diskHint")}>
             {(id) => <Input id={id} type="number" min={1} max={90} value={rs.diskFreePercent} onChange={num("diskFreePercent")} />}
+          </Field>
+          <Field label={t("reports.settings.expiringDays")} hint={t("reports.settings.expiringHint")}>
+            {(id) => <Input id={id} type="number" min={1} max={730} value={rs.expiringDays} onChange={num("expiringDays")} />}
           </Field>
         </div>
         <div className="mt-4 flex justify-end">

@@ -9,7 +9,7 @@ regel is voldaan en sluit vanzelf zodra het probleem weg is.
 
 ## Regels
 
-Er zijn twee soorten regels:
+Er zijn drie soorten regels:
 
 - **Een apparaat is offline**: de agent heeft zich de gekozen tijd niet
   gemeld (minstens 5 minuten; agents melden zich elke minuut).
@@ -18,13 +18,17 @@ Er zijn twee soorten regels:
   tellen niet mee. Een melding blijft open tot de schijf minstens één
   procentpunt meer vrije ruimte heeft dan de grens, zodat hij niet steeds
   opent en sluit.
+- **De garantie afloopt**: de garantiedatum van het apparaat (uit
+  [Assets](assets.nl.md)) ligt hooguit het gekozen aantal dagen verderop (0
+  tot 365), of is al voorbij. De melding sluit als er een latere datum wordt
+  ingevuld.
 
 Elke regel kan beperkt worden tot apparaatgroepen en tot werkplekken, servers
 of hypervisors, en mailt maximaal 20 adressen in het Engels of Nederlands,
 desgewenst ook als de melding is opgelost. Zonder ontvangers zijn de
 meldingen alleen in de webinterface zichtbaar. Nieuwe installaties beginnen
-met twee regels zonder ontvangers: *Server offline* (servers en hypervisors,
-15 minuten) en *Low disk space* (10%). De regels worden elke minuut
+met regels zonder ontvangers: *Server offline* (servers en hypervisors,
+15 minuten), *Low disk space* (10%) en, sinds assetbeheer, *Warranty ending* (60 dagen). De regels worden elke minuut
 gecontroleerd; één e-mail bevat alle meldingen die een regel tegelijk opende.
 
 Agents sturen hun vrije schijfruimte mee met elke heartbeat, dus een

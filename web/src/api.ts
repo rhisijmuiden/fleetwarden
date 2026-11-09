@@ -20,7 +20,8 @@ export type Permission =
   | "reports.manage"
   | "alerts.manage"
   | "config.manage"
-  | "drivers.manage";
+  | "drivers.manage"
+  | "assets.manage";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -909,13 +910,14 @@ export type BrowserReport = {
 
 // ---- reports ----
 
-export type ReportKind = "compliance" | "patches" | "software";
+export type ReportKind = "compliance" | "patches" | "software" | "assets";
 
 export type ReportSettings = {
   offlineDays: number;
   patchGraceDays: number;
   diskFreePercent: number;
   ignoredSoftware: string[];
+  expiringDays: number;
 };
 
 export type LowVolume = {
@@ -1245,7 +1247,7 @@ export function uploadFile<T>(
   });
 }
 
-export type AlertKind = "offline" | "disk";
+export type AlertKind = "offline" | "disk" | "warranty";
 export type DeviceKind = "workstation" | "server" | "hypervisor";
 
 export type AlertRule = {
@@ -1253,7 +1255,7 @@ export type AlertRule = {
   name: string;
   enabled: boolean;
   kind: AlertKind;
-  threshold: number; // minutes offline, or percentage free space
+  threshold: number; // minutes offline, percentage free space, or days before the warranty ends
   groupIds: number[];
   deviceKinds: DeviceKind[];
   recipients: string[];
@@ -1637,4 +1639,103 @@ export type DeviceDrivers = {
   scanError: string;
   policy: PatchPolicy | null;
   drivers: DeviceDriverRow[];
+};
+
+// ---- asset management ----
+
+export type WarrantyState = "expired" | "expiring" | "valid" | "unknown";
+
+export type DeviceAsset = {
+  assetTag: string;
+  owner: string;
+  location: string;
+  department: string;
+  supplier: string;
+  orderNumber: string;
+  purchaseDate: string; // YYYY-MM-DD or ""
+  warrantyEnd: string;
+  updatedBy?: string;
+  updatedAt?: string | null;
+};
+
+export type AssetField = Exclude<keyof DeviceAsset, "updatedBy" | "updatedAt">;
+
+export const assetFields: AssetField[] = ["assetTag", "owner", "location", "department", "supplier", "orderNumber", "purchaseDate", "warrantyEnd"];
+
+export type AssetRow = DeviceAsset & {
+  id: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  platform: Platform;
+  kind: string;
+  manufacturer: string;
+  model: string;
+  serial: string;
+  osName: string;
+  loggedInUser: string;
+  lastSeenAt: string;
+  enrolledAt: string;
+  online: boolean;
+};
+
+export type AssetList = {
+  items: AssetRow[];
+  summary: { total: number; expired: number; expiring: number; valid: number; unknown: number; expiringDays: number };
+};
+
+export type ImportStatus = "update" | "unchanged" | "not_found" | "ambiguous" | "invalid";
+
+export type ImportResult = {
+  columns: string[];
+  ignored: string[];
+  rows: { line: number; key: string; deviceId?: string; hostname?: string; status: ImportStatus; error?: string; changes?: Partial<Record<AssetField, string>> }[];
+  updated: number;
+  applied: boolean;
+};
+
+export type SoftwareLicense = {
+  id: number;
+  name: string;
+  vendor: string;
+  matchName: string;
+  matchPublisher: string;
+  seats: number;
+  hasKey: boolean;
+  expiresOn: string;
+  cost: number | null;
+  notes: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  inUse: number;
+};
+
+export type LicenseInstall = {
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  owner: string;
+  lastSeenAt: string;
+  program: string;
+  version: string;
+  publisher: string;
+};
+
+export type AssetsReport = {
+  generated: string;
+  scope: string;
+  expiringDays: number;
+  devices: number;
+  expired: number;
+  expiring: number;
+  unknown: number;
+  noOwner: number;
+  licenses: (SoftwareLicense & { free: number; state: "over" | "expired" | "expiring" | "ok" })[];
+  licensesOver: number;
+  licensesEnding: number;
+  seats: number;
+  inUse: number;
+  warranty: (AssetRow & { state: WarrantyState; daysLeft: number | null })[];
 };

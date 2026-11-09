@@ -7,7 +7,7 @@ import { useGroups } from "../../components/GroupScope";
 import { Alert, Badge, Button, Card, Field, Input, Modal, Select, Spinner, Switch, formatDate, useErrorText } from "../../components/ui";
 import { minutesToTime, timeToMinutes } from "../patches/util";
 
-const kinds: ReportKind[] = ["compliance", "patches", "software"];
+const kinds: ReportKind[] = ["compliance", "patches", "software", "assets"];
 type Draft = Omit<ReportSchedule, "id" | "nextRunAt" | "lastRunAt" | "lastError" | "createdBy"> & { id?: number };
 
 const emptyDraft = (lang: string): Draft => ({

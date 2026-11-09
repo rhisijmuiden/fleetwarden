@@ -13,6 +13,7 @@ import { JobDialog, JobsTable } from "../software/Deployments";
 import { SourceBadge } from "../software/util";
 import { RemoteButton } from "../remote/Remote";
 import { DeviceConfigsTab } from "../configurations/DeviceConfigs";
+import { DeviceAssetCard } from "../assets/DeviceAsset";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
 type Tab = "overview" | "software" | "updates" | "drivers" | "configurations" | "notes";
@@ -169,6 +170,7 @@ export function DeviceDetail() {
               ]}
             />
           </Card>
+          <DeviceAssetCard device={device} />
           <Card title={t("devices.storage")}>
             <div className="space-y-4">
               {(hw?.volumes ?? []).map((v) => {
