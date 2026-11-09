@@ -66,6 +66,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.softwareTick(ctx)
 			s.configTick(ctx)
 			s.reportTick(ctx)
+			s.securityTick(ctx)
 			s.alertTick(ctx)
 			s.vulnTick(ctx)
 			s.pruneTransfers()

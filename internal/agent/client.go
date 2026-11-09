@@ -68,6 +68,10 @@ type Agent struct {
 	Terminal TerminalStarter
 	// Config applies configurations; defaults to the platform backend.
 	Config ConfigBackend
+	// Security collects the security status and SecurityRun runs Defender
+	// and BitLocker actions; both default to the platform implementation.
+	Security    func(ctx context.Context) (agentproto.SecurityReport, error)
+	SecurityRun func(ctx context.Context, act agentproto.SecurityAction) (string, error)
 	// Power restarts and shuts down the device; defaults to the platform
 	// backend.
 	Power PowerBackend
@@ -91,6 +95,7 @@ type Agent struct {
 	software softwareState // guarded by mu
 	remote   remoteState
 	config   configRunner
+	security securityState
 	power    powerState
 	ctx      context.Context // of Run: jobs outlive a single session
 	// installMu keeps patch installs and software jobs apart: Windows
@@ -387,6 +392,8 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 		a.reportUpdateResult(send)
 		gen := a.attachPatchSession(trySend)
 		defer a.detachPatchSession(gen)
+		secGen := a.security.attach(trySend)
+		defer a.security.detach(secGen)
 		a.mu.Lock()
 		swRunning, swLast := a.software.running, a.software.last
 		a.mu.Unlock()
@@ -466,6 +473,10 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 				a.handleRemoteStart(e, send)
 			case agentproto.TypeRemoteStop:
 				a.handleRemoteStop(e)
+			case agentproto.TypeSecurityRequest:
+				a.handleSecurityRequest()
+			case agentproto.TypeSecurityAction:
+				a.handleSecurityAction(e)
 			case agentproto.TypePowerWake:
 				a.handlePowerWake(e)
 			case agentproto.TypePowerAction:
@@ -546,6 +557,7 @@ func (a *Agent) sendInventory(ctx context.Context, send func(string, any)) {
 	}
 	send(agentproto.TypeInventory, inv)
 	a.Log.Info("inventory sent", "programs", len(inv.Software))
+	a.sendSecurity(ctx, send)
 }
 
 func collectHeartbeat() agentproto.Heartbeat {

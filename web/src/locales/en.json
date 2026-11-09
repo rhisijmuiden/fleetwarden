@@ -39,7 +39,8 @@
     "drivers": "Drivers & firmware",
     "vulnerabilities": "Vulnerabilities",
     "assets": "Assets",
-    "power": "Power"
+    "power": "Power",
+    "security": "Security"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -98,7 +99,9 @@
     "done": "Done",
     "actions": "Actions",
     "refresh": "Refresh",
-    "secretKept": "A value is stored. Leave empty to keep it."
+    "secretKept": "A value is stored. Leave empty to keep it.",
+    "yes": "Yes",
+    "no": "No"
   },
   "errors": {
     "generic": "Something went wrong.",
@@ -376,7 +379,12 @@
     "device_online": "The device is already online.",
     "power_action_open": "This device is still busy with an earlier wake, restart or shutdown.",
     "wake_impossible": "This device cannot be woken",
-    "invalid_wake_port": "Choose port 9 or 7."
+    "invalid_wake_port": "Choose port 9 or 7.",
+    "invalid_filter": "Unknown filter.",
+    "invalid_volume": "Choose a drive letter such as C:.",
+    "invalid_security_action": "Unknown security action.",
+    "not_supported": "This is not available on this platform.",
+    "action_open": "This action is already waiting or running on the device."
   },
   "login": {
     "title": "Sign in",
@@ -999,7 +1007,8 @@
       "configurations": "Configurations",
       "drivers": "Drivers",
       "vulnerabilities": "Vulnerabilities",
-      "manage": "Manage"
+      "manage": "Manage",
+      "security": "Security"
     },
     "system": "System",
     "osVersion": "Version",
@@ -2005,7 +2014,7 @@
   },
   "alerts": {
     "title": "Alerts",
-    "subtitle": "Devices that have been offline too long, are running out of disk space or whose warranty ends. Alerts close by themselves once the problem is gone.",
+    "subtitle": "Devices that have been offline too long, are running out of disk space, whose warranty ends or that have a security problem. Alerts close by themselves once the problem is gone.",
     "tabs": {
       "open": "Open",
       "history": "History",
@@ -2058,7 +2067,26 @@
       "warrantyWithin_other": "Warranty ends within {{count}} days",
       "kindWarranty": "The warranty ends",
       "warrantyDays": "Days before the end",
-      "warrantyHint": "0 to 365. A device whose warranty has ended stays alerted until the date is changed. Warranty dates come from Assets."
+      "warrantyHint": "0 to 365. A device whose warranty has ended stays alerted until the date is changed. Warranty dates come from Assets.",
+      "kindSecurity": "Security status",
+      "kinds": {
+        "threat": "Threat detected",
+        "antivirus": "Antivirus off or out of date",
+        "firewall": "Firewall off",
+        "encryption": "System drive not encrypted"
+      },
+      "condition": {
+        "threat": "Microsoft Defender reports an active threat",
+        "antivirus": "No antivirus is on and up to date (Windows)",
+        "firewall": "The firewall is off for one or more profiles",
+        "encryption": "Disk encryption is off, suspended or incomplete"
+      },
+      "hint": {
+        "threat": "Opens as soon as Defender reports a threat it has not removed.",
+        "antivirus": "Linux devices without antivirus are left out.",
+        "firewall": "Looks at every Windows network profile and the Linux firewall.",
+        "encryption": "Usually limited to workstations: laptops get lost, servers rarely."
+      }
     }
   },
   "proxy": {
@@ -3524,6 +3552,196 @@
       "relay": "Another device with the agent is online in the same network, or the server is in that network.",
       "wired": "The device is connected with a cable; Wi-Fi adapters rarely wake from shutdown.",
       "vlan": "Routers and firewalls do not forward broadcasts: every network (VLAN) needs its own online relay."
+    }
+  },
+  "security": {
+    "title": "Security",
+    "subtitle": "Disk encryption, antivirus, firewall and local administrators of every device, with the BitLocker recovery keys.",
+    "tabs": {
+      "overview": "Overview",
+      "keys": "Recovery keys"
+    },
+    "tiles": {
+      "encrypted": "Encrypted",
+      "encryptedSub": "{{count}} not or partly encrypted",
+      "antivirus": "Antivirus OK",
+      "antivirusSub": "{{count}} off or out of date",
+      "firewall": "Firewall on",
+      "firewallSub": "{{count}} off or partly off",
+      "threats": "Active threats",
+      "threatsSub": "devices with a threat",
+      "secureBoot": "Secure Boot off",
+      "secureBootSub": "devices without Secure Boot",
+      "unreported": "No report",
+      "unreportedSub": "older agent or not seen yet"
+    },
+    "filters": {
+      "unencrypted": "Not encrypted",
+      "antivirus": "Antivirus problems",
+      "firewall": "Firewall off",
+      "threats": "Active threats",
+      "secureboot": "Secure Boot off",
+      "unreported": "Without a security report"
+    },
+    "allDevices": "All devices",
+    "allDevicesHint": "Click a tile above to show only the devices with that problem.",
+    "search": "Search device or serial number",
+    "noneMatch": "No device has this problem.",
+    "noDevices": "No devices yet.",
+    "notReported": "Not reported",
+    "col": {
+      "encryption": "Encryption",
+      "antivirus": "Antivirus",
+      "firewall": "Firewall",
+      "threats": "Threats",
+      "secureBoot": "Secure Boot",
+      "admins": "Admins",
+      "reported": "Report"
+    },
+    "encryption": {
+      "encrypted": "Encrypted",
+      "partial": "Partly encrypted",
+      "suspended": "Suspended",
+      "encrypting": "Encrypting",
+      "none": "Not encrypted",
+      "unknown": "Unknown"
+    },
+    "antivirus": {
+      "ok": "On",
+      "outdated": "Out of date",
+      "disabled": "Off",
+      "none": "None",
+      "unknown": "Unknown"
+    },
+    "firewall": {
+      "on": "On",
+      "partial": "Partly off",
+      "off": "Off",
+      "unknown": "Unknown"
+    },
+    "volume": {
+      "encrypted": "Fully encrypted",
+      "encrypting": "Encrypting",
+      "decrypting": "Decrypting",
+      "decrypted": "Not encrypted",
+      "paused": "Paused"
+    },
+    "protection": {
+      "on": "Protected",
+      "off": "Off",
+      "suspended": "Suspended"
+    },
+    "actions": {
+      "defender": {
+        "quickscan": "Quick scan",
+        "fullscan": "Full scan",
+        "signatures": "Update signatures"
+      },
+      "bitlocker": {
+        "rotate": "New recovery key"
+      }
+    },
+    "actionState": {
+      "queued": "Waiting for device",
+      "running": "Running",
+      "completed": "Done",
+      "failed": "Failed"
+    },
+    "device": {
+      "title": "Security status",
+      "collected": "Reported {{when}}",
+      "never": "No security report yet",
+      "neverHint": "The agent sends its security status with every inventory. Agents older than this server version do not send one yet; they will after their next update.",
+      "refresh": "Check now",
+      "refreshRequested": "The device is collecting its security status.",
+      "partial": "Some parts could not be read",
+      "tpmReady": "ready",
+      "tpmNotReady": "not ready",
+      "tpmNone": "No TPM",
+      "encryption": "Disk encryption",
+      "encryptionHintWin": "BitLocker status of every fixed drive.",
+      "encryptionHintLinux": "Mounted file systems and whether LUKS (dm-crypt) lies under them.",
+      "noVolumes": "No fixed drives reported.",
+      "volume": "Drive",
+      "method": "Encryption",
+      "status": "Status",
+      "protection": "Protection",
+      "protectors": "Key protectors",
+      "systemVolume": "System",
+      "notEncrypted": "None",
+      "antivirus": "Antivirus",
+      "noAntivirus": "No antivirus found.",
+      "on": "On",
+      "off": "Off",
+      "upToDate": "Up to date",
+      "outdated": "Out of date",
+      "defenderMode": "Microsoft Defender mode",
+      "realTime": "Real-time protection",
+      "tamper": "Tamper protection",
+      "signatures": "Signatures",
+      "quickScan": "Last quick scan",
+      "fullScan": "Last full scan",
+      "neverScanned": "Never",
+      "firewallTitle": "Firewall",
+      "noFirewall": "No firewall found",
+      "activeProfile": "Current network",
+      "inbound": {
+        "block": "Inbound blocked",
+        "allow": "Inbound allowed"
+      },
+      "threats": "Threats (last 30 days)",
+      "threatsHint": "What Microsoft Defender detected. Active threats were not removed or quarantined.",
+      "threat": "Threat",
+      "severity": "Severity",
+      "detected": "Detected",
+      "state": "State",
+      "active": "Active",
+      "resolved": "Resolved",
+      "admins": "Local administrators",
+      "adminsHintWin": "Members of the local Administrators group.",
+      "adminsHintLinux": "Members of sudo, wheel or admin, and accounts with UID 0.",
+      "group": "Group",
+      "unknownAccount": "Unknown account",
+      "builtin": "Built-in",
+      "actionsTitle": "Recent actions",
+      "actionStarted": "{{action}} started.",
+      "actionQueued": "{{action}} starts when the device is back online."
+    },
+    "keys": {
+      "title": "Find a BitLocker recovery key",
+      "subtitle": "Type the first characters of the key ID that the BitLocker recovery screen shows, the computer name or the serial number.",
+      "search": "Key ID, computer name or serial number",
+      "none": "No recovery keys stored yet.",
+      "noMatch": "No key matches.",
+      "keyId": "Key ID",
+      "volume": "Drive",
+      "status": "Status",
+      "lastShown": "Last shown",
+      "lastSeen": "Last reported",
+      "serial": "Serial",
+      "inUse": "In use",
+      "replaced": "Replaced {{when}}",
+      "deviceRemoved": "Device removed",
+      "neverShown": "Never",
+      "show": "Show",
+      "stored_one": "{{count}} recovery key stored",
+      "stored_other": "{{count}} recovery keys stored",
+      "revealTitle": "Recovery key of {{host}} {{volume}}",
+      "reveal": "Show key",
+      "password": "Recovery key",
+      "reason": "Reason (optional)",
+      "reasonHint": "For example the ticket number or who called. It is saved in the audit log.",
+      "auditHint": "Showing a recovery key is recorded in the audit log with your name.",
+      "replacedHint": "This key was replaced on {{when}}. It only unlocks the drive if it was not re-encrypted since.",
+      "afterUseTitle": "Replace the key after use",
+      "afterUse": "Anyone who heard or saw this key can unlock the drive. Once the user is back in Windows, create a new recovery key.",
+      "rotate": "New recovery key",
+      "rotateTitle": "New recovery key for {{volume}}",
+      "rotateText": "The device creates a new BitLocker recovery password and removes the old ones. FleetWarden stores the new key with the next report; old keys stay findable here.",
+      "rotateStarted": "{{host}} is creating a new recovery key.",
+      "deviceTitle": "BitLocker recovery keys",
+      "deviceHint": "Stored encrypted on the server. Showing a key is recorded in the audit log.",
+      "deviceNone": "No recovery password on this device. Add one with manage-bde or a BitLocker policy."
     }
   }
 }
