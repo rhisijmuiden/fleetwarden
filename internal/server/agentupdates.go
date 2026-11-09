@@ -313,16 +313,20 @@ func (s *Server) agentUpdateTick(ctx context.Context) {
 		if !ok {
 			continue
 		}
-		// Record the attempt before sending: the agent's progress reports only
-		// count for the recorded version, and can arrive before a later write.
+		// Record the update before sending it: a fast agent reports its
+		// progress right away, and that report only counts for the version
+		// on record. Writing "sent" afterwards would overwrite it.
 		if err := s.st.StartDeviceUpdate(ctx, d.DeviceID, t.ID, t.Version); err != nil {
 			s.log.Warn("agent update", "device", d.DeviceID, "err", err)
 			continue
 		}
-		if s.hub.send(d.DeviceID, agentproto.TypeUpdate, msg) {
-			sent++
-			s.log.Info("agent update sent", "device", d.DeviceID, "host", d.Hostname, "from", d.AgentVersion, "to", t.Version)
+		if !s.hub.send(d.DeviceID, agentproto.TypeUpdate, msg) {
+			// The agent went offline in between; the update times out and
+			// is tried again.
+			continue
 		}
+		sent++
+		s.log.Info("agent update sent", "device", d.DeviceID, "host", d.Hostname, "from", d.AgentVersion, "to", t.Version)
 	}
 }
 
