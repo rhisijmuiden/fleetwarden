@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./auth";
@@ -22,10 +22,13 @@ import { Backup } from "./pages/admin/backup/Backup";
 import { Devices } from "./pages/devices/Devices";
 import { DeviceDetail } from "./pages/devices/DeviceDetail";
 import { Groups } from "./pages/devices/Groups";
+import { Assets } from "./pages/assets/Assets";
 import { AgentUpdates } from "./pages/admin/AgentUpdates";
 import { Gateways } from "./pages/admin/Gateways";
 import { Patches } from "./pages/patches/Patches";
 import { Drivers } from "./pages/drivers/Drivers";
+import { Vulnerabilities } from "./pages/vulnerabilities/Vulnerabilities";
+import { VulnDetail } from "./pages/vulnerabilities/VulnDetail";
 import { Software } from "./pages/software/Software";
 import { DeploymentDetail, Deployments } from "./pages/software/Deployments";
 import { Remote } from "./pages/remote/Remote";
@@ -39,12 +42,18 @@ import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
 
+// xterm.js is only loaded for the terminal tab.
+const TerminalViewer = lazy(() => import("./pages/remote/Terminal").then((m) => ({ default: m.TerminalViewer })));
+
 const adminPages: { path: string; perm: Permission; element: React.ReactNode }[] = [
   { path: "/devices", perm: "devices.view", element: <Devices /> },
   { path: "/devices/:id", perm: "devices.view", element: <DeviceDetail /> },
   { path: "/groups", perm: "devices.view", element: <Groups /> },
+  { path: "/asset-management", perm: "devices.view", element: <Assets /> },
   { path: "/patches", perm: "devices.view", element: <Patches /> },
   { path: "/drivers", perm: "devices.view", element: <Drivers /> },
+  { path: "/vulnerabilities", perm: "devices.view", element: <Vulnerabilities /> },
+  { path: "/vulnerabilities/:cve", perm: "devices.view", element: <VulnDetail /> },
   { path: "/software", perm: "devices.view", element: <Software /> },
   { path: "/deployments", perm: "devices.view", element: <Deployments /> },
   { path: "/deployments/:id", perm: "devices.view", element: <DeploymentDetail /> },
@@ -86,11 +95,25 @@ export function App() {
   }
   if (me.mustChangePassword) return <ForcePasswordChange />;
   if (location.pathname === "/login") return <Navigate to="/" replace />;
-  // The remote control viewer fills its own tab, without the menu.
+  // The remote control viewer and the terminal fill their own tab, without the menu.
   if (location.pathname.startsWith("/remote/connect/") && can("remote.control")) {
     return (
       <Routes>
         <Route path="/remote/connect/:deviceId" element={<RemoteViewer />} />
+      </Routes>
+    );
+  }
+  if (location.pathname.startsWith("/remote/terminal/") && can("remote.terminal")) {
+    return (
+      <Routes>
+        <Route
+          path="/remote/terminal/:deviceId"
+          element={
+            <Suspense fallback={<Spinner />}>
+              <TerminalViewer />
+            </Suspense>
+          }
+        />
       </Routes>
     );
   }

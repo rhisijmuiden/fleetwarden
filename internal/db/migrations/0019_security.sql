@@ -66,7 +66,7 @@ CREATE INDEX security_actions_device ON security_actions (device_id, created_at 
 -- Alert rules for the security status.
 ALTER TABLE alert_rules DROP CONSTRAINT alert_rules_kind_check;
 ALTER TABLE alert_rules ADD CONSTRAINT alert_rules_kind_check
-    CHECK (kind IN ('offline', 'disk', 'threat', 'antivirus', 'firewall', 'encryption'));
+    CHECK (kind IN ('offline', 'disk', 'warranty', 'threat', 'antivirus', 'firewall', 'encryption'));
 
 INSERT INTO alert_rules (name, enabled, kind, threshold, device_kinds) VALUES
     ('Threat detected', true, 'threat', 0, '{}');

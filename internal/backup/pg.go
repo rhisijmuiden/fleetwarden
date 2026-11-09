@@ -53,8 +53,9 @@ func pgEnv(dbURL string) (string, []string, error) {
 }
 
 // Tables whose content is not backed up: sessions (a restore signs everyone
-// out) and the backup history (it would be stale after a restore).
-var dumpExcludeData = []string{"sessions", "backup_runs"}
+// out), the backup history (it would be stale after a restore) and the
+// public vulnerability data (read again from the sources after a restore).
+var dumpExcludeData = []string{"sessions", "backup_runs", "vulnerabilities", "vuln_ranges", "vuln_debian", "vuln_msrc", "vuln_sources"}
 
 // DumpDatabase writes a pg_dump custom-format archive (uncompressed, so
 // chunks deduplicate between backups; chunks are compressed afterwards).

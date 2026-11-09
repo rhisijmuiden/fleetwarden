@@ -162,6 +162,26 @@ func (h *agentHub) send(id, typ string, v any) bool {
 	}
 }
 
+// sendID queues a signed message with an id (a request the agent answers).
+func (h *agentHub) sendID(id, typ, msgID string, v any) bool {
+	h.mu.RLock()
+	c := h.conns[id]
+	h.mu.RUnlock()
+	if c == nil {
+		return false
+	}
+	e, err := c.sess.Seal(typ, msgID, v)
+	if err != nil {
+		return false
+	}
+	select {
+	case c.out <- e:
+		return true
+	default:
+		return false
+	}
+}
+
 // sendChanged sends a settings message unless the session already got the
 // same value.
 func (h *agentHub) sendChanged(id, key, typ string, v any) {
@@ -514,6 +534,8 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 		return s.handleSecurityReportMsg(ctx, c, e)
 	case agentproto.TypeSecurityActionStatus:
 		return s.handleSecurityActionStatusMsg(ctx, c, e)
+	case agentproto.TypeManageResult:
+		return s.handleManageResultMsg(c, e)
 	default:
 		return fmt.Errorf("unknown message type %q", e.Type)
 	}
@@ -573,7 +595,8 @@ func (s *Server) saveInventory(ctx context.Context, id string, inv agentproto.In
 			continue
 		}
 		row := store.SoftwareRow{Name: name, Version: cleanText(p.Version, 100), Publisher: cleanText(p.Publisher, 200),
-			Source: cleanText(p.Source, 20), SizeBytes: max(p.SizeBytes, 0)}
+			Source: cleanText(p.Source, 20), SizeBytes: max(p.SizeBytes, 0),
+			SrcPackage: cleanText(p.SourcePackage, 128), SrcVersion: cleanText(p.SourceVersion, 100)}
 		if on := cleanText(p.InstalledOn, 10); on != "" {
 			row.InstalledOn = &on
 		}

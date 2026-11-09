@@ -32,11 +32,14 @@ eerste login kies je je eigen wachtwoord. Kwijt? Voer
 - Agents, Add client en inschrijven: [docs/agents.nl.md](docs/agents.nl.md)
 - Patchmanagement: [docs/patching.nl.md](docs/patching.nl.md)
 - Drivers en firmware (eigen repository): [docs/drivers.nl.md](docs/drivers.nl.md)
+- Kwetsbaarheden (CVE's): [docs/vulnerabilities.nl.md](docs/vulnerabilities.nl.md)
 - Software uitrollen: [docs/software.nl.md](docs/software.nl.md)
 - Overnemen op afstand: [docs/remote.nl.md](docs/remote.nl.md)
+- Beheer zonder overname (processen, services, logboeken, bestanden): [docs/manage.nl.md](docs/manage.nl.md)
 - Rapporten en geplande rapportmails: [docs/reports.nl.md](docs/reports.nl.md)
 - Meldingen: [docs/alerts.nl.md](docs/alerts.nl.md)
 - Beveiligingsstatus en BitLocker-herstelsleutels: [docs/security.nl.md](docs/security.nl.md)
+- Assetbeheer (eigenaar, locatie, garantie, softwarelicenties): [docs/assets.nl.md](docs/assets.nl.md)
 
 ## Licentie
 

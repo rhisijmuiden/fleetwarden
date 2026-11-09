@@ -63,12 +63,18 @@ type Agent struct {
 	// Remote opens remote desktop sessions; defaults to the platform
 	// backend (nil where there is none).
 	Remote RemoteBackend
+	// Terminal starts shells for remote terminal sessions; defaults to
+	// terminal.Start.
+	Terminal TerminalStarter
 	// Config applies configurations; defaults to the platform backend.
 	Config ConfigBackend
 	// Security collects the security status and SecurityRun runs Defender
 	// and BitLocker actions; both default to the platform implementation.
 	Security    func(ctx context.Context) (agentproto.SecurityReport, error)
 	SecurityRun func(ctx context.Context, act agentproto.SecurityAction) (string, error)
+	// Manage lists and controls processes, services and event logs;
+	// defaults to the platform backend.
+	Manage ManageBackend
 	// Minute is the length of a postpone or inventory-interval minute;
 	// tests shorten it.
 	Minute time.Duration
@@ -339,6 +345,17 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 		}
 	}
 	send := func(typ string, v any) { trySend(typ, v) }
+	// reply answers a request by its id.
+	reply := func(id string, v any) {
+		e, err := sess.Seal(agentproto.TypeManageResult, id, v)
+		if err != nil {
+			return
+		}
+		select {
+		case out <- e:
+		case <-ctx.Done():
+		}
+	}
 	errc := make(chan error, 2)
 	go func() { // writer
 		for {
@@ -454,6 +471,8 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 				a.handleSecurityRequest()
 			case agentproto.TypeSecurityAction:
 				a.handleSecurityAction(e)
+			case agentproto.TypeManageRequest:
+				a.handleManage(e, reply)
 			default:
 				a.Log.Debug("ignoring message", "type", e.Type)
 			}

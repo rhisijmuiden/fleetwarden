@@ -31,19 +31,23 @@ const (
 	PermSoftwareManage Permission = "software.manage" // the software library
 	PermSoftwareDeploy Permission = "software.deploy" // install and uninstall software on devices
 	PermRemoteControl  Permission = "remote.control"  // see and control a device's screen
+	PermRemoteTerminal Permission = "remote.terminal" // open a terminal (root or SYSTEM shell) on a device
 	PermReportsManage  Permission = "reports.manage"  // report schedules, compliance settings and alert rules
 	PermAlertsManage   Permission = "alerts.manage"   // acknowledge alerts
 	PermConfigManage   Permission = "config.manage"   // configurations: browser policies, registry values, scripts
 	PermDriversManage  Permission = "drivers.manage"  // add driver and firmware updates to the repository
 	PermSecurityKeys   Permission = "security.keys"   // show and rotate BitLocker recovery keys
+	PermVulnsManage    Permission = "vulns.manage"    // vulnerability sources and accepted risks
+	PermRemoteManage   Permission = "remote.manage"   // processes, services, event logs and files without taking over the screen
+	PermAssetsManage   Permission = "assets.manage"   // owner, location and warranty of devices, software licences
 )
 
 // Roles lists the roles in order of privilege.
 var Roles = []Role{RoleAdministrator, RoleTechnician, RoleReadOnly}
 
 var rolePermissions = map[Role][]Permission{
-	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermReportsManage, PermAlertsManage, PermConfigManage, PermDriversManage, PermSecurityKeys},
-	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage, PermPatchesApprove, PermSoftwareDeploy, PermRemoteControl, PermAlertsManage, PermSecurityKeys},
+	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermRemoteTerminal, PermReportsManage, PermAlertsManage, PermConfigManage, PermDriversManage, PermRemoteManage, PermAssetsManage, PermVulnsManage, PermSecurityKeys},
+	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage, PermPatchesApprove, PermSoftwareDeploy, PermRemoteControl, PermAlertsManage, PermRemoteManage, PermAssetsManage, PermSecurityKeys},
 	RoleReadOnly:      {PermDashboardView, PermDevicesView},
 }
 

@@ -77,6 +77,7 @@ type Server struct {
 	agentKey   ed25519.PrivateKey
 	hub        *agentHub
 	remote     remoteHub
+	manage     manageHub
 	pkgs       pkgCatalog
 	agentFails *auth.Limiter
 	fetcher    releaseFetcher
@@ -89,6 +90,7 @@ type Server struct {
 	gateways   gatewayManager
 	drivers    driverRepo
 	vendors    vendorSync
+	vulns      vulnSync
 	appOnce    sync.Once
 	app        http.Handler
 	trusted    atomic.Pointer[[]netip.Prefix] // FW_TRUSTED_PROXIES plus the web interface list
@@ -192,6 +194,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/branding/{asset}", s.handleBrandingAsset)
 	s.agentRoutes(mux)
 	s.deviceRoutes(mux)
+	s.assetRoutes(mux)
 	s.patchRoutes(mux)
 	s.driverRoutes(mux)
 	s.securityRoutes(mux)
@@ -199,8 +202,10 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.softwareRoutes(mux)
 	s.configRoutes(mux)
 	s.remoteRoutes(mux)
+	s.manageRoutes(mux)
 	s.reportRoutes(mux)
 	s.alertRoutes(mux)
+	s.vulnRoutes(mux)
 	s.gatewayRoutes(mux)
 	s.proxyRoutes(mux)
 

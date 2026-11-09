@@ -281,7 +281,10 @@ func TestConfigScriptTriggers(t *testing.T) {
 	if strings.Join(be.runs, ",") != "interval-system@system" {
 		t.Errorf("interval: %v", be.runs)
 	}
-	// A user logs on: the logon script runs as that user.
+	// A user logs on: the logon script runs as that user. The interval
+	// script must not come due again meanwhile (a 5 ms interval is easily
+	// over under -race on a busy runner).
+	pol.Items[3].Script.IntervalMinutes = 600
 	be.runs = nil
 	u := []ConfigUser{{Session: 3, Name: `PC\bob`, SID: "S-1-5-21-9"}}
 	a.applyConfig(ctx, pol, u, u)
