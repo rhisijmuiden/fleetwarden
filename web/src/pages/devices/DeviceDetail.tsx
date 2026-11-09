@@ -13,11 +13,12 @@ import { JobDialog, JobsTable } from "../software/Deployments";
 import { SourceBadge } from "../software/util";
 import { RemoteButton, TerminalButton } from "../remote/Remote";
 import { DeviceConfigsTab } from "../configurations/DeviceConfigs";
+import { DeviceManageTab } from "../manage/Manage";
 import { DeviceVulnsTab } from "../vulnerabilities/DeviceVulns";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
-type Tab = "overview" | "software" | "updates" | "vulnerabilities" | "drivers" | "configurations" | "notes";
-const deviceTabs: Tab[] = ["overview", "software", "updates", "vulnerabilities", "drivers", "configurations", "notes"];
+type Tab = "overview" | "manage" | "software" | "updates" | "vulnerabilities" | "drivers" | "configurations" | "notes";
+const deviceTabs: Tab[] = ["overview", "manage", "software", "updates", "vulnerabilities", "drivers", "configurations", "notes"];
 
 export function DeviceDetail() {
   const { id = "" } = useParams();
@@ -109,7 +110,9 @@ export function DeviceDetail() {
       {notice && <Alert tone="success">{notice}</Alert>}
 
       <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
-        {deviceTabs.map((k) => (
+        {deviceTabs
+          .filter((k) => k !== "manage" || can("remote.manage"))
+          .map((k) => (
           <button
             key={k}
             role="tab"
@@ -228,6 +231,7 @@ export function DeviceDetail() {
           </Card>
         </div>
       )}
+      {tab === "manage" && <DeviceManageTab device={device} />}
       {tab === "software" && <SoftwareTab device={device} />}
       {tab === "updates" && <DevicePatchesTab device={device} />}
       {tab === "vulnerabilities" && <DeviceVulnsTab device={device} />}

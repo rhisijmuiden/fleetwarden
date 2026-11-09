@@ -77,6 +77,7 @@ type Server struct {
 	agentKey   ed25519.PrivateKey
 	hub        *agentHub
 	remote     remoteHub
+	manage     manageHub
 	pkgs       pkgCatalog
 	agentFails *auth.Limiter
 	fetcher    releaseFetcher
@@ -199,6 +200,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.softwareRoutes(mux)
 	s.configRoutes(mux)
 	s.remoteRoutes(mux)
+	s.manageRoutes(mux)
 	s.reportRoutes(mux)
 	s.alertRoutes(mux)
 	s.vulnRoutes(mux)
