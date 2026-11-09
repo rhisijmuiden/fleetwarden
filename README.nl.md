@@ -34,6 +34,7 @@ eerste login kies je je eigen wachtwoord. Kwijt? Voer
 - Drivers en firmware (eigen repository): [docs/drivers.nl.md](docs/drivers.nl.md)
 - Software uitrollen: [docs/software.nl.md](docs/software.nl.md)
 - Overnemen op afstand: [docs/remote.nl.md](docs/remote.nl.md)
+- Beheer zonder overname (processen, services, logboeken, bestanden): [docs/manage.nl.md](docs/manage.nl.md)
 - Rapporten en geplande rapportmails: [docs/reports.nl.md](docs/reports.nl.md)
 - Meldingen: [docs/alerts.nl.md](docs/alerts.nl.md)
 

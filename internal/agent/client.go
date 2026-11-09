@@ -65,6 +65,9 @@ type Agent struct {
 	Remote RemoteBackend
 	// Config applies configurations; defaults to the platform backend.
 	Config ConfigBackend
+	// Manage lists and controls processes, services and event logs;
+	// defaults to the platform backend.
+	Manage ManageBackend
 	// Minute is the length of a postpone or inventory-interval minute;
 	// tests shorten it.
 	Minute time.Duration
@@ -334,6 +337,17 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 		}
 	}
 	send := func(typ string, v any) { trySend(typ, v) }
+	// reply answers a request by its id.
+	reply := func(id string, v any) {
+		e, err := sess.Seal(agentproto.TypeManageResult, id, v)
+		if err != nil {
+			return
+		}
+		select {
+		case out <- e:
+		case <-ctx.Done():
+		}
+	}
 	errc := make(chan error, 2)
 	go func() { // writer
 		for {
@@ -443,6 +457,8 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 				a.handleRemoteStart(e, send)
 			case agentproto.TypeRemoteStop:
 				a.handleRemoteStop(e)
+			case agentproto.TypeManageRequest:
+				a.handleManage(e, reply)
 			default:
 				a.Log.Debug("ignoring message", "type", e.Type)
 			}
