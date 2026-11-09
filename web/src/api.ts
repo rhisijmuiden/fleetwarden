@@ -22,6 +22,7 @@ export type Permission =
   | "alerts.manage"
   | "config.manage"
   | "drivers.manage"
+  | "remote.manage"
   | "assets.manage";
 
 export type Role = "administrator" | "technician" | "readonly";
