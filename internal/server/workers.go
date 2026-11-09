@@ -65,6 +65,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.configTick(ctx)
 			s.reportTick(ctx)
 			s.alertTick(ctx)
+			s.vulnTick(ctx)
 		case <-houseTick.C:
 			s.checkRepository(ctx)
 			s.vendorTick()
@@ -90,6 +91,9 @@ func (s *Server) RunWorkers(ctx context.Context) {
 				s.log.Warn("purge configuration script runs", "err", err)
 			}
 			s.pruneSoftwareFiles(ctx)
+			if err := s.st.PurgeVulnExceptions(ctx); err != nil {
+				s.log.Warn("purge accepted vulnerability risks", "err", err)
+			}
 		}
 	}
 }

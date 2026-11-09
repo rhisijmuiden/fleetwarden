@@ -89,6 +89,7 @@ type Server struct {
 	gateways   gatewayManager
 	drivers    driverRepo
 	vendors    vendorSync
+	vulns      vulnSync
 	appOnce    sync.Once
 	app        http.Handler
 	trusted    atomic.Pointer[[]netip.Prefix] // FW_TRUSTED_PROXIES plus the web interface list
@@ -200,6 +201,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.remoteRoutes(mux)
 	s.reportRoutes(mux)
 	s.alertRoutes(mux)
+	s.vulnRoutes(mux)
 	s.gatewayRoutes(mux)
 	s.proxyRoutes(mux)
 
