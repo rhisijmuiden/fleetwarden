@@ -1,6 +1,6 @@
 module github.com/rhisijmuiden/fleetwarden
 
-go 1.26.0
+go 1.26.10
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
@@ -36,7 +36,7 @@ require (
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.16.0 // indirect
-	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	modernc.org/libc v1.80.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

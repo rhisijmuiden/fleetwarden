@@ -45,7 +45,7 @@ with `msitools`, which the server package recommends).
 | --- | --- |
 | `SERVER` | Server address, e.g. `https://em.example.com` |
 | `TOKEN` | Enrollment token; kept out of the install log |
-| `GROUP` | Device group name (optional, overrides the token's group) |
+| `GROUP` | Device group name (optional, overrides the token's group within the token creator's groups) |
 | `FORCEENROLL=1` | Replace an existing enrollment on this machine |
 
 Without `SERVER` and `TOKEN` an existing configuration is kept, so an update
@@ -57,7 +57,10 @@ wizard is in English for now.
 
 A token belongs to one device group. It can expire and can be revoked under
 **Groups > Enrollment tokens**; revoking it only stops new enrollments.
-`GROUP=` (msiexec) or `--group` picks another existing group by name.
+`GROUP=` (msiexec) or `--group` picks another existing group by name, but
+only a group the user who created the token may manage: a token of a
+technician limited to some groups cannot place a device in another group (the
+token's own group is used and the attempt is in the audit log).
 Administrators can also create a token on the server console:
 `sudo fleetwarden-server enrollment-token --group Default`.
 

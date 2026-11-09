@@ -446,7 +446,12 @@ func (s *Server) handleTOTPDisable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u, _ := currentUser(r)
+	if s.usrFails.Blocked(u.Username) {
+		apiError(w, http.StatusTooManyRequests, "too_many_attempts")
+		return
+	}
 	if !auth.VerifyPassword(req.Password, u.PasswordHash) {
+		s.usrFails.Fail(u.Username)
 		s.audit(r, "user.totp_disable", u.Username, false, map[string]any{"reason": "wrong_password"})
 		apiError(w, http.StatusBadRequest, "wrong_password")
 		return

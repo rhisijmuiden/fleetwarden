@@ -938,6 +938,11 @@ func (s *Server) handleAgentTransferPost(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "bad chunk", http.StatusBadRequest)
 		return
 	}
+	// Check the real size too: a chunked request has no Content-Length.
+	if off+int64(len(data)) > agentproto.MaxTransferSize {
+		http.Error(w, "too large", http.StatusRequestEntityTooLarge)
+		return
+	}
 	f, err := os.OpenFile(file, os.O_WRONLY, 0o600)
 	if err != nil {
 		http.Error(w, "no such transfer", http.StatusNotFound)
