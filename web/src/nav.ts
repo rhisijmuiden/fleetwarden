@@ -3,6 +3,7 @@ import type { Permission } from "./api";
 import {
   Bell,
   Boxes,
+  Bug,
   Cpu,
   ScrollText,
   DatabaseBackup,
@@ -54,6 +55,7 @@ export const navigation: NavGroup[] = [
     label: "nav.management",
     items: [
       { path: "/patches", label: "nav.patches", icon: ShieldCheck, perm: "devices.view" },
+      { path: "/vulnerabilities", label: "nav.vulnerabilities", icon: Bug, perm: "devices.view" },
       { path: "/drivers", label: "nav.drivers", icon: Cpu, perm: "devices.view" },
       { path: "/software", label: "nav.software", icon: Package, perm: "devices.view" },
       { path: "/deployments", label: "nav.deployments", icon: Rocket, perm: "devices.view" },

@@ -23,7 +23,8 @@ export type Permission =
   | "config.manage"
   | "drivers.manage"
   | "remote.manage"
-  | "assets.manage";
+  | "assets.manage"
+  | "vulns.manage";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -1740,4 +1741,173 @@ export type AssetsReport = {
   seats: number;
   inUse: number;
   warranty: (AssetRow & { state: WarrantyState; daysLeft: number | null })[];
+};
+
+// ---- vulnerabilities (phase 13) ----
+
+export type VulnSeverity = "critical" | "high" | "medium" | "low" | "none";
+export type VulnKind = "os" | "update" | "package" | "program";
+export type VulnFix = "patch" | "software" | "update" | "none";
+
+export type VulnSource = {
+  source: "nvd" | "kev" | "msrc" | "debian";
+  syncedAt: string | null;
+  checkedAt: string | null;
+  error: string;
+  items: number;
+};
+
+export type VulnSettings = {
+  enabled: boolean;
+  nvd: boolean;
+  kev: boolean;
+  debian: boolean;
+  msrc: boolean;
+  msrcMonths: number;
+};
+
+export type VulnStatus = {
+  enabled: boolean;
+  running: boolean;
+  matching: boolean;
+  step: string;
+  sources: VulnSource[];
+  settings?: VulnSettings;
+  products?: { cpe: string; name: string; winget: string }[];
+};
+
+export type VulnSummary = {
+  cves: number;
+  bySeverity: Partial<Record<VulnSeverity, number>>;
+  kev: number;
+  devices: number;
+  criticalDevices: number;
+  fixable: number;
+  accepted: number;
+  checked: number;
+  status: VulnStatus;
+};
+
+export type Vulnerability = {
+  cve: string;
+  title: string;
+  summary: string;
+  severity: VulnSeverity;
+  score: number;
+  kev: boolean;
+  exploited: boolean;
+  ransomware: boolean;
+  published: string | null;
+  devices: number;
+  fixable: number;
+  products: string[];
+  kinds: VulnKind[];
+  firstSeen: string;
+};
+
+export type DeviceVulnBase = {
+  cve: string;
+  kind: VulnKind;
+  product: string;
+  installedVersion: string;
+  fixedVersion: string;
+  fix: VulnFix;
+  fixRef: string[];
+};
+
+export type VulnAffectedDevice = DeviceVulnBase & {
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  platform: Platform;
+  osName: string;
+  lastSeen: string;
+  online: boolean;
+  accepted: boolean;
+  firstSeen: string;
+};
+
+export type VulnException = {
+  id: number;
+  cve: string;
+  deviceId: string | null;
+  hostname: string;
+  reason: string;
+  expiresAt: string | null;
+  createdBy: string;
+  createdAt: string;
+  title: string;
+  severity: VulnSeverity;
+};
+
+export type VulnDetail = {
+  cve: string;
+  title: string;
+  summary: string;
+  severity: VulnSeverity;
+  score: number;
+  vector: string;
+  published: string | null;
+  modified: string | null;
+  exploited: boolean;
+  kev: boolean;
+  kevName: string;
+  kevAdded: string | null;
+  kevDue: string | null;
+  ransomware: boolean;
+  msrcSeverity: string;
+  updates: string[];
+  ranges: {
+    product: string;
+    version?: string;
+    startIncl?: string;
+    startExcl?: string;
+    endIncl?: string;
+    endExcl?: string;
+  }[];
+  devices: VulnAffectedDevice[];
+  exceptions: VulnException[];
+  nvdUrl: string;
+};
+
+export type DeviceVulnRow = DeviceVulnBase & {
+  title: string;
+  summary: string;
+  severity: VulnSeverity;
+  score: number;
+  kev: boolean;
+  exploited: boolean;
+  published: string | null;
+  firstSeen: string;
+  accepted: boolean;
+};
+
+export type DeviceVulns = {
+  vulnerabilities: DeviceVulnRow[];
+  checkedAt: string | null;
+  pending: boolean;
+  supported: boolean;
+};
+
+export type VulnDeviceSummary = {
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  platform: Platform;
+  osName: string;
+  lastSeen: string;
+  checkedAt: string | null;
+  total: number;
+  counts: Record<VulnSeverity, number>;
+  kev: number;
+  fixable: number;
+  maxScore: number;
+};
+
+export type VulnFixResult = {
+  patchRuns: number;
+  deployments: { id: number; name: string; devices: number }[];
+  skipped: { deviceId: string; hostname: string; cve?: string; reason: string }[];
 };
