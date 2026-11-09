@@ -45,7 +45,7 @@ zet ze erin met `msitools`, dat het serverpakket aanbeveelt).
 | --- | --- |
 | `SERVER` | Serveradres, bijvoorbeeld `https://em.voorbeeld.nl` |
 | `TOKEN` | Enrollment-token; komt niet in het installatielog |
-| `GROUP` | Naam van de apparaatgroep (optioneel, gaat voor de groep van het token) |
+| `GROUP` | Naam van de apparaatgroep (optioneel, gaat voor de groep van het token, binnen de groepen van de maker van het token) |
 | `FORCEENROLL=1` | Een bestaande inschrijving op deze machine vervangen |
 
 Zonder `SERVER` en `TOKEN` blijft een bestaande configuratie staan, dus
@@ -58,7 +58,10 @@ verwijdert. De wizard is voorlopig alleen in het Engels.
 Een token hoort bij één apparaatgroep. Het kan verlopen en is in te trekken
 onder **Groepen > Enrollment-tokens**; intrekken stopt alleen nieuwe
 inschrijvingen. Met `GROUP=` (msiexec) of `--group` kies je een andere
-bestaande groep op naam. Op de serverconsole maak je ook een token aan met
+bestaande groep op naam, maar alleen een groep die de maker van het token mag
+beheren: een token van een technicus die beperkt is tot enkele groepen kan
+geen apparaat in een andere groep zetten (dan geldt de groep van het token en
+staat de poging in het auditlog). Op de serverconsole maak je ook een token aan met
 `sudo fleetwarden-server enrollment-token --group Default`.
 
 ## Beveiliging

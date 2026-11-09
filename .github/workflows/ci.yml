@@ -110,6 +110,25 @@ jobs:
           path: web/dist/
           retention-days: 7
 
+  security:
+    name: Security (govulncheck, npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: govulncheck (Go modules and standard library)
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          "$(go env GOPATH)/bin/govulncheck" ./...
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npm audit (web interface dependencies)
+        working-directory: web
+        run: npm audit --omit=dev --audit-level=high
+
   shell:
     name: Shell scripts
     runs-on: ubuntu-latest
@@ -138,11 +157,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Agent tests on Windows (tray pipe, tray app, Windows Update mapping, real software installs, configurations, drivers, processes, services and event logs)
+      - name: Agent tests on Windows (tray pipe, tray app, Windows Update mapping, real software installs, configurations, drivers, processes, services and event logs, security status)
         env:
           FW_TRAY_EXE: ${{ github.workspace }}\packaging\windows\Tray\bin\Release\net472\FleetWardenTray.exe
           FW_TEST_SOFTWARE: "1"
-        run: go test ./internal/agent/ -run 'Tray|WUA|Software|Browser|Config|Driver|Manage' -count=1 -v -timeout 60m
+        run: go test ./internal/agent/ -run 'Tray|WUA|Software|Browser|Config|Driver|Manage|Power|Security' -count=1 -v -timeout 60m
       - name: Remote desktop on Windows (screen capture, mouse, keyboard, clipboard)
         env:
           FW_REMOTE_SHOT: ${{ runner.temp }}\tray

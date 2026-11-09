@@ -74,6 +74,27 @@ type agentConn struct {
 	since    time.Time
 	gateway  int64             // the gateway the agent came through; 0 for direct
 	sent     map[string]string // last value of settings messages, guarded by the hub
+	// sendMu makes signing and queueing one step: the agent rejects a
+	// message whose sequence number is lower than the previous one, so two
+	// goroutines must not queue their messages in a different order than
+	// they were numbered.
+	sendMu sync.Mutex
+}
+
+// enqueue signs a message and queues it; false when the queue is full.
+func (c *agentConn) enqueue(typ, msgID string, v any) bool {
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+	e, err := c.sess.Seal(typ, msgID, v)
+	if err != nil {
+		return false
+	}
+	select {
+	case c.out <- e:
+		return true
+	default:
+		return false
+	}
 }
 
 type agentHub struct {
@@ -150,16 +171,7 @@ func (h *agentHub) send(id, typ string, v any) bool {
 	if c == nil {
 		return false
 	}
-	e, err := c.sess.Seal(typ, "", v)
-	if err != nil {
-		return false
-	}
-	select {
-	case c.out <- e:
-		return true
-	default:
-		return false
-	}
+	return c.enqueue(typ, "", v)
 }
 
 // sendID queues a signed message with an id (a request the agent answers).
@@ -170,16 +182,7 @@ func (h *agentHub) sendID(id, typ, msgID string, v any) bool {
 	if c == nil {
 		return false
 	}
-	e, err := c.sess.Seal(typ, msgID, v)
-	if err != nil {
-		return false
-	}
-	select {
-	case c.out <- e:
-		return true
-	default:
-		return false
-	}
+	return c.enqueue(typ, msgID, v)
 }
 
 // sendChanged sends a settings message unless the session already got the
@@ -289,8 +292,13 @@ func (s *Server) handleEnroll(w http.ResponseWriter, r *http.Request) {
 	}
 	groupID, groupName := tok.GroupID, tok.GroupName
 	if name := cleanText(req.Group, 100); name != "" {
-		if g, err := s.st.GroupByName(r.Context(), name); err == nil {
-			groupID, groupName = g.ID, g.Name
+		if g, err := s.st.GroupByName(r.Context(), name); err == nil && g.ID != groupID {
+			if s.tokenMayPlaceIn(r.Context(), tok, g.ID) {
+				groupID, groupName = g.ID, g.Name
+			} else {
+				s.auditAs(r, nil, "agent", "device.enroll.group_denied", req.Hostname, false, map[string]any{
+					"group": g.Name, "token": tok.Prefix})
+			}
 		}
 	}
 	d := store.Device{
@@ -321,6 +329,25 @@ func (s *Server) handleEnroll(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, agentproto.EnrollResponse{DeviceID: d.ID, ServerPublicKey: s.agentPublicKey(), GroupName: groupName})
 }
 
+// tokenMayPlaceIn reports whether a device enrolling with tok may pick group
+// groupID instead of the token's own group (msiexec GROUP=). That is only
+// allowed within the device-group scope of the user who created the token, so
+// a token from a technician limited to some groups cannot place a device in
+// another group and receive that group's configurations and software.
+func (s *Server) tokenMayPlaceIn(ctx context.Context, tok store.EnrollmentToken, groupID int64) bool {
+	if tok.CreatedBy == "" {
+		return false
+	}
+	u, err := s.st.UserByUsername(ctx, tok.CreatedBy)
+	if errors.Is(err, store.ErrNotFound) && tok.CreatedBy == "cli" {
+		return true // made by root on the server console (fleetwarden-server enrollment-token)
+	}
+	if err != nil || u.Disabled {
+		return false
+	}
+	return store.UserScope(u).Allows(groupID)
+}
+
 func newUUID() string {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
@@ -339,7 +366,7 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 		apiError(w, http.StatusTooManyRequests, "rate_limited")
 		return
 	}
-	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{CompressionMode: websocket.CompressionContextTakeover})
+	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{CompressionMode: websocket.CompressionNoContextTakeover})
 	if err != nil {
 		return
 	}
@@ -402,7 +429,7 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	}
 	welcome, _ := sess.Seal(agentproto.TypeWelcome, "", agentproto.Welcome{
 		DeviceID: dev.ID, HeartbeatSeconds: int(agentHeartbeat / time.Second), InventoryMinutes: intervals.InventoryMinutes,
-		InventoryRequired: inventoryDue(dev.InventoryAt, s.now(), intervals.InventoryMinutes),
+		InventoryRequired: inventoryDue(dev.InventoryAt, s.now(), intervals.InventoryMinutes), SelfService: true,
 	})
 	// The welcome carries the interval, so the scheduler need not resend it.
 	if raw, err := json.Marshal(agentproto.AgentConfig{InventoryMinutes: intervals.InventoryMinutes}); err == nil {
@@ -427,6 +454,8 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	go s.patchOnConnect(ctx, dev)
 	go s.softwareOnConnect(ctx, dev.ID)
 	go s.configOnConnect(ctx, dev.ID)
+	go s.securityOnConnect(ctx, dev.ID)
+	go s.powerOnConnect(ctx, dev.ID)
 	for {
 		e, err := readEnvelope(ctx, ws)
 		if err != nil {
@@ -436,7 +465,7 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 			ws.Close(4401, "bad signature") //nolint:errcheck
 			return
 		}
-		if err := s.handleAgentMessage(ctx, c, ip, e); err != nil {
+		if err := s.handleAgentMessage(ctx, c, ip, e); err != nil && !canceled(err) {
 			s.log.Warn("agent message", "device", dev.ID, "type", e.Type, "err", err)
 		}
 	}
@@ -527,10 +556,18 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 		return s.handleSoftwareStatusMsg(ctx, c, e)
 	case agentproto.TypeConfigStatus:
 		return s.handleConfigStatusMsg(ctx, c, e)
+	case agentproto.TypePowerStatus:
+		return s.handlePowerStatusMsg(ctx, c, e)
 	case agentproto.TypeRemoteStatus:
 		return s.handleRemoteStatusMsg(c, e)
+	case agentproto.TypeSecurityReport:
+		return s.handleSecurityReportMsg(ctx, c, e)
+	case agentproto.TypeSecurityActionStatus:
+		return s.handleSecurityActionStatusMsg(ctx, c, e)
 	case agentproto.TypeManageResult:
 		return s.handleManageResultMsg(c, e)
+	case agentproto.TypeSelfServiceRequest:
+		return s.handleSelfServiceMsg(ctx, c, e)
 	default:
 		return fmt.Errorf("unknown message type %q", e.Type)
 	}
@@ -590,7 +627,8 @@ func (s *Server) saveInventory(ctx context.Context, id string, inv agentproto.In
 			continue
 		}
 		row := store.SoftwareRow{Name: name, Version: cleanText(p.Version, 100), Publisher: cleanText(p.Publisher, 200),
-			Source: cleanText(p.Source, 20), SizeBytes: max(p.SizeBytes, 0)}
+			Source: cleanText(p.Source, 20), SizeBytes: max(p.SizeBytes, 0),
+			SrcPackage: cleanText(p.SourcePackage, 128), SrcVersion: cleanText(p.SourceVersion, 100)}
 		if on := cleanText(p.InstalledOn, 10); on != "" {
 			row.InstalledOn = &on
 		}

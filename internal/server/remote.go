@@ -218,6 +218,9 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 			rtc = &rtcConfig{ICEServers: rset.STUNServers}
 		}
 	}
+	// Copy for the response before the agent can update the state (on its
+	// own connection) once the session is visible.
+	resp := rs.RemoteSession
 	s.remote.put(rs)
 	if !s.hub.send(dev.ID, agentproto.TypeRemoteStart, agentproto.RemoteStart{
 		SessionID: rs.ID, Kind: rs.Kind, Operator: operator, Consent: rs.Consent, ConsentSeconds: remoteConsentSeconds,
@@ -235,7 +238,7 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, "remote.start", dev.Hostname, true, details)
 	go s.watchRemote(rs)
-	writeJSON(w, http.StatusCreated, startRemoteResp{RemoteSession: rs.RemoteSession, RTC: rtc})
+	writeJSON(w, http.StatusCreated, startRemoteResp{RemoteSession: resp, RTC: rtc})
 }
 
 // rtcConfig tells the viewer it may set up the direct path.

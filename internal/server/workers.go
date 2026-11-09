@@ -61,11 +61,14 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.backupTick(ctx)
 			s.agentUpdateTick(ctx)
 			s.patchTick(ctx)
+			s.powerTick(ctx)
 			s.driversTick(ctx)
 			s.softwareTick(ctx)
 			s.configTick(ctx)
 			s.reportTick(ctx)
+			s.securityTick(ctx)
 			s.alertTick(ctx)
+			s.vulnTick(ctx)
 			s.pruneTransfers()
 		case <-houseTick.C:
 			s.checkRepository(ctx)
@@ -85,13 +88,22 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			if err := s.st.PurgePatchRuns(ctx, 400*24*time.Hour); err != nil {
 				s.log.Warn("purge patch history", "err", err)
 			}
+			if err := s.st.PurgePowerActions(ctx, powerHistoryDay*24*time.Hour); err != nil {
+				s.log.Warn("purge power history", "err", err)
+			}
 			if err := s.st.PurgeSoftwareJobs(ctx, 400*24*time.Hour); err != nil {
 				s.log.Warn("purge software history", "err", err)
 			}
 			if err := s.st.PurgeConfigurationRuns(ctx, configRunDays*24*time.Hour); err != nil {
 				s.log.Warn("purge configuration script runs", "err", err)
 			}
+			if err := s.st.PurgeSelfService(ctx, selfServiceRetention); err != nil {
+				s.log.Warn("purge self-service requests", "err", err)
+			}
 			s.pruneSoftwareFiles(ctx)
+			if err := s.st.PurgeVulnExceptions(ctx); err != nil {
+				s.log.Warn("purge accepted vulnerability risks", "err", err)
+			}
 		}
 	}
 }

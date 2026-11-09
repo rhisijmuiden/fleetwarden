@@ -27,14 +27,19 @@ import { AgentUpdates } from "./pages/admin/AgentUpdates";
 import { Gateways } from "./pages/admin/Gateways";
 import { Patches } from "./pages/patches/Patches";
 import { Drivers } from "./pages/drivers/Drivers";
+import { Vulnerabilities } from "./pages/vulnerabilities/Vulnerabilities";
+import { VulnDetail } from "./pages/vulnerabilities/VulnDetail";
 import { Software } from "./pages/software/Software";
 import { DeploymentDetail, Deployments } from "./pages/software/Deployments";
 import { Remote } from "./pages/remote/Remote";
 import { RemoteViewer } from "./pages/remote/Viewer";
 import { Reports } from "./pages/reports/Reports";
 import { Alerts } from "./pages/alerts/Alerts";
+import { Security } from "./pages/security/Security";
 import { ConfigDetail, ConfigEditor, Configurations } from "./pages/configurations/Configurations";
 import { ConfigProfiles, ProfileEditor } from "./pages/configurations/Profiles";
+import { PowerPage } from "./pages/power/Power";
+import { SelfService } from "./pages/selfservice/SelfService";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
@@ -49,6 +54,8 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/asset-management", perm: "devices.view", element: <Assets /> },
   { path: "/patches", perm: "devices.view", element: <Patches /> },
   { path: "/drivers", perm: "devices.view", element: <Drivers /> },
+  { path: "/vulnerabilities", perm: "devices.view", element: <Vulnerabilities /> },
+  { path: "/vulnerabilities/:cve", perm: "devices.view", element: <VulnDetail /> },
   { path: "/software", perm: "devices.view", element: <Software /> },
   { path: "/deployments", perm: "devices.view", element: <Deployments /> },
   { path: "/deployments/:id", perm: "devices.view", element: <DeploymentDetail /> },
@@ -59,9 +66,12 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/configurations/profiles/:id", perm: "devices.view", element: <ProfileEditor /> },
   { path: "/configurations/:id", perm: "devices.view", element: <ConfigDetail /> },
   { path: "/configurations/:id/edit", perm: "config.manage", element: <ConfigEditor key="edit" /> },
+  { path: "/power", perm: "devices.view", element: <PowerPage /> },
   { path: "/remote", perm: "remote.control", element: <Remote /> },
+  { path: "/selfservice", perm: "devices.view", element: <SelfService /> },
   { path: "/reports", perm: "devices.view", element: <Reports /> },
   { path: "/alerts", perm: "devices.view", element: <Alerts /> },
+  { path: "/security", perm: "devices.view", element: <Security /> },
   { path: "/admin/users", perm: "users.manage", element: <Users /> },
   { path: "/admin/authentication", perm: "settings.manage", element: <Authentication /> },
   { path: "/admin/mail", perm: "settings.manage", element: <Mail /> },

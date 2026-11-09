@@ -57,11 +57,19 @@ $run = if ($runKey.PSObject.Properties['FleetWardenTray']) { $runKey.FleetWarden
 if ($run -ne "`"$tray`"") { throw "tray app Run entry is '$run'" }
 $shots = Join-Path $env:RUNNER_TEMP 'tray'
 New-Item -ItemType Directory -Force $shots | Out-Null
-foreach ($demo in @('install', 'en', '--light'), @('reboot', 'nl', '--dark'), @('install', 'nl', '--light'), @('browser', 'en', '--light'), @('browser', 'nl', '--dark'), @('remote', 'en', '--light'), @('remote', 'nl', '--dark'), @('banner', 'en', '--light'), @('banner', 'nl', '--dark')) {
+foreach ($demo in @('install', 'en', '--light'), @('reboot', 'nl', '--dark'), @('install', 'nl', '--light'), @('browser', 'en', '--light'), @('browser', 'nl', '--dark'), @('restart', 'en', '--light'), @('shutdown', 'nl', '--dark'), @('remote', 'en', '--light'), @('remote', 'nl', '--dark'), @('banner', 'en', '--light'), @('banner', 'nl', '--dark')) {
     $png = Join-Path $shots "popup-$($demo[0])-$($demo[1]).png"
     $p = Start-Process $tray -ArgumentList '--demo', $demo[0], '--lang', $demo[1], $demo[2], '--screenshot', "`"$png`"" -PassThru
     if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "tray app hung rendering $($demo -join ' ')" }
     if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw "tray app could not render its pop-up ($($demo -join ' '), exit $($p.ExitCode))" }
+    Write-Host "rendered $png ($((Get-Item $png).Length) bytes)"
+}
+# The self-service window with example data, every page in both languages.
+foreach ($demo in @('software', 'en', '--light'), @('software', 'nl', '--dark'), @('updates', 'en', '--light'), @('updates', 'nl', '--light'), @('help', 'en', '--dark'), @('help', 'nl', '--light')) {
+    $png = Join-Path $shots "selfservice-$($demo[0])-$($demo[1]).png"
+    $p = Start-Process $tray -ArgumentList '--demo', 'selfservice', '--page', $demo[0], '--lang', $demo[1], $demo[2], '--screenshot', "`"$png`"" -PassThru
+    if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "tray app hung rendering self-service $($demo -join ' ')" }
+    if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw "tray app could not render its self-service window ($($demo -join ' '), exit $($p.ExitCode))" }
     Write-Host "rendered $png ($((Get-Item $png).Length) bytes)"
 }
 

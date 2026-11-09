@@ -19,13 +19,15 @@ namespace FleetWarden.Tray
     public static class Program
     {
         // FleetWardenTray.exe                 runs in the tray (started at logon and by the agent)
-        // FleetWardenTray.exe --demo [install|reboot|browser|remote|banner] [--lang en|nl] [--dark] [--screenshot file.png]
+        // FleetWardenTray.exe --demo [install|reboot|restart|shutdown|browser|remote|banner] [--lang en|nl] [--dark] [--screenshot file.png]
         //                                     shows an example pop-up, or saves it as an image
+        // FleetWardenTray.exe --demo selfservice [--page software|updates|help] ...
+        //                                     the self-service window with example data
         // FleetWardenTray.exe --pipe name     uses another pipe (tests); its server need not be a service
         [STAThread]
         public static int Main(string[] args)
         {
-            string demo = null, screenshot = null, pipe = null;
+            string demo = null, screenshot = null, pipe = null, ssPage = null;
             for (var i = 0; i < args.Length; i++)
             {
                 var next = i + 1 < args.Length && !args[i + 1].StartsWith("--") ? args[i + 1] : null;
@@ -37,10 +39,12 @@ namespace FleetWarden.Tray
                     case "--light": Theme.ForceDark = false; break;
                     case "--pipe": pipe = next; if (next != null) i++; break;
                     case "--screenshot": screenshot = next; if (next != null) i++; break;
+                    case "--page": ssPage = next; if (next != null) i++; break;
                 }
             }
 
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            if (demo == "selfservice") return SelfServiceDemo.Run(app, ssPage, screenshot);
             if (demo != null) return Demo(app, demo, screenshot);
 
             using (var single = new Mutex(true, @"Local\FleetWarden.Tray" + (pipe == null ? "" : "." + pipe), out var first))
@@ -60,7 +64,7 @@ namespace FleetWarden.Tray
             var remote = kind == Prompt.Remote || kind == "banner";
             var p = new Prompt
             {
-                Id = "demo", Kind = kind == Prompt.Reboot || kind == Prompt.Browser || remote ? (remote ? Prompt.Remote : kind) : Prompt.Install, Updates = 4,
+                Id = "demo", Kind = kind == Prompt.Reboot || kind == Prompt.Browser || kind == Prompt.Restart || kind == Prompt.Shutdown || remote ? (remote ? Prompt.Remote : kind) : Prompt.Install, Updates = 4,
                 CanPostpone = !remote, PostponesLeft = 2, PostponeMinutes = 60, CountdownSeconds = kind == Prompt.Browser ? 60 : remote ? 30 : 300, ProductName = "FleetWarden",
                 Apps = kind == Prompt.Browser ? new[] { "Google Chrome", "Microsoft Edge" } : null,
                 Operator = remote ? "Reinder" : null,
@@ -112,11 +116,15 @@ namespace FleetWarden.Tray
         readonly string pipeName;
         readonly bool anyServer;
         readonly Forms.NotifyIcon icon;
-        readonly Forms.ToolStripMenuItem status, show;
+        readonly Forms.ToolStripMenuItem status, show, selfService;
         readonly object writeLock = new object();
         readonly AppCloser closer = new AppCloser();
         StreamWriter writer;
         PromptWindow window;
+        SelfServiceWindow ssWindow;
+        int ssSeq;
+        readonly System.Collections.Generic.Dictionary<string, TaskCompletionSource<SelfServiceReply>> ssPending =
+            new System.Collections.Generic.Dictionary<string, TaskCompletionSource<SelfServiceReply>>();
         readonly System.Collections.Generic.Dictionary<string, RemoteBanner> banners = new System.Collections.Generic.Dictionary<string, RemoteBanner>();
         string product = "FleetWarden", accent;
         bool connected;
@@ -129,11 +137,20 @@ namespace FleetWarden.Tray
             status = new Forms.ToolStripMenuItem(Strings.TrayDisconnected) { Enabled = false };
             show = new Forms.ToolStripMenuItem(Strings.ShowPrompt) { Visible = false };
             show.Click += (s, e) => window?.Flash();
+            selfService = new Forms.ToolStripMenuItem(SsText.MenuOpen) { Font = new Font(Forms.Control.DefaultFont, System.Drawing.FontStyle.Bold) };
+            selfService.Click += (s, e) => OpenSelfService();
             var menu = new Forms.ContextMenuStrip();
+            menu.Items.Add(selfService);
+            menu.Items.Add(new Forms.ToolStripSeparator());
             menu.Items.Add(status);
             menu.Items.Add(show);
             icon = new Forms.NotifyIcon { Icon = TrayIcon.Create(null), ContextMenuStrip = menu, Visible = true };
-            icon.MouseClick += (s, e) => { if (e.Button == Forms.MouseButtons.Left) window?.Flash(); };
+            icon.MouseClick += (s, e) =>
+            {
+                if (e.Button != Forms.MouseButtons.Left) return;
+                if (window != null) window.Flash();
+                else OpenSelfService();
+            };
             UpdateStatus();
         }
 
@@ -165,6 +182,7 @@ namespace FleetWarden.Tray
                 catch (IOException) { }
                 catch (Exception ex) { System.Diagnostics.Trace.WriteLine(ex); }
                 lock (writeLock) writer = null;
+                FailSelfService();
                 ui.BeginInvoke(new Action(() =>
                 {
                     connected = false;
@@ -218,6 +236,15 @@ namespace FleetWarden.Tray
                             UpdateStatus();
                         }
                     }));
+                    break;
+                case "ss-reply":
+                    TaskCompletionSource<SelfServiceReply> tcs;
+                    lock (ssPending)
+                    {
+                        if (!ssPending.TryGetValue(m.Id ?? "", out tcs)) break;
+                        ssPending.Remove(m.Id);
+                    }
+                    tcs.TrySetResult(m.Reply ?? new SelfServiceReply { Error = "internal" });
                     break;
                 case "launch-apps":
                     Task.Run(() => closer.Launch(m.Id));
@@ -277,6 +304,58 @@ namespace FleetWarden.Tray
             banners[id] = b;
             b.Show();
             UpdateStatus();
+        }
+
+        // OpenSelfService shows the self-service window (one per tray).
+        void OpenSelfService()
+        {
+            if (ssWindow != null)
+            {
+                ssWindow.Activate(SelfServiceWindow.Tab.Software);
+                return;
+            }
+            ssWindow = new SelfServiceWindow(SelfServiceRequest, accent);
+            try { ssWindow.Icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(icon.Icon.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions()); }
+            catch (Exception) { }
+            ssWindow.Closed += (s, e) => ssWindow = null;
+            ssWindow.Show();
+            ssWindow.Activate();
+        }
+
+        // SelfServiceRequest sends a request over the pipe and waits for the
+        // agent's reply.
+        Task<SelfServiceReply> SelfServiceRequest(TrayMessage m)
+        {
+            var tcs = new TaskCompletionSource<SelfServiceReply>(TaskCreationOptions.RunContinuationsAsynchronously);
+            bool online;
+            lock (writeLock) online = writer != null;
+            if (!online)
+            {
+                tcs.SetResult(new SelfServiceReply { Error = "offline" });
+                return tcs.Task;
+            }
+            var id = "ss" + Interlocked.Increment(ref ssSeq);
+            m.Id = id;
+            lock (ssPending) ssPending[id] = tcs;
+            Task.Run(() => Send(m));
+            Task.Delay(TimeSpan.FromSeconds(45)).ContinueWith(_ =>
+            {
+                lock (ssPending) ssPending.Remove(id);
+                tcs.TrySetResult(new SelfServiceReply { Error = "offline" });
+            });
+            return tcs.Task;
+        }
+
+        void FailSelfService()
+        {
+            TaskCompletionSource<SelfServiceReply>[] all;
+            lock (ssPending)
+            {
+                all = new TaskCompletionSource<SelfServiceReply>[ssPending.Count];
+                ssPending.Values.CopyTo(all, 0);
+                ssPending.Clear();
+            }
+            foreach (var t in all) t.TrySetResult(new SelfServiceReply { Error = "offline" });
         }
 
         void Send(TrayMessage m)

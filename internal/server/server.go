@@ -90,6 +90,7 @@ type Server struct {
 	gateways   gatewayManager
 	drivers    driverRepo
 	vendors    vendorSync
+	vulns      vulnSync
 	appOnce    sync.Once
 	app        http.Handler
 	trusted    atomic.Pointer[[]netip.Prefix] // FW_TRUSTED_PROXIES plus the web interface list
@@ -195,7 +196,9 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.deviceRoutes(mux)
 	s.assetRoutes(mux)
 	s.patchRoutes(mux)
+	s.powerRoutes(mux)
 	s.driverRoutes(mux)
+	s.securityRoutes(mux)
 	s.agentUpdateRoutes(mux)
 	s.softwareRoutes(mux)
 	s.configRoutes(mux)
@@ -203,6 +206,8 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.manageRoutes(mux)
 	s.reportRoutes(mux)
 	s.alertRoutes(mux)
+	s.vulnRoutes(mux)
+	s.selfServiceRoutes(mux)
 	s.gatewayRoutes(mux)
 	s.proxyRoutes(mux)
 
@@ -423,6 +428,9 @@ func securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		h.Set("Cross-Origin-Opener-Policy", "same-origin")
+		h.Set("Cross-Origin-Resource-Policy", "same-origin")
+		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), hid=(), bluetooth=()")
 		h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "+
 			"img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
 		if strings.HasPrefix(r.URL.Path, "/api/") {
@@ -466,7 +474,16 @@ func apiErrorDetail(w http.ResponseWriter, code int, errCode, detail string) {
 	writeJSON(w, code, apiErr{Error: errCode, Detail: detail})
 }
 
+// canceled reports an error caused by a closed connection or shutdown, which
+// is not worth a log line.
+func canceled(err error) bool {
+	return errors.Is(err, context.Canceled)
+}
+
 func (s *Server) internalError(w http.ResponseWriter, r *http.Request, err error) {
+	if canceled(err) && r.Context().Err() != nil {
+		return // the browser went away
+	}
 	s.log.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
 	apiError(w, http.StatusInternalServerError, "internal")
 }

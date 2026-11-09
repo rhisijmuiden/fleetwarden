@@ -22,6 +22,17 @@ var Argon2Params = struct {
 	Threads uint8
 }{Memory: 64 * 1024, Time: 3, Threads: 2}
 
+// argonSlots bounds how many argon2id computations run at once. Each one
+// takes Argon2Params.Memory (64 MiB), so a burst of login attempts cannot
+// exhaust the server's memory; extra attempts wait their turn.
+var argonSlots = make(chan struct{}, 4)
+
+func idKey(pw, salt []byte, t, m uint32, p uint8, n uint32) []byte {
+	argonSlots <- struct{}{}
+	defer func() { <-argonSlots }()
+	return argon2.IDKey(pw, salt, t, m, p, n)
+}
+
 // MinPasswordLength is the minimum length of a local account password.
 const MinPasswordLength = 12
 
@@ -39,7 +50,7 @@ func HashPassword(pw string) (string, error) {
 		return "", err
 	}
 	p := Argon2Params
-	key := argon2.IDKey([]byte(pw), salt, p.Time, p.Memory, p.Threads, 32)
+	key := idKey([]byte(pw), salt, p.Time, p.Memory, p.Threads, 32)
 	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, p.Memory, p.Time, p.Threads,
 		base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(key)), nil
 }
@@ -67,7 +78,7 @@ func VerifyPassword(pw, encoded string) bool {
 	if err != nil || len(want) == 0 {
 		return false
 	}
-	got := argon2.IDKey([]byte(pw), salt, t, m, p, uint32(len(want)))
+	got := idKey([]byte(pw), salt, t, m, p, uint32(len(want)))
 	return subtle.ConstantTimeCompare(got, want) == 1
 }
 

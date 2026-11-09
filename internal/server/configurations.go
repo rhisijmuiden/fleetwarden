@@ -50,12 +50,16 @@ func (s *Server) pushConfigPolicies(ctx context.Context, ids []string) {
 	}
 	configs, err := s.st.EnabledConfigurations(ctx)
 	if err != nil {
-		s.log.Warn("configurations", "err", err)
+		if !canceled(err) {
+			s.log.Warn("configurations", "err", err)
+		}
 		return
 	}
 	targets, err := s.st.ConfigTargets(ctx, ids)
 	if err != nil {
-		s.log.Warn("configurations", "err", err)
+		if !canceled(err) {
+			s.log.Warn("configurations", "err", err)
+		}
 		return
 	}
 	cache := map[string]agentproto.ConfigPolicy{}

@@ -54,6 +54,12 @@ namespace FleetWarden.Tray
             r["Inner"] = Brush("#0E1525");
             r["Dots"] = Brush("#9DB2FF");
             r["Accent"] = Freeze(new SolidColorBrush(a));
+            r["Success"] = Brush(dark ? "#2BC46B" : "#12A150");
+            r["Warning"] = Brush(dark ? "#F5A524" : "#D98A00");
+            r["Danger"] = Brush(dark ? "#F0566A" : "#DC3545");
+            r["Sidebar"] = Brush(dark ? "#070A11" : "#0E1525");
+            r["SidebarFg"] = Brush(dark ? "#AEB6C4" : "#C3CAD6");
+            r["SidebarActive"] = Brush(dark ? "#162038" : "#1C2742");
             r["AccentFg"] = Freeze(new SolidColorBrush(Luminance(a) > 0.6 ? Hex("#0F1729") : Colors.White));
         }
 

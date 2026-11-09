@@ -30,9 +30,9 @@ func TestAlerts(t *testing.T) {
 		}
 	}
 
-	// The two rules from the migration.
+	// The rules from the migrations.
 	var rules struct{ Rules []store.AlertRule }
-	if code := admin.do("GET", "/api/v1/alerts/rules", nil, &rules); code != 200 || len(rules.Rules) != 3 {
+	if code := admin.do("GET", "/api/v1/alerts/rules", nil, &rules); code != 200 || len(rules.Rules) != 4 { // offline, disk, warranty, threat
 		t.Fatalf("rules: %d %+v", code, rules)
 	}
 	var disk, offline store.AlertRule

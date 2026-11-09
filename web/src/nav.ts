@@ -3,6 +3,7 @@ import type { Permission } from "./api";
 import {
   Bell,
   Boxes,
+  Bug,
   Cpu,
   ScrollText,
   DatabaseBackup,
@@ -10,17 +11,20 @@ import {
   FolderTree,
   KeyRound,
   LayoutDashboard,
+  LifeBuoy,
   Mail,
   Network,
   Monitor,
   MonitorPlay,
   Package,
   Palette,
+  Power,
   RefreshCw,
   Rocket,
   Settings,
   SlidersHorizontal,
   ShieldCheck,
+  ShieldEllipsis,
   ShieldHalf,
   Users,
 } from "lucide-react";
@@ -31,7 +35,7 @@ export type NavItem = {
   icon: LucideIcon;
   phase?: number; // planned phase while not built yet
   perm?: Permission; // hidden for users without this permission
-  badge?: "alerts"; // shows a live count
+  badge?: "alerts" | "selfservice"; // shows a live count
 };
 
 export type NavGroup = { label: string; items: NavItem[] };
@@ -54,11 +58,14 @@ export const navigation: NavGroup[] = [
     label: "nav.management",
     items: [
       { path: "/patches", label: "nav.patches", icon: ShieldCheck, perm: "devices.view" },
+      { path: "/vulnerabilities", label: "nav.vulnerabilities", icon: Bug, perm: "devices.view" },
       { path: "/drivers", label: "nav.drivers", icon: Cpu, perm: "devices.view" },
       { path: "/software", label: "nav.software", icon: Package, perm: "devices.view" },
       { path: "/deployments", label: "nav.deployments", icon: Rocket, perm: "devices.view" },
       { path: "/configurations", label: "nav.configurations", icon: SlidersHorizontal, perm: "devices.view" },
+      { path: "/power", label: "nav.power", icon: Power, perm: "devices.view" },
       { path: "/remote", label: "nav.remote", icon: MonitorPlay, perm: "remote.control" },
+      { path: "/selfservice", label: "nav.selfservice", icon: LifeBuoy, perm: "devices.view", badge: "selfservice" },
     ],
   },
   {
@@ -66,6 +73,7 @@ export const navigation: NavGroup[] = [
     items: [
       { path: "/reports", label: "nav.reports", icon: FileBarChart, perm: "devices.view" },
       { path: "/alerts", label: "nav.alerts", icon: Bell, perm: "devices.view", badge: "alerts" },
+      { path: "/security", label: "nav.security", icon: ShieldEllipsis, perm: "devices.view" },
     ],
   },
   {
