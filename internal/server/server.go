@@ -193,6 +193,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.agentRoutes(mux)
 	s.deviceRoutes(mux)
 	s.patchRoutes(mux)
+	s.powerRoutes(mux)
 	s.driverRoutes(mux)
 	s.agentUpdateRoutes(mux)
 	s.softwareRoutes(mux)

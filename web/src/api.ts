@@ -20,7 +20,9 @@ export type Permission =
   | "reports.manage"
   | "alerts.manage"
   | "config.manage"
-  | "drivers.manage";
+  | "drivers.manage"
+  | "power.control"
+  | "power.manage";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -393,6 +395,8 @@ export type PatchPolicy = {
   takeOver: boolean;
   drivers: boolean;
   firmware: boolean;
+  wakeForWindow: boolean;
+  shutdownAfter: boolean;
   scanHours: number;
   createdAt: string;
   updatedAt: string;
@@ -1638,3 +1642,82 @@ export type DeviceDrivers = {
   policy: PatchPolicy | null;
   drivers: DeviceDriverRow[];
 };
+
+// ---- power management ----
+
+export type PowerActionKind = "wake" | "restart" | "shutdown";
+export type PowerState = "sent" | "waiting-user" | "postponed" | "skipped" | "completed" | "failed";
+export type PowerTrigger = "manual" | "schedule" | "patch-window" | "after-patch";
+
+export type PowerSchedule = {
+  id: number;
+  name: string;
+  description: string;
+  enabled: boolean;
+  action: PowerActionKind;
+  days: number; // bit 0 = Sunday
+  atMinute: number;
+  timeZone: string;
+  notifyUsers: boolean;
+  maxPostpones: number;
+  postponeMinutes: number;
+  countdownSeconds: number;
+  skipIfUserLoggedOn: boolean;
+  onlyIfRebootPending: boolean;
+  lastRunAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  groups: { id: number; name: string }[];
+  groupIds: number[];
+  nextRun: string | null;
+};
+
+export type PowerSchedules = { schedules: PowerSchedule[]; defaults: PowerSchedule; serverTimeZone: string };
+
+export type PowerAction = {
+  id: number;
+  deviceId: string;
+  hostname: string;
+  action: PowerActionKind;
+  trigger: PowerTrigger;
+  scheduleId: number | null;
+  scheduleName: string;
+  state: PowerState;
+  message: string;
+  relays: string[];
+  postpones: number;
+  postponedUntil: string | null;
+  requestedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
+};
+
+export type PowerDevice = {
+  id: string;
+  hostname: string;
+  groupId: number;
+  platform: Platform;
+  kind: string;
+  online: boolean;
+  loggedInUser: string;
+  lastSeenAt: string;
+  macs: string[];
+  networks: string[];
+  relays: string[];
+};
+
+export type WakeSettings = { serverWake: boolean; port: number; prepareWake: boolean };
+
+export type PowerRequest = {
+  action: PowerActionKind;
+  notify?: boolean;
+  maxPostpones?: number;
+  postponeMinutes?: number;
+  countdownSeconds?: number;
+  skipIfUserLoggedOn?: boolean;
+  onlyIfRebootPending?: boolean;
+  deviceIds?: string[];
+};
+
+export type BulkPowerResult = { sent: number; skipped: number; actions: PowerAction[] };

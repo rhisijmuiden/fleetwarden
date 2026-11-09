@@ -13,6 +13,7 @@ import { JobDialog, JobsTable } from "../software/Deployments";
 import { SourceBadge } from "../software/util";
 import { RemoteButton } from "../remote/Remote";
 import { DeviceConfigsTab } from "../configurations/DeviceConfigs";
+import { PowerButtons } from "../power/DevicePower";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
 type Tab = "overview" | "software" | "updates" | "drivers" | "configurations" | "notes";
@@ -69,9 +70,18 @@ export function DeviceDetail() {
             </div>
           </div>
         </div>
-        {(manage || can("remote.control")) && (
+        {(manage || can("remote.control") || can("power.control")) && (
           <div className="flex flex-wrap gap-2">
             {can("remote.control") && <RemoteButton device={device} />}
+            {can("power.control") && (
+              <PowerButtons
+                device={device}
+                onDone={(m) => {
+                  setNotice(m);
+                  setTimeout(load, 5000);
+                }}
+              />
+            )}
             {manage && (
               <>
                 <Button

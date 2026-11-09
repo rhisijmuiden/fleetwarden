@@ -65,6 +65,11 @@ type Agent struct {
 	Remote RemoteBackend
 	// Config applies configurations; defaults to the platform backend.
 	Config ConfigBackend
+	// Power restarts and shuts down the device; defaults to the platform
+	// backend.
+	Power PowerBackend
+	// LoggedOnUser names the logged-on users; tests replace it.
+	LoggedOnUser func() string
 	// Minute is the length of a postpone or inventory-interval minute;
 	// tests shorten it.
 	Minute time.Duration
@@ -80,6 +85,7 @@ type Agent struct {
 	software softwareState // guarded by mu
 	remote   remoteState
 	config   configRunner
+	power    powerState
 	ctx      context.Context // of Run: jobs outlive a single session
 	// installMu keeps patch installs and software jobs apart: Windows
 	// Installer and dpkg run one installation at a time.
@@ -443,6 +449,12 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 				a.handleRemoteStart(e, send)
 			case agentproto.TypeRemoteStop:
 				a.handleRemoteStop(e)
+			case agentproto.TypePowerWake:
+				a.handlePowerWake(e)
+			case agentproto.TypePowerAction:
+				a.handlePowerAction(e)
+			case agentproto.TypePowerConfig:
+				a.handlePowerConfig(e)
 			default:
 				a.Log.Debug("ignoring message", "type", e.Type)
 			}
