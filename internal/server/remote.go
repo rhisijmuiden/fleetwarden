@@ -183,8 +183,12 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "remote.start", dev.Hostname, true, map[string]any{"session": rs.ID, "deviceId": dev.ID, "kind": rs.Kind, "consent": rs.Consent})
+	// The agent may already report progress: copy the session under its lock.
+	rs.mu.Lock()
+	out := rs.RemoteSession
+	rs.mu.Unlock()
 	go s.watchRemote(rs)
-	writeJSON(w, http.StatusCreated, rs.RemoteSession)
+	writeJSON(w, http.StatusCreated, out)
 }
 
 // watchRemote ends sessions whose viewer or agent never shows up.
