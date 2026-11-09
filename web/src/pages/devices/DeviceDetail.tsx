@@ -11,7 +11,7 @@ import { DeviceDriversTab } from "../drivers/DeviceDrivers";
 import { DeployDialog, type DeployTarget } from "../software/DeployDialog";
 import { JobDialog, JobsTable } from "../software/Deployments";
 import { SourceBadge } from "../software/util";
-import { RemoteButton } from "../remote/Remote";
+import { RemoteButton, TerminalButton } from "../remote/Remote";
 import { DeviceConfigsTab } from "../configurations/DeviceConfigs";
 import { DeviceManageTab } from "../manage/Manage";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
@@ -72,7 +72,8 @@ export function DeviceDetail() {
         </div>
         {(manage || can("remote.control")) && (
           <div className="flex flex-wrap gap-2">
-            {can("remote.control") && <RemoteButton device={device} />}
+            {can("remote.control") && device.platform !== "linux" && <RemoteButton device={device} />}
+            {can("remote.control") && <TerminalButton device={device} variant={device.platform === "linux" ? "primary" : "secondary"} />}
             {manage && (
               <>
                 <Button

@@ -84,8 +84,8 @@ back-up zit, en overleven een herstart van de server niet.
 
 ## Console
 
-De PowerShell- (Windows) of bash-console (Linux) hoort bij
-[overnemen op afstand](remote.nl.md): die opent een terminal in een
+**Console** in het menu opent de PowerShell- of opdrachtprompt (Windows) of root-shell (Linux) van
+[overnemen op afstand](remote.nl.md) in een eigen
 browsertabblad, ook zonder het scherm over te nemen.
 
 ## Hoe het werkt

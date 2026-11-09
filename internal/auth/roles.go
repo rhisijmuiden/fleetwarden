@@ -31,6 +31,7 @@ const (
 	PermSoftwareManage Permission = "software.manage" // the software library
 	PermSoftwareDeploy Permission = "software.deploy" // install and uninstall software on devices
 	PermRemoteControl  Permission = "remote.control"  // see and control a device's screen
+	PermRemoteTerminal Permission = "remote.terminal" // open a terminal (root or SYSTEM shell) on a device
 	PermReportsManage  Permission = "reports.manage"  // report schedules, compliance settings and alert rules
 	PermAlertsManage   Permission = "alerts.manage"   // acknowledge alerts
 	PermConfigManage   Permission = "config.manage"   // configurations: browser policies, registry values, scripts
@@ -42,7 +43,7 @@ const (
 var Roles = []Role{RoleAdministrator, RoleTechnician, RoleReadOnly}
 
 var rolePermissions = map[Role][]Permission{
-	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermReportsManage, PermAlertsManage, PermConfigManage, PermDriversManage, PermRemoteManage},
+	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermRemoteTerminal, PermReportsManage, PermAlertsManage, PermConfigManage, PermDriversManage, PermRemoteManage},
 	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage, PermPatchesApprove, PermSoftwareDeploy, PermRemoteControl, PermAlertsManage, PermRemoteManage},
 	RoleReadOnly:      {PermDashboardView, PermDevicesView},
 }

@@ -1,20 +1,23 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Activity, Cog, FileText, FolderOpen, PowerOff } from "lucide-react";
+import { Activity, Cog, FileText, FolderOpen, PowerOff, SquareTerminal } from "lucide-react";
 import type { Device } from "../../api";
-import { Alert } from "../../components/ui";
+import { Alert, Card } from "../../components/ui";
+import { useAuth } from "../../auth";
+import { TerminalButton } from "../remote/Remote";
 import { ProcessesPanel } from "./Processes";
 import { ServicesPanel } from "./Services";
 import { LogsPanel } from "./Logs";
 import { FilesPanel } from "./Files";
 
-type Section = "processes" | "services" | "logs" | "files";
+type Section = "processes" | "services" | "logs" | "files" | "console";
 
 const sections: { key: Section; icon: ReactNode }[] = [
   { key: "processes", icon: <Activity className="size-4" /> },
   { key: "services", icon: <Cog className="size-4" /> },
   { key: "logs", icon: <FileText className="size-4" /> },
   { key: "files", icon: <FolderOpen className="size-4" /> },
+  { key: "console", icon: <SquareTerminal className="size-4" /> },
 ];
 
 // DeviceManageTab manages a device without taking over its screen: the user
@@ -54,6 +57,7 @@ export function DeviceManageTab({ device }: { device: Device }) {
         {device.online && section === "services" && <ServicesPanel device={device} />}
         {device.online && section === "logs" && <LogsPanel device={device} />}
         {device.online && section === "files" && <FilesPanel device={device} />}
+        {device.online && section === "console" && <ConsolePanel device={device} />}
       </div>
     </div>
   );
@@ -85,5 +89,21 @@ export function SortHeader<K extends string>({
         {active && <span aria-hidden>{sort.desc ? "↓" : "↑"}</span>}
       </button>
     </th>
+  );
+}
+
+// ConsolePanel opens the PowerShell or bash terminal of remote control in its
+// own tab; it does not take over the screen either.
+function ConsolePanel({ device }: { device: Device }) {
+  const { t } = useTranslation();
+  const { can } = useAuth();
+  return (
+    <Card title={t("manage.sections.console")} description={device.platform === "windows" ? t("manage.console.hintWindows") : t("manage.console.hintLinux")}>
+      {can("remote.terminal") ? (
+        <TerminalButton device={device} variant="primary" />
+      ) : (
+        <p className="text-sm text-muted">{t("manage.console.noPermission")}</p>
+      )}
+    </Card>
   );
 }

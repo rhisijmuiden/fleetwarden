@@ -75,8 +75,8 @@ and do not survive a restart of the server.
 
 ## Console
 
-The PowerShell (Windows) or bash (Linux) console is part of
-[remote control](remote.md): it opens a terminal in a browser tab, also
+**Console** in the menu opens the PowerShell or Command Prompt (Windows) or root shell (Linux) of
+[remote control](remote.md) in its own browser tab, also
 without taking over the screen.
 
 ## How it works
