@@ -34,6 +34,7 @@ import { Reports } from "./pages/reports/Reports";
 import { Alerts } from "./pages/alerts/Alerts";
 import { ConfigDetail, ConfigEditor, Configurations } from "./pages/configurations/Configurations";
 import { ConfigProfiles, ProfileEditor } from "./pages/configurations/Profiles";
+import { SelfService } from "./pages/selfservice/SelfService";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
@@ -55,6 +56,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/configurations/:id", perm: "devices.view", element: <ConfigDetail /> },
   { path: "/configurations/:id/edit", perm: "config.manage", element: <ConfigEditor key="edit" /> },
   { path: "/remote", perm: "remote.control", element: <Remote /> },
+  { path: "/selfservice", perm: "devices.view", element: <SelfService /> },
   { path: "/reports", perm: "devices.view", element: <Reports /> },
   { path: "/alerts", perm: "devices.view", element: <Alerts /> },
   { path: "/admin/users", perm: "users.manage", element: <Users /> },

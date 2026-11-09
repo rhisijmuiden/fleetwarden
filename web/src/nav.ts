@@ -9,6 +9,7 @@ import {
   FolderTree,
   KeyRound,
   LayoutDashboard,
+  LifeBuoy,
   Mail,
   Network,
   Monitor,
@@ -30,7 +31,7 @@ export type NavItem = {
   icon: LucideIcon;
   phase?: number; // planned phase while not built yet
   perm?: Permission; // hidden for users without this permission
-  badge?: "alerts"; // shows a live count
+  badge?: "alerts" | "selfservice"; // shows a live count
 };
 
 export type NavGroup = { label: string; items: NavItem[] };
@@ -57,6 +58,7 @@ export const navigation: NavGroup[] = [
       { path: "/deployments", label: "nav.deployments", icon: Rocket, perm: "devices.view" },
       { path: "/configurations", label: "nav.configurations", icon: SlidersHorizontal, perm: "devices.view" },
       { path: "/remote", label: "nav.remote", icon: MonitorPlay, perm: "remote.control" },
+      { path: "/selfservice", label: "nav.selfservice", icon: LifeBuoy, perm: "devices.view", badge: "selfservice" },
     ],
   },
   {
