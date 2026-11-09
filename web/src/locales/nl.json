@@ -36,7 +36,8 @@
     "reverseProxy": "Reverse proxy",
     "gateways": "Secure gateway",
     "configurations": "Configuraties",
-    "drivers": "Drivers & firmware"
+    "drivers": "Drivers & firmware",
+    "security": "Beveiliging"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -90,7 +91,9 @@
     "done": "Klaar",
     "actions": "Acties",
     "refresh": "Vernieuwen",
-    "secretKept": "Er is een waarde opgeslagen. Laat leeg om die te houden."
+    "secretKept": "Er is een waarde opgeslagen. Laat leeg om die te houden.",
+    "yes": "Ja",
+    "no": "Nee"
   },
   "errors": {
     "generic": "Er ging iets mis.",
@@ -323,7 +326,12 @@
     "no_inf_in_zip": "Het ZIP-bestand bevat geen driver (.inf).",
     "upload_missing": "Het geüploade bestand is weg. Upload het opnieuw.",
     "driver_already_uploaded": "Dit pakket is al geüpload.",
-    "title_required": "Geef het pakket een naam."
+    "title_required": "Geef het pakket een naam.",
+    "invalid_filter": "Onbekend filter.",
+    "invalid_volume": "Kies een stationsletter zoals C:.",
+    "invalid_security_action": "Onbekende beveiligingsactie.",
+    "not_supported": "Dit is niet beschikbaar op dit platform.",
+    "action_open": "Deze actie wacht al of loopt al op het apparaat."
   },
   "login": {
     "title": "Inloggen",
@@ -913,7 +921,8 @@
       "notes": "Notities",
       "updates": "Updates",
       "configurations": "Configuraties",
-      "drivers": "Drivers"
+      "drivers": "Drivers",
+      "security": "Beveiliging"
     },
     "system": "Systeem",
     "osVersion": "Versie",
@@ -1878,7 +1887,7 @@
   },
   "alerts": {
     "title": "Meldingen",
-    "subtitle": "Apparaten die te lang offline zijn of bijna geen schijfruimte meer hebben. Meldingen sluiten vanzelf zodra het probleem weg is.",
+    "subtitle": "Apparaten die te lang offline zijn, bijna geen schijfruimte meer hebben of een beveiligingsprobleem hebben. Meldingen sluiten vanzelf zodra het probleem weg is.",
     "tabs": {
       "open": "Open",
       "history": "Geschiedenis",
@@ -1926,7 +1935,26 @@
       "recipients": "Ontvangers",
       "recipientsHint": "Maximaal 20 adressen, gescheiden door komma's. Laat leeg om meldingen alleen hier te tonen.",
       "notifyResolved": "Ook mailen als een melding is opgelost",
-      "enabled": "Regel is actief"
+      "enabled": "Regel is actief",
+      "kindSecurity": "Beveiligingsstatus",
+      "kinds": {
+        "threat": "Dreiging gevonden",
+        "antivirus": "Antivirus uit of verouderd",
+        "firewall": "Firewall uit",
+        "encryption": "Systeemschijf niet versleuteld"
+      },
+      "condition": {
+        "threat": "Microsoft Defender meldt een actieve dreiging",
+        "antivirus": "Geen antivirus die aan staat en bijgewerkt is (Windows)",
+        "firewall": "De firewall staat uit voor een of meer profielen",
+        "encryption": "Schijfversleuteling staat uit, is onderbroken of onvolledig"
+      },
+      "hint": {
+        "threat": "Gaat open zodra Defender een dreiging meldt die niet is verwijderd.",
+        "antivirus": "Linux-apparaten zonder antivirus tellen niet mee.",
+        "firewall": "Kijkt naar elk Windows-netwerkprofiel en de Linux-firewall.",
+        "encryption": "Meestal alleen voor werkplekken: laptops raken zoek, servers zelden."
+      }
     }
   },
   "proxy": {
@@ -2741,6 +2769,196 @@
         "fwupd": "De agent installeert het cabinet met fwupdmgr op de apparaten waar het op past."
       },
       "uploadedBy": "Geüpload door {{user}} op {{date}}"
+    }
+  },
+  "security": {
+    "title": "Beveiliging",
+    "subtitle": "Schijfversleuteling, antivirus, firewall en lokale beheerders van elk apparaat, met de BitLocker-herstelsleutels.",
+    "tabs": {
+      "overview": "Overzicht",
+      "keys": "Herstelsleutels"
+    },
+    "tiles": {
+      "encrypted": "Versleuteld",
+      "encryptedSub": "{{count}} niet of deels versleuteld",
+      "antivirus": "Antivirus OK",
+      "antivirusSub": "{{count}} uit of verouderd",
+      "firewall": "Firewall aan",
+      "firewallSub": "{{count}} uit of deels uit",
+      "threats": "Actieve dreigingen",
+      "threatsSub": "apparaten met een dreiging",
+      "secureBoot": "Secure Boot uit",
+      "secureBootSub": "apparaten zonder Secure Boot",
+      "unreported": "Geen rapport",
+      "unreportedSub": "oudere agent of nog niet gezien"
+    },
+    "filters": {
+      "unencrypted": "Niet versleuteld",
+      "antivirus": "Antivirusproblemen",
+      "firewall": "Firewall uit",
+      "threats": "Actieve dreigingen",
+      "secureboot": "Secure Boot uit",
+      "unreported": "Zonder beveiligingsrapport"
+    },
+    "allDevices": "Alle apparaten",
+    "allDevicesHint": "Klik op een tegel hierboven om alleen de apparaten met dat probleem te zien.",
+    "search": "Zoek apparaat of serienummer",
+    "noneMatch": "Geen apparaat heeft dit probleem.",
+    "noDevices": "Nog geen apparaten.",
+    "notReported": "Niet gemeld",
+    "col": {
+      "encryption": "Versleuteling",
+      "antivirus": "Antivirus",
+      "firewall": "Firewall",
+      "threats": "Dreigingen",
+      "secureBoot": "Secure Boot",
+      "admins": "Beheerders",
+      "reported": "Rapport"
+    },
+    "encryption": {
+      "encrypted": "Versleuteld",
+      "partial": "Deels versleuteld",
+      "suspended": "Onderbroken",
+      "encrypting": "Bezig met versleutelen",
+      "none": "Niet versleuteld",
+      "unknown": "Onbekend"
+    },
+    "antivirus": {
+      "ok": "Aan",
+      "outdated": "Verouderd",
+      "disabled": "Uit",
+      "none": "Geen",
+      "unknown": "Onbekend"
+    },
+    "firewall": {
+      "on": "Aan",
+      "partial": "Deels uit",
+      "off": "Uit",
+      "unknown": "Onbekend"
+    },
+    "volume": {
+      "encrypted": "Volledig versleuteld",
+      "encrypting": "Bezig met versleutelen",
+      "decrypting": "Bezig met ontsleutelen",
+      "decrypted": "Niet versleuteld",
+      "paused": "Gepauzeerd"
+    },
+    "protection": {
+      "on": "Beveiligd",
+      "off": "Uit",
+      "suspended": "Onderbroken"
+    },
+    "actions": {
+      "defender": {
+        "quickscan": "Snelle scan",
+        "fullscan": "Volledige scan",
+        "signatures": "Definities bijwerken"
+      },
+      "bitlocker": {
+        "rotate": "Nieuwe herstelsleutel"
+      }
+    },
+    "actionState": {
+      "queued": "Wacht op apparaat",
+      "running": "Bezig",
+      "completed": "Klaar",
+      "failed": "Mislukt"
+    },
+    "device": {
+      "title": "Beveiligingsstatus",
+      "collected": "Gemeld {{when}}",
+      "never": "Nog geen beveiligingsrapport",
+      "neverHint": "De agent stuurt zijn beveiligingsstatus mee met elke inventarisatie. Agents ouder dan deze serverversie doen dat nog niet; na hun volgende update wel.",
+      "refresh": "Nu controleren",
+      "refreshRequested": "Het apparaat verzamelt zijn beveiligingsstatus.",
+      "partial": "Sommige onderdelen konden niet worden gelezen",
+      "tpmReady": "gereed",
+      "tpmNotReady": "niet gereed",
+      "tpmNone": "Geen TPM",
+      "encryption": "Schijfversleuteling",
+      "encryptionHintWin": "BitLocker-status van elke vaste schijf.",
+      "encryptionHintLinux": "Gekoppelde bestandssystemen en of er LUKS (dm-crypt) onder ligt.",
+      "noVolumes": "Geen vaste schijven gemeld.",
+      "volume": "Schijf",
+      "method": "Versleuteling",
+      "status": "Status",
+      "protection": "Beveiliging",
+      "protectors": "Sleutelbeveiligingen",
+      "systemVolume": "Systeem",
+      "notEncrypted": "Geen",
+      "antivirus": "Antivirus",
+      "noAntivirus": "Geen antivirus gevonden.",
+      "on": "Aan",
+      "off": "Uit",
+      "upToDate": "Bijgewerkt",
+      "outdated": "Verouderd",
+      "defenderMode": "Modus Microsoft Defender",
+      "realTime": "Realtimebeveiliging",
+      "tamper": "Manipulatiebeveiliging",
+      "signatures": "Definities",
+      "quickScan": "Laatste snelle scan",
+      "fullScan": "Laatste volledige scan",
+      "neverScanned": "Nooit",
+      "firewallTitle": "Firewall",
+      "noFirewall": "Geen firewall gevonden",
+      "activeProfile": "Huidig netwerk",
+      "inbound": {
+        "block": "Inkomend geblokkeerd",
+        "allow": "Inkomend toegestaan"
+      },
+      "threats": "Dreigingen (laatste 30 dagen)",
+      "threatsHint": "Wat Microsoft Defender heeft gevonden. Actieve dreigingen zijn niet verwijderd of in quarantaine gezet.",
+      "threat": "Dreiging",
+      "severity": "Ernst",
+      "detected": "Gevonden",
+      "state": "Status",
+      "active": "Actief",
+      "resolved": "Opgelost",
+      "admins": "Lokale beheerders",
+      "adminsHintWin": "Leden van de lokale groep Administrators.",
+      "adminsHintLinux": "Leden van sudo, wheel of admin, en accounts met UID 0.",
+      "group": "Groep",
+      "unknownAccount": "Onbekend account",
+      "builtin": "Ingebouwd",
+      "actionsTitle": "Recente acties",
+      "actionStarted": "{{action}} gestart.",
+      "actionQueued": "{{action}} start zodra het apparaat weer online is."
+    },
+    "keys": {
+      "title": "Een BitLocker-herstelsleutel opzoeken",
+      "subtitle": "Typ de eerste tekens van de sleutel-id die het BitLocker-herstelscherm toont, de computernaam of het serienummer.",
+      "search": "Sleutel-id, computernaam of serienummer",
+      "none": "Nog geen herstelsleutels opgeslagen.",
+      "noMatch": "Geen sleutel gevonden.",
+      "keyId": "Sleutel-id",
+      "volume": "Schijf",
+      "status": "Status",
+      "lastShown": "Laatst getoond",
+      "lastSeen": "Laatst gemeld",
+      "serial": "Serienummer",
+      "inUse": "In gebruik",
+      "replaced": "Vervangen {{when}}",
+      "deviceRemoved": "Apparaat verwijderd",
+      "neverShown": "Nooit",
+      "show": "Tonen",
+      "stored_one": "{{count}} herstelsleutel opgeslagen",
+      "stored_other": "{{count}} herstelsleutels opgeslagen",
+      "revealTitle": "Herstelsleutel van {{host}} {{volume}}",
+      "reveal": "Sleutel tonen",
+      "password": "Herstelsleutel",
+      "reason": "Reden (optioneel)",
+      "reasonHint": "Bijvoorbeeld het ticketnummer of wie er belde. Dit komt in het auditlogboek.",
+      "auditHint": "Het tonen van een herstelsleutel wordt met je naam vastgelegd in het auditlogboek.",
+      "replacedHint": "Deze sleutel is vervangen op {{when}}. Hij ontgrendelt de schijf alleen als die sindsdien niet opnieuw is versleuteld.",
+      "afterUseTitle": "Vervang de sleutel na gebruik",
+      "afterUse": "Iedereen die deze sleutel heeft gehoord of gezien kan de schijf ontgrendelen. Maak een nieuwe herstelsleutel zodra de gebruiker weer in Windows is.",
+      "rotate": "Nieuwe herstelsleutel",
+      "rotateTitle": "Nieuwe herstelsleutel voor {{volume}}",
+      "rotateText": "Het apparaat maakt een nieuw BitLocker-herstelwachtwoord en verwijdert de oude. FleetWarden bewaart de nieuwe sleutel bij het volgende rapport; oude sleutels blijven hier vindbaar.",
+      "rotateStarted": "{{host}} maakt een nieuwe herstelsleutel.",
+      "deviceTitle": "BitLocker-herstelsleutels",
+      "deviceHint": "Versleuteld opgeslagen op de server. Het tonen van een sleutel komt in het auditlogboek.",
+      "deviceNone": "Geen herstelwachtwoord op dit apparaat. Voeg er een toe met manage-bde of een BitLocker-beleid."
     }
   }
 }

@@ -20,7 +20,8 @@ export type Permission =
   | "reports.manage"
   | "alerts.manage"
   | "config.manage"
-  | "drivers.manage";
+  | "drivers.manage"
+  | "security.keys";
 
 export type Role = "administrator" | "technician" | "readonly";
 
@@ -1245,7 +1246,9 @@ export function uploadFile<T>(
   });
 }
 
-export type AlertKind = "offline" | "disk";
+export type AlertKind = "offline" | "disk" | "threat" | "antivirus" | "firewall" | "encryption";
+
+export const securityAlertKinds: AlertKind[] = ["threat", "antivirus", "firewall", "encryption"];
 export type DeviceKind = "workstation" | "server" | "hypervisor";
 
 export type AlertRule = {
@@ -1637,4 +1640,130 @@ export type DeviceDrivers = {
   scanError: string;
   policy: PatchPolicy | null;
   drivers: DeviceDriverRow[];
+};
+
+// ---- security status ----
+
+export type EncryptionState = "encrypted" | "partial" | "suspended" | "encrypting" | "none" | "unknown" | "";
+export type AntivirusState = "ok" | "outdated" | "disabled" | "none" | "unknown" | "";
+export type FirewallSummary = "on" | "partial" | "off" | "unknown" | "";
+
+export type SecuritySummary = {
+  encryption: EncryptionState;
+  antivirus: AntivirusState;
+  firewall: FirewallSummary;
+  threats: number;
+  admins: number;
+  secureBoot: boolean | null;
+  tpm: boolean | null;
+};
+
+export type SecurityStats = {
+  devices: number;
+  reported: number;
+  encryption: Record<string, number>;
+  antivirus: Record<string, number>;
+  firewall: Record<string, number>;
+  threats: number;
+  secureBootOff: number;
+  keys: number;
+};
+
+export type SecurityRow = SecuritySummary & {
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  platform: string;
+  kind: DeviceKind;
+  osName: string;
+  lastSeenAt: string | null;
+  collectedAt: string | null;
+  keys: number;
+};
+
+export type SecurityFilter = "" | "unencrypted" | "antivirus" | "firewall" | "threats" | "secureboot" | "unreported";
+
+export type SecureVolume = {
+  mount: string;
+  system: boolean;
+  method: "" | "bitlocker" | "luks";
+  protection: "on" | "off" | "suspended";
+  status: "encrypted" | "encrypting" | "decrypting" | "decrypted" | "paused";
+  percent: number;
+  cipher?: string;
+  protectors?: string[];
+};
+
+export type Threat = {
+  name: string;
+  severity: string;
+  detectedAt: string;
+  active: boolean;
+  action: string;
+  resources?: string[];
+};
+
+export type SecurityReport = {
+  collectedAt: string;
+  volumes: SecureVolume[];
+  antivirus: { name: string; enabled: boolean; upToDate: boolean; defender?: boolean }[];
+  defender?: {
+    mode: string;
+    serviceEnabled: boolean;
+    antivirusEnabled: boolean;
+    realTime: boolean;
+    tamperProtected: boolean;
+    signatureVersion: string;
+    signatureUpdatedAt?: string;
+    engineVersion: string;
+    quickScanAt?: string;
+    fullScanAt?: string;
+    threats?: Threat[];
+  };
+  firewall: { name: string; enabled: boolean; inbound?: "block" | "allow" | ""; active?: boolean }[];
+  admins: { name: string; sid?: string; kind: "user" | "group" | "unknown"; builtin?: boolean }[];
+  secureBoot?: boolean;
+  tpm?: { present: boolean; ready: boolean; version?: string };
+  errors?: string[];
+};
+
+export type RecoveryKey = {
+  id: number;
+  keyId: string;
+  deviceId: string | null;
+  hostname: string;
+  serial: string;
+  groupName: string;
+  volume: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  removedAt: string | null;
+  revealedAt: string | null;
+  revealedBy: string;
+};
+
+export type SecurityActionName = "defender.quickscan" | "defender.fullscan" | "defender.signatures" | "bitlocker.rotate";
+
+export type SecurityAction = {
+  id: number;
+  deviceId: string;
+  action: SecurityActionName;
+  mount: string;
+  state: "queued" | "running" | "completed" | "failed";
+  message: string;
+  requestedBy: string;
+  createdAt: string;
+  finishedAt: string | null;
+};
+
+export type DeviceSecurity = {
+  reported: boolean;
+  collectedAt: string | null;
+  receivedAt: string | null;
+  summary: SecuritySummary | null;
+  report: SecurityReport | null;
+  canKeys: boolean;
+  keys: RecoveryKey[];
+  actions: SecurityAction[];
 };

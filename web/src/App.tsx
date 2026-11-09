@@ -32,6 +32,7 @@ import { Remote } from "./pages/remote/Remote";
 import { RemoteViewer } from "./pages/remote/Viewer";
 import { Reports } from "./pages/reports/Reports";
 import { Alerts } from "./pages/alerts/Alerts";
+import { Security } from "./pages/security/Security";
 import { ConfigDetail, ConfigEditor, Configurations } from "./pages/configurations/Configurations";
 import { ConfigProfiles, ProfileEditor } from "./pages/configurations/Profiles";
 import { navigation } from "./nav";
@@ -57,6 +58,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/remote", perm: "remote.control", element: <Remote /> },
   { path: "/reports", perm: "devices.view", element: <Reports /> },
   { path: "/alerts", perm: "devices.view", element: <Alerts /> },
+  { path: "/security", perm: "devices.view", element: <Security /> },
   { path: "/admin/users", perm: "users.manage", element: <Users /> },
   { path: "/admin/authentication", perm: "settings.manage", element: <Authentication /> },
   { path: "/admin/mail", perm: "settings.manage", element: <Mail /> },

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, FolderInput, PackagePlus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { del, get, patch, post, type Device, type PackagesView, type SoftwareJob, type SoftwareRow } from "../../api";
@@ -13,9 +13,11 @@ import { JobDialog, JobsTable } from "../software/Deployments";
 import { SourceBadge } from "../software/util";
 import { RemoteButton } from "../remote/Remote";
 import { DeviceConfigsTab } from "../configurations/DeviceConfigs";
+import { DeviceSecurityTab } from "../security/DeviceSecurity";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
-type Tab = "overview" | "software" | "updates" | "drivers" | "configurations" | "notes";
+type Tab = "overview" | "software" | "updates" | "drivers" | "configurations" | "security" | "notes";
+const tabs: Tab[] = ["overview", "software", "updates", "drivers", "configurations", "security", "notes"];
 
 export function DeviceDetail() {
   const { id = "" } = useParams();
@@ -26,7 +28,8 @@ export function DeviceDetail() {
   const [device, setDevice] = useState<Device | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("overview");
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => (tabs.includes(params.get("tab") as Tab) ? (params.get("tab") as Tab) : "overview"));
   const [moving, setMoving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const manage = can("devices.manage");
@@ -105,7 +108,7 @@ export function DeviceDetail() {
       {notice && <Alert tone="success">{notice}</Alert>}
 
       <div className="flex gap-1 border-b border-line" role="tablist">
-        {(["overview", "software", "updates", "drivers", "configurations", "notes"] as Tab[]).map((k) => (
+        {tabs.map((k) => (
           <button
             key={k}
             role="tab"
@@ -228,6 +231,7 @@ export function DeviceDetail() {
       {tab === "updates" && <DevicePatchesTab device={device} />}
       {tab === "drivers" && <DeviceDriversTab device={device} />}
       {tab === "configurations" && <DeviceConfigsTab device={device} />}
+      {tab === "security" && <DeviceSecurityTab device={device} />}
       {tab === "notes" && <NotesTab device={device} editable={manage} onSaved={load} />}
 
       <MoveDialog

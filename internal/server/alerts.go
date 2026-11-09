@@ -106,6 +106,15 @@ func (s *Server) alertTick(ctx context.Context) {
 	// After a restart the agents need a moment to reconnect; until then a
 	// device's last contact counts from the start of the server.
 	since := s.workersStarted
+	var security map[string]store.SecurityAlertDevice
+	for _, r := range rules {
+		if isSecurityAlert(r.Kind) && security == nil {
+			if security, err = s.st.SecurityAlertDevices(ctx); err != nil {
+				s.log.Warn("alert security status", "err", err)
+				return
+			}
+		}
+	}
 	for _, r := range rules {
 		fire := map[alertKey]firing{}
 		for _, d := range devices {
@@ -131,6 +140,12 @@ func (s *Server) alertTick(ctx context.Context) {
 					_, isOpen := open[k]
 					if p < r.Threshold || (isOpen && p < r.Threshold+diskHysteresis) {
 						fire[k] = firing{d, v.Mount, diskDetails{v.Mount, v.SizeBytes, v.FreeBytes, p}}
+					}
+				}
+			case "threat", "antivirus", "firewall", "encryption":
+				if sec, ok := security[d.ID]; ok {
+					if det, bad := securityProblem(r.Kind, sec); bad {
+						fire[alertKey{r.ID, d.ID, ""}] = firing{d, "", det}
 					}
 				}
 			}
@@ -193,6 +208,16 @@ func alertText(lang string, a store.Alert, devices []store.AlertDevice, now time
 		var d offlineDetails
 		_ = json.Unmarshal(a.Details, &d)
 		return reports.T(lang, "alert.offline", reports.Duration(lang, now.Sub(d.LastSeenAt)), reports.FormatDateTime(lang, d.LastSeenAt))
+	case "threat", "antivirus", "firewall", "encryption":
+		if resolved {
+			return reports.T(lang, "alert.back."+a.Kind)
+		}
+		var d securityDetails
+		_ = json.Unmarshal(a.Details, &d)
+		if a.Kind == "threat" {
+			return reports.T(lang, "alert.threat", strings.Join(d.Threats, ", "))
+		}
+		return reports.T(lang, "alert."+a.Kind, reports.T(lang, d.Text))
 	default:
 		var d diskDetails
 		_ = json.Unmarshal(a.Details, &d)
@@ -373,6 +398,8 @@ func (s *Server) validAlertRule(ctx context.Context, r *store.AlertRule) string 
 		if r.Threshold < 1 || r.Threshold > 90 {
 			return "invalid_threshold"
 		}
+	case "threat", "antivirus", "firewall", "encryption":
+		r.Threshold = 0 // the security status decides
 	default:
 		return "invalid_kind"
 	}

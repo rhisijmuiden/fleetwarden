@@ -20,6 +20,7 @@ import {
   Settings,
   SlidersHorizontal,
   ShieldCheck,
+  ShieldEllipsis,
   ShieldHalf,
   Users,
 } from "lucide-react";
@@ -64,6 +65,7 @@ export const navigation: NavGroup[] = [
     items: [
       { path: "/reports", label: "nav.reports", icon: FileBarChart, perm: "devices.view" },
       { path: "/alerts", label: "nav.alerts", icon: Bell, perm: "devices.view", badge: "alerts" },
+      { path: "/security", label: "nav.security", icon: ShieldEllipsis, perm: "devices.view" },
     ],
   },
   {
