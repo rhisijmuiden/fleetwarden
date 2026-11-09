@@ -50,6 +50,8 @@ namespace FleetWarden.Tray
         public const string Reboot = "reboot";
         public const string Browser = "browser";
         public const string Remote = "remote";
+        public const string Restart = "restart";   // a restart asked by the IT department (power management)
+        public const string Shutdown = "shutdown"; // a shutdown asked by the IT department
 
         [DataMember(Name = "id")] public string Id;
         [DataMember(Name = "kind")] public string Kind;

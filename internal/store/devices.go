@@ -471,6 +471,9 @@ type SoftwareRow struct {
 	InstalledOn *string `json:"installedOn"`
 	Source      string  `json:"source"`
 	SizeBytes   int64   `json:"sizeBytes"`
+	// The Debian source package, when it differs (not read back).
+	SrcPackage string `json:"-" db:"-"`
+	SrcVersion string `json:"-" db:"-"`
 }
 
 // InventoryUpdate holds the device columns written from a full inventory.
@@ -499,7 +502,7 @@ func (s *Store) SaveInventory(ctx context.Context, id string, in InventoryUpdate
 	tag, err := tx.Exec(ctx, `UPDATE devices SET hostname = $2, os_name = $3, os_version = $4, os_build = $5, kind = $6,
 		domain = $7, ou = $8, domain_joined = $9, manufacturer = $10, model = $11, serial = $12, cpu = $13, logged_in_user = $14,
 		cpu_cores = $15, memory_bytes = $16, local_ips = $17, boot_time = COALESCE($18, boot_time), hardware = $19,
-		inventory_at = now(), last_seen_at = now() WHERE id::text = $1`, id, in.Hostname, in.OSName, in.OSVersion, in.OSBuild,
+		inventory_at = now(), last_seen_at = now(), vuln_dirty = true WHERE id::text = $1`, id, in.Hostname, in.OSName, in.OSVersion, in.OSBuild,
 		in.Kind, in.Domain, in.OU, in.DomainJoined, in.Manufacturer, in.Model, in.Serial, in.CPU, in.LoggedInUser, in.CPUCores,
 		in.MemoryBytes, in.LocalIPs, in.BootTime, in.Hardware)
 	if err != nil {
@@ -519,11 +522,11 @@ func (s *Store) SaveInventory(ctx context.Context, id string, in InventoryUpdate
 				on = t
 			}
 		}
-		rows = append(rows, []any{id, sw.Name, sw.Version, sw.Publisher, on, sw.Source, sw.SizeBytes})
+		rows = append(rows, []any{id, sw.Name, sw.Version, sw.Publisher, on, sw.Source, sw.SizeBytes, sw.SrcPackage, sw.SrcVersion})
 	}
 	if len(rows) > 0 {
 		if _, err := tx.CopyFrom(ctx, pgx.Identifier{"device_software"},
-			[]string{"device_id", "name", "version", "publisher", "installed_on", "source", "size_bytes"}, pgx.CopyFromRows(castUUID(rows))); err != nil {
+			[]string{"device_id", "name", "version", "publisher", "installed_on", "source", "size_bytes", "src_package", "src_version"}, pgx.CopyFromRows(castUUID(rows))); err != nil {
 			return err
 		}
 	}

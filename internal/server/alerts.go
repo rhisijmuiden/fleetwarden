@@ -34,6 +34,21 @@ type offlineDetails struct {
 	LastSeenAt time.Time `json:"lastSeenAt"`
 }
 
+// warrantyDetails: the end of the warranty and the days left (negative
+// once it has ended).
+type warrantyDetails struct {
+	WarrantyEnd string `json:"warrantyEnd"`
+	DaysLeft    int    `json:"daysLeft"`
+}
+
+// daysUntil counts the calendar days from the server's date today to a date.
+func daysUntil(now time.Time, end time.Time) int {
+	y, m, d := now.Date()
+	today := time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+	ey, em, ed := end.Date()
+	return int(time.Date(ey, em, ed, 0, 0, 0, 0, time.UTC).Sub(today).Hours() / 24)
+}
+
 type diskDetails struct {
 	Mount     string `json:"mount"`
 	SizeBytes int64  `json:"sizeBytes"`
@@ -106,6 +121,15 @@ func (s *Server) alertTick(ctx context.Context) {
 	// After a restart the agents need a moment to reconnect; until then a
 	// device's last contact counts from the start of the server.
 	since := s.workersStarted
+	var security map[string]store.SecurityAlertDevice
+	for _, r := range rules {
+		if isSecurityAlert(r.Kind) && security == nil {
+			if security, err = s.st.SecurityAlertDevices(ctx); err != nil {
+				s.log.Warn("alert security status", "err", err)
+				return
+			}
+		}
+	}
 	for _, r := range rules {
 		fire := map[alertKey]firing{}
 		for _, d := range devices {
@@ -121,6 +145,13 @@ func (s *Server) alertTick(ctx context.Context) {
 				if !s.hub.online(d.ID) && now.Sub(seen) >= time.Duration(r.Threshold)*time.Minute {
 					fire[alertKey{r.ID, d.ID, ""}] = firing{d, "", offlineDetails{d.LastSeenAt}}
 				}
+			case "warranty":
+				if d.WarrantyEnd == nil {
+					continue
+				}
+				if left := daysUntil(now, *d.WarrantyEnd); left <= r.Threshold {
+					fire[alertKey{r.ID, d.ID, ""}] = firing{d, "", warrantyDetails{d.WarrantyEnd.Format(time.DateOnly), left}}
+				}
 			case "disk":
 				for _, v := range d.Volumes {
 					if v.SizeBytes < minVolumeBytes {
@@ -131,6 +162,12 @@ func (s *Server) alertTick(ctx context.Context) {
 					_, isOpen := open[k]
 					if p < r.Threshold || (isOpen && p < r.Threshold+diskHysteresis) {
 						fire[k] = firing{d, v.Mount, diskDetails{v.Mount, v.SizeBytes, v.FreeBytes, p}}
+					}
+				}
+			case "threat", "antivirus", "firewall", "encryption":
+				if sec, ok := security[d.ID]; ok {
+					if det, bad := securityProblem(r.Kind, sec); bad {
+						fire[alertKey{r.ID, d.ID, ""}] = firing{d, "", det}
 					}
 				}
 			}
@@ -193,6 +230,38 @@ func alertText(lang string, a store.Alert, devices []store.AlertDevice, now time
 		var d offlineDetails
 		_ = json.Unmarshal(a.Details, &d)
 		return reports.T(lang, "alert.offline", reports.Duration(lang, now.Sub(d.LastSeenAt)), reports.FormatDateTime(lang, d.LastSeenAt))
+	case "threat", "antivirus", "firewall", "encryption":
+		if resolved {
+			return reports.T(lang, "alert.back."+a.Kind)
+		}
+		var d securityDetails
+		_ = json.Unmarshal(a.Details, &d)
+		if a.Kind == "threat" {
+			return reports.T(lang, "alert.threat", strings.Join(d.Threats, ", "))
+		}
+		return reports.T(lang, "alert."+a.Kind, reports.T(lang, d.Text))
+	case "warranty":
+		if resolved {
+			return reports.T(lang, "alert.back.warranty")
+		}
+		var d warrantyDetails
+		_ = json.Unmarshal(a.Details, &d)
+		end := d.WarrantyEnd
+		if t, err := time.Parse(time.DateOnly, d.WarrantyEnd); err == nil {
+			end = reports.FormatDate(lang, t)
+		}
+		// Count from today, so an alert opened weeks ago still reads right.
+		left := d.DaysLeft
+		if t, err := time.Parse(time.DateOnly, d.WarrantyEnd); err == nil {
+			left = daysUntil(now, t)
+		}
+		switch {
+		case left < 0:
+			return reports.T(lang, "alert.warranty.ended", end)
+		case left == 0:
+			return reports.T(lang, "alert.warranty.today", end)
+		}
+		return reports.T(lang, "alert.warranty", end, left)
 	default:
 		var d diskDetails
 		_ = json.Unmarshal(a.Details, &d)
@@ -371,6 +440,12 @@ func (s *Server) validAlertRule(ctx context.Context, r *store.AlertRule) string 
 		}
 	case "disk":
 		if r.Threshold < 1 || r.Threshold > 90 {
+			return "invalid_threshold"
+		}
+	case "threat", "antivirus", "firewall", "encryption":
+		r.Threshold = 0 // the security status decides
+	case "warranty":
+		if r.Threshold < 0 || r.Threshold > 365 {
 			return "invalid_threshold"
 		}
 	default:

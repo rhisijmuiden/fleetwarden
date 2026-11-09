@@ -1,0 +1,645 @@
+{
+ "openssl": {
+  "CVE-2026-75806": {
+   "description": "Issue summary: An established DTLS 1.2 association using an AEAD cipher suite can be terminated by a single unauthenticated datagram whose encrypted fragment is shorter than the mandatory explicit IV and authentication tag overhead.  Impact summary: An attacker who can send a datagram that is routed to an existing DTLS 1.2 association can tear that association down without knowing any key material. This is a Denial of Service limited to the targeted association. There is no memory safety or confidentiality impact.  CWE: CWE-1284: Improper Validation of Specified Quantity in Input  Description: In TLS 1.2 and DTLS 1.2 every record protected by an AEAD cipher suite carries an explicit IV followed by the ciphertext and an authentication tag. When decrypting such a record the record layer passed the record length to the cipher implementation before checking that the record was long enough to contain the explicit IV and the tag. For a record shorter than that overhead the cipher implementation rejected the impossible length, and the record layer treated this as an internal failure and raised a fatal internal_error alert instead of treating the record as one that failed authentication.  In TLS 1.2 the same record causes a fatal internal_error alert instead of the expected bad_record_mac alert. Since any undecryptable record already terminates a TLS connection, this is a protocol conformance issue rather than a security issue in TLS.  The fix validates the record length against the explicit IV and tag length before any AEAD processing, so that TLS reports bad_record_mac and DTLS silently discards the record.  FIPS impact: no The affected code is outside the FIPS module boundary.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "fixed_version": "3.0.22-1~deb12u2",
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "3.6.5-1"
+     },
+     "fixed_version": "3.6.5-1",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "3.6.5-1"
+     },
+     "fixed_version": "3.6.5-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "fixed_version": "3.5.7-1~deb13u3",
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "CVE-2026-77696": {
+   "description": "Issue summary: SM2 signature generation uses non-constant-time arithmetic on secret values, forming a timing side-channel.  Impact summary: An attacker able to measure SM2 signing times may learn information about the per-signature secret nonce, which over many signatures can, via a lattice / Hidden Number Problem attack, lead to recovery of the private key.  CWE: CWE-208: Observable Timing Discrepancy  Description: SM2 signature generation computes the signature value using variable-time BIGNUM operations on the secret nonce and the private key, so the time taken to produce an SM2 signature depends on these secret values, forming a timing side-channel.  Applications performing SM2 signature generation are affected on all platforms.  FIPS Impact: no SM2 is not a FIPS algorithm.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "fixed_version": "3.0.22-1~deb12u2",
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "3.6.5-1"
+     },
+     "fixed_version": "3.6.5-1",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "3.6.5-1"
+     },
+     "fixed_version": "3.6.5-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "fixed_version": "3.5.7-1~deb13u3",
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "CVE-2026-84782": {
+   "description": "Issue summary: The DTLS retransmission logic does not correctly handle a handshake message write that is suspended part-way through. The retransmitted message can be read past the message buffer and the retransmission overwrites the internal state the suspended write needs to resume correctly.  Impact summary: The retransmitted message can disclose a heap memory to the peer as plaintext handshake data or cause a crash and a Denial of Service when the read reaches an unmapped memory region.  CWE: CWE-125: Out-of-bounds Read  Description: DTLS handshake messages can be written out in multiple fragments, and a write can suspend mid-message (returning WANT_WRITE) if the underlying transport temporarily cannot accept more data. While such a write is suspended, the DTLS retransmission timer may independently fire and ask the retransmission logic to resend an earlier, already-acknowledged-as-sent message from its retransmit queue.  The retransmission logic reused the same internal buffer and position tracking as the message that was still being written, without resetting the position back to the start of the message being retransmitted. As a result the retransmission was read starting from wherever the suspended write had left off, producing a mislabelled message whose body was leftover bytes from the other, larger message still in flight - content that was never meant to be sent at that point, and which could run past the end of the allocated buffer.  Separately, even when the retransmission is positioned correctly, allowing it to run to completion while another write is suspended overwrites the same shared bookkeeping that the suspended write depends on to resume. When the application later resumes the suspended write (via a subsequent SSL_read(), SSL_write(), SSL_accept(), or SSL_connect() call), it finds that bookkeeping in a state inconsistent with the message and aborts the process in a debugging build.  The fix resets the retransmission's read position to the start of the message before resending, and skips retransmission entirely whenever a handshake write is still suspended, deferring to the next call that resumes it instead.  FIPS impact: no The affected code is outside the FIPS module boundary.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "fixed_version": "3.0.22-1~deb12u2",
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "3.6.5-1"
+     },
+     "fixed_version": "3.6.5-1",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "3.6.5-1"
+     },
+     "fixed_version": "3.6.5-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "fixed_version": "3.5.7-1~deb13u3",
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "CVE-2026-84783": {
+   "description": "Issue summary: The first concurrent use of the same X.509 certificate by several threads may cause its cached extension data to be freed while another thread is still using it.  Impact summary: A remote, unauthenticated peer could crash a multi-threaded TLS client, or a multi-threaded TLS server that requests client certificates, if the first certificate chains built to the same trusted CA certificate are built by several connections at the same time. This is a use-after-free read, which is likely to crash the process, resulting in a Denial of Service.  CWE: CWE-416: Use After Free  Description: OpenSSL caches the decoded values of a certificate's X.509v3 extensions inside the X509 object the first time they are needed. In OpenSSL 4.0 this cache is built in two phases: the extension values are computed while holding a read lock on the certificate, and the results are then installed into the certificate under a write lock. Because a read lock does not exclude other readers, several threads can compute the cache for the same certificate at the same time. Each thread that subsequently acquires the write lock installs its own results and frees the values installed by the thread before it, even though that earlier thread has already marked the cache as complete and may have returned pointers into it to its caller. A caller still using those pointers then reads freed memory.  Any certificate shared between threads is exposed the first time its extensions are decoded. In TLS the certificates at risk are the trusted CA certificates supplied for chain verification, by whatever means, since these are shared by every connection and their extensions are decoded and cached the first time a chain is built to them. Certificates sent by the peer are decoded separately for each connection and are not shared, so they are not affected. In a TLS client verifying server certificates, or a TLS server that requests and verifies client certificates, the use-after-free could only occur if the first chains built to the same trusted CA are built by several connections at the same time.  FIPS impact: no The FIPS module is not affected as X.509 certificate handling is outside of the OpenSSL FIPS module boundary.  OpenSSL 4.0 is vulnerable to this issue.  OpenSSL 3.6, 3.5, 3.4, 3.0, 1.1.1 and 1.0.2 are not affected by this issue.  OpenSSL 4.0 users should upgrade to OpenSSL 4.0.3.  This issue was reported on 27 August 2026 by Tim Becker (Xint.io) and independently in a public report on 31 August 2026 by aydinmercan.  The fix has been developed by Bob Beck.  -- cut (non-publishing metadata for internal use) -- Reported by: Tim Becker (Xint.io), aydinmercan Fixed by: Bob Beck",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "fixed_version": "0",
+     "urgency": "unimportant"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "3.6.5-1"
+     },
+     "fixed_version": "0",
+     "urgency": "unimportant"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "3.6.5-1"
+     },
+     "fixed_version": "0",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "fixed_version": "0",
+     "urgency": "unimportant"
+    }
+   }
+  },
+  "CVE-2026-84784": {
+   "description": "Issue summary: A malicious remote peer may flood the local QUIC stack with NEW_CONNECTION_ID frames by avoiding a limit check on how many connection IDs the remote QUIC stack can use.  Impact summary: The local QUIC stack sends a RETIRE_CONN_ID frame for every NEW_CONNECTION_ID frame it receives. The RETIRE_CONN_ID frame is dispatched via the Control Frame Queue (CFQ). If the remote peer also withholds ACKs, then it can force the local stack to allocate ~400MB (depending on ACK delay).  CWE: CWE-770: Allocation of Resources Without Limits or Throttling  Description: RFC 9000 sections 5.1.1 and 5.1.2 [1] describe the mechanism by which a remote peer can notify the local QUIC stack to change the destination connection ID (a.k.a. CID) the local stack uses to identify the connection at the remote peer. Each CID is associated with a sequence number. The sequence number is transmitted in NEW_CONNECTION_ID and RETIRE_CONNECTION_ID frames to identify the CID which is being either associated with a connection or retired.  The remote peer sends a NEW_CONNECTION_ID frame to let the local stack know a new CID is being associated with an existing connection. The NEW_CONNECTION_ID frame carries the new CID, its sequence number, and the retire-prior-to number. The retire-prior-to identifies existing CIDs that are to be retired. The local QUIC stack must send a RETIRE_CONNECTION_ID for every destination CID whose sequence number is less than retire-prior-to. The CID becomes retired after the local stack receives an ACK for its RETIRE_CONNECTION_ID frame.  Although the OpenSSL QUIC stack supports at most one destination CID for every connection, it can be tricked into processing more than one RETIRE_CONNECTION_ID frame per connection. The OpenSSL QUIC stack currently retires the destination CID as soon as it receives the NEW_CONNECTION_ID, while in fact the destination CID must be retired after an ACK for the RETIRE_CONNECTION_ID frame is received. Correcting the flawed logic also fixes the backlog growth.  [1] https://datatracker.ietf.org/doc/html/rfc9000#name-issuing-connection-ids  FIPS impact: no The FIPS module is not affected as the QUIC implementation is outside of the OpenSSL FIPS module boundary.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "fixed_version": "0",
+     "urgency": "unimportant"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "3.6.5-1"
+     },
+     "fixed_version": "3.6.5-1",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "3.6.5-1"
+     },
+     "fixed_version": "3.6.5-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "fixed_version": "3.5.7-1~deb13u3",
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "CVE-2026-9076": {
+   "description": "Issue summary: When CMS password-based decryption (RFC 3211 / PWRI key unwrap) processes attacker-supplied CMS data, an attacker-chosen stream-mode KEK cipher can trigger a heap out-of-bounds read in kek_unwrap_key().  Impact summary: A heap buffer over-read may trigger a crash which leads to Denial of Service for an application if the input buffer ends at a memory page boundary and the following page is unmapped. There is no information disclosure as the over-read bytes are not revealed to the attacker.  The key unwrapping function performs a check-byte test as specified in the RFC that reads 7 bytes from a heap allocation that is based on the wrapped key length from the message. There is a minimum length check based on the block length of the wrapping cipher. However the cipher is selected from an OID carried in the attacker's PWRI keyEncryptionAlgorithm with no requirement that the cipher be a block cipher. When an attacker selects a stream-mode cipher the guard will be ineffective and the allocated buffer containing the unwrapped key can be too small to fit the check-bytes specified in the RFC and a buffer over-read can happen.  Applications calling CMS_decrypt() or CMS_decrypt_set1_password() (equivalently openssl cms -decrypt -pwri_password ...) on untrusted CMS data are vulnerable to this issue. No password knowledge is required: the over-read happens during the unwrap attempt before any authentication succeeds.  The over-read is limited to a few bytes and is not written to output, so there is no information disclosure. Triggering a crash requires the allocation to border unmapped memory, which is unlikely with the normal allocator.  The FIPS modules are not affected by this issue.",
+   "debianbug": 1139674,
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "fixed_version": "3.0.20-1~deb12u2",
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "3.6.5-1"
+     },
+     "fixed_version": "3.6.3-1",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "3.6.5-1"
+     },
+     "fixed_version": "3.6.3-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "fixed_version": "3.5.6-1~deb13u2",
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "CVE-2024-0727": {
+   "description": "Issue summary: Processing a maliciously formatted PKCS12 file may lead OpenSSL to crash leading to a potential Denial of Service attack  Impact summary: Applications loading files in the PKCS12 format from untrusted sources might terminate abruptly.  A file in PKCS12 format can contain certificates and keys and may come from an untrusted source. The PKCS12 specification allows certain fields to be NULL, but OpenSSL does not correctly check for this case. This can lead to a NULL pointer dereference that results in OpenSSL crashing. If an application processes PKCS12 files from an untrusted source using the OpenSSL APIs then that application will be vulnerable to this issue.  OpenSSL APIs that are vulnerable to this are: PKCS12_parse(), PKCS12_unpack_p7data(), PKCS12_unpack_p7encdata(), PKCS12_unpack_authsafes() and PKCS12_newpass().  We have also fixed a similar issue in SMIME_write_PKCS7(). However since this function is related to writing data we do not consider it security significant.  The FIPS modules in 3.2, 3.1 and 3.0 are not affected by this issue.",
+   "debianbug": 1061582,
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "fixed_version": "3.0.13-1~deb12u1",
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "3.6.5-1"
+     },
+     "fixed_version": "3.1.5-1",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "3.6.5-1"
+     },
+     "fixed_version": "3.1.5-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "fixed_version": "3.1.5-1",
+     "urgency": "not yet assigned"
+    }
+   }
+  }
+ },
+ "linux": {
+  "CVE-2026-99284": {
+   "description": "In the Linux kernel, the following vulnerability has been resolved:  net: skbuff: propagate shared-frag marker in skb_zerocopy()  skb_zerocopy() moves frag descriptors from @from into @to and takes a reference on each frag, but it does not copy skb_shinfo(from)->flags into skb_shinfo(to)->flags.  A destination skb holding the same page-cache backed frags as the source therefore reports skb_has_shared_frag() as false.  That breaks the invariant relied on by later in-place writers.  ESP input checks skb_has_shared_frag() before deciding whether an uncloned nonlinear skb can skip skb_cow_data(); with the marker lost, an skb that skb_zerocopy() built for nfnetlink_queue or for an openvswitch upcall is decrypted in place, letting an unprivileged user write into the page cache of a root-owned read-only file.  Propagate SKBFL_SHARED_FRAG when frag descriptors are copied, as done for the other frag-transfer helpers.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "open",
+     "repositories": {
+      "bookworm": "6.1.176-1",
+      "bookworm-security": "6.1.190-1"
+     },
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "7.2.15-1"
+     },
+     "fixed_version": "7.2.14-1",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "7.3.3-1"
+     },
+     "fixed_version": "7.2.14-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "6.12.107-1",
+      "trixie-security": "6.12.116-1"
+     },
+     "fixed_version": "6.12.115-1",
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "CVE-2026-99999": {
+   "description": "In the Linux kernel, the following vulnerability has been resolved:  ipv4: validate checksum_start before completing checksum  If a packet with bad checksum metadata gets into the ipv4 stack, skb_checksum_help can corrupt the network header and cause a bunch of mischief.  This was discovered and reported by Paulos, and has been reporoduced by others independently since.  We really shouldn't allow such packets in, but as a defence in depth measure, let's also check before we complete the checksum.  A more complete validation at input is forthcoming, but needs more work.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "6.1.176-1",
+      "bookworm-security": "6.1.190-1"
+     },
+     "fixed_version": "6.1.190-1",
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "7.2.15-1"
+     },
+     "fixed_version": "7.2.11-1",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "7.3.3-1"
+     },
+     "fixed_version": "7.2.11-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "6.12.107-1",
+      "trixie-security": "6.12.116-1"
+     },
+     "fixed_version": "6.12.113-1",
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "CVE-2026-99283": {
+   "description": "In the Linux kernel, the following vulnerability has been resolved:  netfilter: conntrack: tcp: use UNACK timeout for non-closing RST packets  Commit be0502a3f2e9 (\"netfilter: conntrack: tcp: only close if RST matches exact sequence\") keeps an established conntrack entry in ESTABLISHED when an in-window RST does not match the expected sequence number exactly, so the endpoint can validate the RST with a challenge ACK.  The timeout selection nevertheless uses the CLOSE timeout for every RST packet.  The bug is that timeout selection is based on the packet type, not on the state transition result: even when RST validation keeps new_state in ESTABLISHED, the timeout is still forced to TCP_CONNTRACK_CLOSE.  Linux TCP independently rate limits challenge ACKs per socket.  A second non-exact RST can therefore arrive after the first challenge ACK has restored the timeout but before the rate limit expires.  The second RST lowers the timeout to 10 seconds again while the endpoint suppresses the second challenge ACK, allowing the conntrack entry to expire while both TCP endpoints remain established.  Using the ESTABLISHED timeout for such RSTs would avoid this short expiration window, but it could also retain stale entries for the five-day default because conntrack cannot reliably match the endpoint's exact TCP state.  Use the UNACK timeout for RST packets that leave the conntrack entry in TCP_CONNTRACK_ESTABLISHED.  Exact-match RSTs and accepted RST packet trains still fall through to timeouts[new_state], which preserves the CLOSE timeout when conntrack accepts the RST as closing the flow.  This avoids the aggressive 10-second expiration window for non-exact RSTs while preserving the short timeout for RSTs that conntrack accepts as closing the flow.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "open",
+     "repositories": {
+      "bookworm": "6.1.176-1",
+      "bookworm-security": "6.1.190-1"
+     },
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "open",
+     "repositories": {
+      "forky": "7.2.15-1"
+     },
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "7.3.3-1"
+     },
+     "fixed_version": "7.3.3-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "open",
+     "repositories": {
+      "trixie": "6.12.107-1",
+      "trixie-security": "6.12.116-1"
+     },
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "TEMP-0000000-1E2093": {
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "6.1.176-1",
+      "bookworm-security": "6.1.190-1"
+     },
+     "fixed_version": "4.0.2-1",
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "7.2.15-1"
+     },
+     "fixed_version": "4.0.2-1",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "7.3.3-1"
+     },
+     "fixed_version": "4.0.2-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "6.12.107-1",
+      "trixie-security": "6.12.116-1"
+     },
+     "fixed_version": "4.0.2-1",
+     "urgency": "not yet assigned"
+    }
+   }
+  }
+ },
+ "xz-utils": {
+  "CVE-2024-3094": {
+   "description": "Malicious code was discovered in the upstream tarballs of xz, starting with version 5.6.0. \r Through a series of complex obfuscations, the liblzma build process extracts a prebuilt object file from a disguised test file existing in the source code, which is then used to modify specific functions in the liblzma code. This results in a modified liblzma library that can be used by any software linked against this library, intercepting and modifying the data interaction with this library.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "5.4.1-1+deb12u1",
+      "bookworm-security": "5.4.1-1+deb12u2"
+     },
+     "fixed_version": "0",
+     "urgency": "unimportant"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "5.8.4-1"
+     },
+     "fixed_version": "5.6.1+really5.4.5-1",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "5.8.4-1"
+     },
+     "fixed_version": "5.6.1+really5.4.5-1",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "5.8.1-1+deb13u1",
+      "trixie-security": "5.8.1-1+deb13u2"
+     },
+     "fixed_version": "5.6.1+really5.4.5-1",
+     "urgency": "not yet assigned"
+    }
+   }
+  }
+ },
+ "openssh": {
+  "CVE-2024-6387": {
+   "description": "A security regression (CVE-2006-5051) was discovered in OpenSSH's server (sshd). There is a race condition which can lead sshd to handle some signals in an unsafe manner. An unauthenticated, remote attacker may be able to trigger it by failing to authenticate within a set time period.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "fixed_version": "1:9.2p1-2+deb12u3",
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "1:10.6p2-1"
+     },
+     "fixed_version": "1:9.7p1-7",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "1:10.6p2-1"
+     },
+     "fixed_version": "1:9.7p1-7",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "fixed_version": "1:9.7p1-7",
+     "urgency": "not yet assigned"
+    }
+   }
+  }
+ },
+ "zlib": {
+  "CVE-2003-0107": {
+   "description": "Buffer overflow in the gzprintf function in zlib 1.1.4, when zlib is compiled without vsnprintf or when long inputs are truncated using vsnprintf, allows attackers to cause a denial of service or possibly execute arbitrary code.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "1:1.2.13.dfsg-1"
+     },
+     "fixed_version": "1:1.1.4-10",
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "1:1.3.dfsg+really1.3.2-4"
+     },
+     "fixed_version": "1:1.1.4-10",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "1:1.3.dfsg+really1.3.2-4"
+     },
+     "fixed_version": "1:1.1.4-10",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "1:1.3.dfsg+really1.3.1-1",
+      "trixie-security": "1:1.3.dfsg+really1.3.1-1+deb13u1"
+     },
+     "fixed_version": "1:1.1.4-10",
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "CVE-2004-0797": {
+   "description": "The error handling in the (1) inflate and (2) inflateBack functions in ZLib compression library 1.2.x allows local users to cause a denial of service (application crash).",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "1:1.2.13.dfsg-1"
+     },
+     "fixed_version": "1:1.2.1.1-6",
+     "urgency": "not yet assigned"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "1:1.3.dfsg+really1.3.2-4"
+     },
+     "fixed_version": "1:1.2.1.1-6",
+     "urgency": "not yet assigned"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "1:1.3.dfsg+really1.3.2-4"
+     },
+     "fixed_version": "1:1.2.1.1-6",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "1:1.3.dfsg+really1.3.1-1",
+      "trixie-security": "1:1.3.dfsg+really1.3.1-1+deb13u1"
+     },
+     "fixed_version": "1:1.2.1.1-6",
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "CVE-2005-1849": {
+   "description": "inftrees.h in zlib 1.2.2 allows remote attackers to cause a denial of service (application crash) via an invalid file that causes a large dynamic tree to be produced.",
+   "scope": "local",
+   "releases": {
+    "bookworm": {
+     "status": "resolved",
+     "repositories": {
+      "bookworm": "1:1.2.13.dfsg-1"
+     },
+     "fixed_version": "1:1.2.3-1",
+     "urgency": "low"
+    },
+    "forky": {
+     "status": "resolved",
+     "repositories": {
+      "forky": "1:1.3.dfsg+really1.3.2-4"
+     },
+     "fixed_version": "1:1.2.3-1",
+     "urgency": "low"
+    },
+    "sid": {
+     "status": "resolved",
+     "repositories": {
+      "sid": "1:1.3.dfsg+really1.3.2-4"
+     },
+     "fixed_version": "1:1.2.3-1",
+     "urgency": "low"
+    },
+    "trixie": {
+     "status": "resolved",
+     "repositories": {
+      "trixie": "1:1.3.dfsg+really1.3.1-1",
+      "trixie-security": "1:1.3.dfsg+really1.3.1-1+deb13u1"
+     },
+     "fixed_version": "1:1.2.3-1",
+     "urgency": "low"
+    }
+   }
+  }
+ }
+}

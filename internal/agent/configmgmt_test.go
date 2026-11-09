@@ -249,7 +249,9 @@ func TestConfigApplyRepairAndRemove(t *testing.T) {
 func TestConfigScriptTriggers(t *testing.T) {
 	be := newFakeConfig()
 	a := testConfigAgent(t, be)
-	a.Minute = time.Millisecond
+	// Wide enough that slow (race) runs do not make the interval script due
+	// again between steps.
+	a.Minute = 20 * time.Millisecond
 	script := func(id int64, rev int, trigger, runAs string) agentproto.ConfigItem {
 		return agentproto.ConfigItem{ID: id, Revision: rev, Type: agentproto.ConfigScript, Script: &agentproto.ScriptConfig{
 			Shell: "powershell", Content: trigger + "-" + runAs, RunAs: runAs, Trigger: trigger, IntervalMinutes: 5, TimeoutMinutes: 1}}
@@ -275,12 +277,15 @@ func TestConfigScriptTriggers(t *testing.T) {
 	if len(be.runs) != 0 {
 		t.Errorf("second run: %v", be.runs)
 	}
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(110 * time.Millisecond)
 	a.applyConfig(ctx, pol, nil, nil)
 	if strings.Join(be.runs, ",") != "interval-system@system" {
 		t.Errorf("interval: %v", be.runs)
 	}
-	// A user logs on: the logon script runs as that user.
+	// A user logs on: the logon script runs as that user. The interval
+	// script must not come due again meanwhile (a 5 ms interval is easily
+	// over under -race on a busy runner).
+	pol.Items[3].Script.IntervalMinutes = 600
 	be.runs = nil
 	u := []ConfigUser{{Session: 3, Name: `PC\bob`, SID: "S-1-5-21-9"}}
 	a.applyConfig(ctx, pol, u, u)

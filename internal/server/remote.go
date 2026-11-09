@@ -78,12 +78,12 @@ func (h *remoteHub) drop(id string) {
 	h.mu.Unlock()
 }
 
-func (h *remoteHub) count(deviceID string) int {
+func (h *remoteHub) count(deviceID, kind string) int {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	n := 0
 	for _, r := range h.sessions {
-		if r.DeviceID == deviceID {
+		if r.DeviceID == deviceID && r.Kind == kind {
 			n++
 		}
 	}
@@ -122,7 +122,24 @@ func validConsentSetting(v string) bool {
 }
 
 type startRemoteReq struct {
-	Kind string `json:"kind"`
+	Kind  string `json:"kind"`
+	Shell string `json:"shell"` // terminal on Windows: powershell or cmd
+	Cols  int    `json:"cols"`
+	Rows  int    `json:"rows"`
+}
+
+// Sessions per device, by kind.
+var remoteLimit = map[string]int{agentproto.RemoteDesktop: 2, agentproto.RemoteTerminal: 3}
+
+// remoteSupported reports whether a device's platform has a session kind.
+func remoteSupported(kind, platform string) bool {
+	switch kind {
+	case agentproto.RemoteDesktop:
+		return platform == "windows"
+	case agentproto.RemoteTerminal:
+		return platform == "windows" || platform == "linux"
+	}
+	return false
 }
 
 func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
@@ -137,15 +154,30 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 	if req.Kind == "" {
 		req.Kind = agentproto.RemoteDesktop
 	}
-	if req.Kind != agentproto.RemoteDesktop || dev.Platform != "windows" {
+	if !remoteSupported(req.Kind, dev.Platform) {
 		apiError(w, http.StatusBadRequest, "remote_unsupported")
 		return
+	}
+	u, _ := currentUser(r)
+	terminal := req.Kind == agentproto.RemoteTerminal
+	if terminal && !auth.Role(u.Role).Has(auth.PermRemoteTerminal) {
+		apiError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	switch req.Shell {
+	case "", "powershell", "cmd":
+	default:
+		apiError(w, http.StatusBadRequest, "invalid_terminal_shell")
+		return
+	}
+	if !terminal || dev.Platform != "windows" {
+		req.Shell = ""
 	}
 	if !dev.Online {
 		apiError(w, http.StatusConflict, "device_offline")
 		return
 	}
-	if s.remote.count(dev.ID) >= 2 {
+	if s.remote.count(dev.ID, req.Kind) >= remoteLimit[req.Kind] {
 		apiError(w, http.StatusConflict, "remote_busy")
 		return
 	}
@@ -154,7 +186,6 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 		s.internalError(w, r, err)
 		return
 	}
-	u, _ := currentUser(r)
 	key, err := agentproto.NewRemoteKey()
 	if err != nil {
 		s.internalError(w, r, err)
@@ -164,28 +195,41 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 	if operator == "" {
 		operator = u.Username
 	}
+	// A terminal shows nothing of the user's screen (like SSH), so nobody
+	// is asked.
+	consent := agentproto.ConsentDirect
+	if !terminal {
+		consent = consentFor(g.RemoteConsent, dev.Kind)
+	}
 	rs := &remoteSession{key: key, viewC: make(chan remoteMsg, 64), done: make(chan struct{})}
 	rs.RemoteSession = store.RemoteSession{ID: newUUID(), DeviceID: dev.ID, Hostname: dev.Hostname, GroupID: dev.GroupID, UserID: &u.ID,
-		Operator: u.Username, Kind: req.Kind, Consent: consentFor(g.RemoteConsent, dev.Kind), State: "pending", RemoteIP: ClientIP(r),
+		Operator: u.Username, Kind: req.Kind, Consent: consent, State: "pending", RemoteIP: ClientIP(r),
 		CreatedAt: s.now()}
 	if err := s.st.CreateRemoteSession(r.Context(), rs.RemoteSession); err != nil {
 		s.internalError(w, r, err)
 		return
 	}
 	b := s.loadBranding(r.Context())
-	snap := rs.RemoteSession // the agent can end the session as soon as it is shared
+	// Copy for the response before the agent can update the state (on its
+	// own connection) once the session is visible.
+	resp := rs.RemoteSession
 	s.remote.put(rs)
 	if !s.hub.send(dev.ID, agentproto.TypeRemoteStart, agentproto.RemoteStart{
 		SessionID: rs.ID, Kind: rs.Kind, Operator: operator, Consent: rs.Consent, ConsentSeconds: remoteConsentSeconds,
 		ServerKey: key.Public(), ProductName: b.ProductName, AccentColor: b.PrimaryColor,
+		Shell: req.Shell, Cols: min(max(req.Cols, 0), 1000), Rows: min(max(req.Rows, 0), 500),
 	}) {
 		s.endRemote(rs, agentproto.RemoteStateFailed, "device_offline")
 		apiError(w, http.StatusConflict, "device_offline")
 		return
 	}
-	s.audit(r, "remote.start", dev.Hostname, true, map[string]any{"session": snap.ID, "deviceId": dev.ID, "kind": snap.Kind, "consent": snap.Consent})
+	details := map[string]any{"session": rs.ID, "deviceId": dev.ID, "kind": rs.Kind, "consent": rs.Consent}
+	if req.Shell != "" {
+		details["shell"] = req.Shell
+	}
+	s.audit(r, "remote.start", dev.Hostname, true, details)
 	go s.watchRemote(rs)
-	writeJSON(w, http.StatusCreated, snap)
+	writeJSON(w, http.StatusCreated, resp)
 }
 
 // watchRemote ends sessions whose viewer or agent never shows up.
@@ -431,8 +475,9 @@ func (s *Server) handleRemoteViewer(w http.ResponseWriter, r *http.Request) {
 			err = agent.Write(wctx, websocket.MessageBinary, ciph.Seal(data))
 			wcancel()
 			if err != nil {
-				s.endRemote(rs, agentproto.RemoteStateEnded, "agent_closed")
-				return
+				// The agent leg is going away; its handler ends the session
+				// with the reason the agent reports. Input is dropped.
+				continue
 			}
 		}
 	}()

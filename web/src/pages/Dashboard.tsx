@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Monitor, Plus } from "lucide-react";
-import { get, type ComplianceReport, type DeviceStats } from "../api";
+import { Bug, Monitor, Plus } from "lucide-react";
+import { get, type ComplianceReport, type DeviceStats, type VulnSummary, type Vulnerability } from "../api";
+import { KEVBadge, SeverityBadge } from "./vulnerabilities/util";
 import { useAuth } from "../auth";
 
 export function Dashboard() {
@@ -11,6 +12,17 @@ export function Dashboard() {
   const [stats, setStats] = useState<DeviceStats | null>(null);
   const [comp, setComp] = useState<ComplianceReport | null>(null);
   const [alerts, setAlerts] = useState<number | null>(null);
+  const [vulns, setVulns] = useState<{ sum: VulnSummary; top: Vulnerability[] } | null>(null);
+  useEffect(() => {
+    if (!can("devices.view")) return;
+    const load = () =>
+      Promise.all([get<VulnSummary>("/vulnerabilities/summary"), get<Vulnerability[]>("/vulnerabilities?limit=5")])
+        .then(([sum, top]) => setVulns({ sum, top }))
+        .catch(() => undefined);
+    load();
+    const id = setInterval(load, 300000);
+    return () => clearInterval(id);
+  }, []);
   useEffect(() => {
     if (!can("devices.view")) return;
     const load = () =>
@@ -109,6 +121,42 @@ export function Dashboard() {
           );
         })}
       </div>
+      {vulns && vulns.top.length > 0 && (
+        <section className="rounded-lg border border-line bg-surface">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4">
+            <div className="flex items-center gap-2">
+              <Bug className="size-4 text-muted" />
+              <h2 className="text-base font-semibold">{t("dashboard.vulnerabilities")}</h2>
+            </div>
+            <p className="text-sm text-muted">
+              {t("dashboard.vulnSummary", {
+                cves: vulns.sum.cves,
+                critical: vulns.sum.bySeverity.critical ?? 0,
+                kev: vulns.sum.kev,
+                devices: vulns.sum.devices,
+              })}
+            </p>
+          </div>
+          <ul className="divide-y divide-line">
+            {vulns.top.map((v) => (
+              <li key={v.cve} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 text-sm">
+                <Link to={`/vulnerabilities/${v.cve}`} className="font-mono font-medium hover:text-primary">
+                  {v.cve}
+                </Link>
+                <SeverityBadge severity={v.severity} score={v.score} />
+                {v.kev && <KEVBadge ransomware={v.ransomware} />}
+                <span className="min-w-0 flex-1 truncate text-muted">{v.title || v.products.join(", ")}</span>
+                <span className="text-muted tabular-nums">{t("dashboard.vulnDevices", { count: v.devices })}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="border-t border-line px-5 py-3 text-sm">
+            <Link to="/vulnerabilities" className="text-primary hover:underline">
+              {t("dashboard.allVulnerabilities")}
+            </Link>
+          </div>
+        </section>
+      )}
       {stats && stats.total === 0 && (
         <div className="grid place-items-center rounded-lg border border-dashed border-line bg-surface px-6 py-16 text-center">
           <Monitor className="size-10 text-muted" strokeWidth={1.5} />

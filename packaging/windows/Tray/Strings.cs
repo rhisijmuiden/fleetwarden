@@ -15,6 +15,10 @@ namespace FleetWarden.Tray
 
         public static string Title(Prompt p) => p.Kind == Prompt.Remote
             ? T("Remote support request", "Verzoek om hulp op afstand")
+            : p.Kind == Prompt.Restart
+            ? T("Your computer will restart", "Je computer wordt opnieuw opgestart")
+            : p.Kind == Prompt.Shutdown
+            ? T("Your computer will shut down", "Je computer wordt afgesloten")
             : p.Kind == Prompt.Reboot
             ? T("Restart required", "Herstart nodig")
             : p.Kind == Prompt.Browser
@@ -44,6 +48,12 @@ namespace FleetWarden.Tray
                         "De browsers sluiten even om een update te installeren en gaan daarna vanzelf weer open. Je vensters en tabbladen komen terug. Maak eerst af waar je mee bezig bent.")
                     : T("The browser closes for a moment to install an update and opens again by itself. Your windows and tabs come back. Finish what you are typing first.",
                         "De browser sluit even om een update te installeren en gaat daarna vanzelf weer open. Je vensters en tabbladen komen terug. Maak eerst af waar je mee bezig bent.");
+            if (p.Kind == Prompt.Restart)
+                return T("Your IT department restarts this computer. Save your work and close your programs.",
+                         "Je IT-afdeling start deze computer opnieuw op. Sla je werk op en sluit je programma's.");
+            if (p.Kind == Prompt.Shutdown)
+                return T("Your IT department shuts down this computer to save energy. Save your work and close your programs.",
+                         "Je IT-afdeling sluit deze computer af om energie te besparen. Sla je werk op en sluit je programma's.");
             if (p.Kind == Prompt.Reboot)
                 return T("Updates have been installed. Your computer has to restart to finish them. Save your work and close your programs.",
                          "Er zijn updates geïnstalleerd. De computer moet opnieuw opstarten om ze af te ronden. Sla je werk op en sluit je programma's.");
@@ -58,11 +68,13 @@ namespace FleetWarden.Tray
             var time = left.TotalHours >= 1 ? left.ToString(@"h\:mm\:ss") : left.ToString(@"m\:ss");
             if (p.Kind == Prompt.Browser) return T($"Closing in {time}", $"Sluit over {time}");
             if (p.Kind == Prompt.Remote) return T($"Declined automatically in {time}", $"Wordt automatisch geweigerd over {time}");
-            return p.Kind == Prompt.Reboot ? T($"Restarting in {time}", $"Herstart over {time}") : T($"Installing in {time}", $"Installatie start over {time}");
+            if (p.Kind == Prompt.Shutdown) return T($"Shutting down in {time}", $"Wordt afgesloten over {time}");
+            return p.Kind == Prompt.Reboot || p.Kind == Prompt.Restart ? T($"Restarting in {time}", $"Herstart over {time}") : T($"Installing in {time}", $"Installatie start over {time}");
         }
 
         public static string Now(Prompt p) => p.Kind == Prompt.Remote ? T("Allow", "Toestaan")
-            : p.Kind == Prompt.Reboot ? T("Restart now", "Nu herstarten")
+            : p.Kind == Prompt.Reboot || p.Kind == Prompt.Restart ? T("Restart now", "Nu herstarten")
+            : p.Kind == Prompt.Shutdown ? T("Shut down now", "Nu afsluiten")
             : p.Kind == Prompt.Browser ? T("Update now", "Nu bijwerken") : T("Install now", "Nu installeren");
 
         public static string Postpone(Prompt p) => p.Kind == Prompt.Remote ? T("Deny", "Weigeren") : T($"Postpone {Duration(p.PostponeMinutes)}", $"{Duration(p.PostponeMinutes)} uitstellen");
@@ -88,6 +100,8 @@ namespace FleetWarden.Tray
         public static string TrayConnected => T("Connected to the agent. No action needed.", "Verbonden met de agent. Geen actie nodig.");
         public static string TrayWaiting(Prompt p) => p.Kind == Prompt.Remote
             ? T("Someone asks to see your screen.", "Iemand vraagt om mee te kijken.")
+            : p.Kind == Prompt.Restart || p.Kind == Prompt.Shutdown
+            ? T("Your computer will restart or shut down soon.", "Je computer start straks opnieuw op of wordt afgesloten.")
             : T("An update needs your attention.", "Een update vraagt je aandacht.");
         public static string TrayRemote(Prompt p) => T($"{Operator(p)} is connected to this computer.", $"{Operator(p)} is verbonden met deze computer.");
         public static string BannerText(Prompt p) => T($"{Operator(p)} is viewing and controlling this screen", $"{Operator(p)} kijkt mee en bedient dit scherm");

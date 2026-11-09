@@ -17,10 +17,17 @@ export type Permission =
   | "software.manage"
   | "software.deploy"
   | "remote.control"
+  | "remote.terminal"
   | "reports.manage"
   | "alerts.manage"
   | "config.manage"
   | "drivers.manage"
+  | "power.control"
+  | "power.manage"
+  | "remote.manage"
+  | "assets.manage"
+  | "vulns.manage"
+  | "security.keys"
   | "selfservice.manage"
   | "selfservice.handle";
 
@@ -395,6 +402,8 @@ export type PatchPolicy = {
   takeOver: boolean;
   drivers: boolean;
   firmware: boolean;
+  wakeForWindow: boolean;
+  shutdownAfter: boolean;
   scanHours: number;
   createdAt: string;
   updatedAt: string;
@@ -911,13 +920,14 @@ export type BrowserReport = {
 
 // ---- reports ----
 
-export type ReportKind = "compliance" | "patches" | "software";
+export type ReportKind = "compliance" | "patches" | "software" | "assets";
 
 export type ReportSettings = {
   offlineDays: number;
   patchGraceDays: number;
   diskFreePercent: number;
   ignoredSoftware: string[];
+  expiringDays: number;
 };
 
 export type LowVolume = {
@@ -1247,7 +1257,21 @@ export function uploadFile<T>(
   });
 }
 
-export type AlertKind = "offline" | "disk";
+export type AlertKind =
+  | "offline"
+  | "disk"
+  | "warranty"
+  | "threat"
+  | "antivirus"
+  | "firewall"
+  | "encryption";
+
+export const securityAlertKinds: AlertKind[] = [
+  "threat",
+  "antivirus",
+  "firewall",
+  "encryption",
+];
 export type DeviceKind = "workstation" | "server" | "hypervisor";
 
 export type AlertRule = {
@@ -1255,7 +1279,7 @@ export type AlertRule = {
   name: string;
   enabled: boolean;
   kind: AlertKind;
-  threshold: number; // minutes offline, or percentage free space
+  threshold: number; // minutes offline, percentage free space, or days before the warranty ends
   groupIds: number[];
   deviceKinds: DeviceKind[];
   recipients: string[];
@@ -1639,4 +1663,553 @@ export type DeviceDrivers = {
   scanError: string;
   policy: PatchPolicy | null;
   drivers: DeviceDriverRow[];
+};
+
+// ---- power management ----
+
+export type PowerActionKind = "wake" | "restart" | "shutdown";
+export type PowerState = "sent" | "waiting-user" | "postponed" | "skipped" | "completed" | "failed";
+export type PowerTrigger = "manual" | "schedule" | "patch-window" | "after-patch";
+
+export type PowerSchedule = {
+  id: number;
+  name: string;
+  description: string;
+  enabled: boolean;
+  action: PowerActionKind;
+  days: number; // bit 0 = Sunday
+  atMinute: number;
+  timeZone: string;
+  notifyUsers: boolean;
+  maxPostpones: number;
+  postponeMinutes: number;
+  countdownSeconds: number;
+  skipIfUserLoggedOn: boolean;
+  onlyIfRebootPending: boolean;
+  lastRunAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  groups: { id: number; name: string }[];
+  groupIds: number[];
+  nextRun: string | null;
+};
+
+export type PowerSchedules = { schedules: PowerSchedule[]; defaults: PowerSchedule; serverTimeZone: string };
+
+export type PowerAction = {
+  id: number;
+  deviceId: string;
+  hostname: string;
+  action: PowerActionKind;
+  trigger: PowerTrigger;
+  scheduleId: number | null;
+  scheduleName: string;
+  state: PowerState;
+  message: string;
+  relays: string[];
+  postpones: number;
+  postponedUntil: string | null;
+  requestedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
+};
+
+export type PowerDevice = {
+  id: string;
+  hostname: string;
+  groupId: number;
+  platform: Platform;
+  kind: string;
+  online: boolean;
+  loggedInUser: string;
+  lastSeenAt: string;
+  macs: string[];
+  networks: string[];
+  relays: string[];
+};
+
+export type WakeSettings = { serverWake: boolean; port: number; prepareWake: boolean };
+
+export type PowerRequest = {
+  action: PowerActionKind;
+  notify?: boolean;
+  maxPostpones?: number;
+  postponeMinutes?: number;
+  countdownSeconds?: number;
+  skipIfUserLoggedOn?: boolean;
+  onlyIfRebootPending?: boolean;
+  deviceIds?: string[];
+};
+
+export type BulkPowerResult = { sent: number; skipped: number; actions: PowerAction[] };
+
+// ---- asset management ----
+
+export type WarrantyState = "expired" | "expiring" | "valid" | "unknown";
+
+export type DeviceAsset = {
+  assetTag: string;
+  owner: string;
+  location: string;
+  department: string;
+  supplier: string;
+  orderNumber: string;
+  purchaseDate: string; // YYYY-MM-DD or ""
+  warrantyEnd: string;
+  updatedBy?: string;
+  updatedAt?: string | null;
+};
+
+export type AssetField = Exclude<keyof DeviceAsset, "updatedBy" | "updatedAt">;
+
+export const assetFields: AssetField[] = [
+  "assetTag",
+  "owner",
+  "location",
+  "department",
+  "supplier",
+  "orderNumber",
+  "purchaseDate",
+  "warrantyEnd",
+];
+
+export type AssetRow = DeviceAsset & {
+  id: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  platform: Platform;
+  kind: string;
+  manufacturer: string;
+  model: string;
+  serial: string;
+  osName: string;
+  loggedInUser: string;
+  lastSeenAt: string;
+  enrolledAt: string;
+  online: boolean;
+};
+
+export type AssetList = {
+  items: AssetRow[];
+  summary: {
+    total: number;
+    expired: number;
+    expiring: number;
+    valid: number;
+    unknown: number;
+    expiringDays: number;
+  };
+};
+
+export type ImportStatus =
+  | "update"
+  | "unchanged"
+  | "not_found"
+  | "ambiguous"
+  | "invalid";
+
+export type ImportResult = {
+  columns: string[];
+  ignored: string[];
+  rows: {
+    line: number;
+    key: string;
+    deviceId?: string;
+    hostname?: string;
+    status: ImportStatus;
+    error?: string;
+    changes?: Partial<Record<AssetField, string>>;
+  }[];
+  updated: number;
+  applied: boolean;
+};
+
+export type SoftwareLicense = {
+  id: number;
+  name: string;
+  vendor: string;
+  matchName: string;
+  matchPublisher: string;
+  seats: number;
+  hasKey: boolean;
+  expiresOn: string;
+  cost: number | null;
+  notes: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  inUse: number;
+};
+
+export type LicenseInstall = {
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  owner: string;
+  lastSeenAt: string;
+  program: string;
+  version: string;
+  publisher: string;
+};
+
+export type AssetsReport = {
+  generated: string;
+  scope: string;
+  expiringDays: number;
+  devices: number;
+  expired: number;
+  expiring: number;
+  unknown: number;
+  noOwner: number;
+  licenses: (SoftwareLicense & {
+    free: number;
+    state: "over" | "expired" | "expiring" | "ok";
+  })[];
+  licensesOver: number;
+  licensesEnding: number;
+  seats: number;
+  inUse: number;
+  warranty: (AssetRow & { state: WarrantyState; daysLeft: number | null })[];
+};
+
+// ---- vulnerabilities (phase 13) ----
+
+export type VulnSeverity = "critical" | "high" | "medium" | "low" | "none";
+export type VulnKind = "os" | "update" | "package" | "program";
+export type VulnFix = "patch" | "software" | "update" | "none";
+
+export type VulnSource = {
+  source: "nvd" | "kev" | "msrc" | "debian";
+  syncedAt: string | null;
+  checkedAt: string | null;
+  error: string;
+  items: number;
+};
+
+export type VulnSettings = {
+  enabled: boolean;
+  nvd: boolean;
+  kev: boolean;
+  debian: boolean;
+  msrc: boolean;
+  msrcMonths: number;
+};
+
+export type VulnStatus = {
+  enabled: boolean;
+  running: boolean;
+  matching: boolean;
+  step: string;
+  sources: VulnSource[];
+  settings?: VulnSettings;
+  products?: { cpe: string; name: string; winget: string }[];
+};
+
+export type VulnSummary = {
+  cves: number;
+  bySeverity: Partial<Record<VulnSeverity, number>>;
+  kev: number;
+  devices: number;
+  criticalDevices: number;
+  fixable: number;
+  accepted: number;
+  checked: number;
+  status: VulnStatus;
+};
+
+export type Vulnerability = {
+  cve: string;
+  title: string;
+  summary: string;
+  severity: VulnSeverity;
+  score: number;
+  kev: boolean;
+  exploited: boolean;
+  ransomware: boolean;
+  published: string | null;
+  devices: number;
+  fixable: number;
+  products: string[];
+  kinds: VulnKind[];
+  firstSeen: string;
+};
+
+export type DeviceVulnBase = {
+  cve: string;
+  kind: VulnKind;
+  product: string;
+  installedVersion: string;
+  fixedVersion: string;
+  fix: VulnFix;
+  fixRef: string[];
+};
+
+export type VulnAffectedDevice = DeviceVulnBase & {
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  platform: Platform;
+  osName: string;
+  lastSeen: string;
+  online: boolean;
+  accepted: boolean;
+  firstSeen: string;
+};
+
+export type VulnException = {
+  id: number;
+  cve: string;
+  deviceId: string | null;
+  hostname: string;
+  reason: string;
+  expiresAt: string | null;
+  createdBy: string;
+  createdAt: string;
+  title: string;
+  severity: VulnSeverity;
+};
+
+export type VulnDetail = {
+  cve: string;
+  title: string;
+  summary: string;
+  severity: VulnSeverity;
+  score: number;
+  vector: string;
+  published: string | null;
+  modified: string | null;
+  exploited: boolean;
+  kev: boolean;
+  kevName: string;
+  kevAdded: string | null;
+  kevDue: string | null;
+  ransomware: boolean;
+  msrcSeverity: string;
+  updates: string[];
+  ranges: {
+    product: string;
+    version?: string;
+    startIncl?: string;
+    startExcl?: string;
+    endIncl?: string;
+    endExcl?: string;
+  }[];
+  devices: VulnAffectedDevice[];
+  exceptions: VulnException[];
+  nvdUrl: string;
+};
+
+export type DeviceVulnRow = DeviceVulnBase & {
+  title: string;
+  summary: string;
+  severity: VulnSeverity;
+  score: number;
+  kev: boolean;
+  exploited: boolean;
+  published: string | null;
+  firstSeen: string;
+  accepted: boolean;
+};
+
+export type DeviceVulns = {
+  vulnerabilities: DeviceVulnRow[];
+  checkedAt: string | null;
+  pending: boolean;
+  supported: boolean;
+};
+
+export type VulnDeviceSummary = {
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  platform: Platform;
+  osName: string;
+  lastSeen: string;
+  checkedAt: string | null;
+  total: number;
+  counts: Record<VulnSeverity, number>;
+  kev: number;
+  fixable: number;
+  maxScore: number;
+};
+
+export type VulnFixResult = {
+  patchRuns: number;
+  deployments: { id: number; name: string; devices: number }[];
+  skipped: {
+    deviceId: string;
+    hostname: string;
+    cve?: string;
+    reason: string;
+  }[];
+};
+
+// ---- security status ----
+
+export type EncryptionState =
+  | "encrypted"
+  | "partial"
+  | "suspended"
+  | "encrypting"
+  | "none"
+  | "unknown"
+  | "";
+export type AntivirusState =
+  | "ok"
+  | "outdated"
+  | "disabled"
+  | "none"
+  | "unknown"
+  | "";
+export type FirewallSummary = "on" | "partial" | "off" | "unknown" | "";
+
+export type SecuritySummary = {
+  encryption: EncryptionState;
+  antivirus: AntivirusState;
+  firewall: FirewallSummary;
+  threats: number;
+  admins: number;
+  secureBoot: boolean | null;
+  tpm: boolean | null;
+};
+
+export type SecurityStats = {
+  devices: number;
+  reported: number;
+  encryption: Record<string, number>;
+  antivirus: Record<string, number>;
+  firewall: Record<string, number>;
+  threats: number;
+  secureBootOff: number;
+  keys: number;
+};
+
+export type SecurityRow = SecuritySummary & {
+  deviceId: string;
+  hostname: string;
+  groupId: number;
+  groupName: string;
+  platform: string;
+  kind: DeviceKind;
+  osName: string;
+  lastSeenAt: string | null;
+  collectedAt: string | null;
+  keys: number;
+};
+
+export type SecurityFilter =
+  | ""
+  | "unencrypted"
+  | "antivirus"
+  | "firewall"
+  | "threats"
+  | "secureboot"
+  | "unreported";
+
+export type SecureVolume = {
+  mount: string;
+  system: boolean;
+  method: "" | "bitlocker" | "luks";
+  protection: "on" | "off" | "suspended";
+  status: "encrypted" | "encrypting" | "decrypting" | "decrypted" | "paused";
+  percent: number;
+  cipher?: string;
+  protectors?: string[];
+};
+
+export type Threat = {
+  name: string;
+  severity: string;
+  detectedAt: string;
+  active: boolean;
+  action: string;
+  resources?: string[];
+};
+
+export type SecurityReport = {
+  collectedAt: string;
+  volumes: SecureVolume[];
+  antivirus: {
+    name: string;
+    enabled: boolean;
+    upToDate: boolean;
+    defender?: boolean;
+  }[];
+  defender?: {
+    mode: string;
+    serviceEnabled: boolean;
+    antivirusEnabled: boolean;
+    realTime: boolean;
+    tamperProtected: boolean;
+    signatureVersion: string;
+    signatureUpdatedAt?: string;
+    engineVersion: string;
+    quickScanAt?: string;
+    fullScanAt?: string;
+    threats?: Threat[];
+  };
+  firewall: {
+    name: string;
+    enabled: boolean;
+    inbound?: "block" | "allow" | "";
+    active?: boolean;
+  }[];
+  admins: {
+    name: string;
+    sid?: string;
+    kind: "user" | "group" | "unknown";
+    builtin?: boolean;
+  }[];
+  secureBoot?: boolean;
+  tpm?: { present: boolean; ready: boolean; version?: string };
+  errors?: string[];
+};
+
+export type RecoveryKey = {
+  id: number;
+  keyId: string;
+  deviceId: string | null;
+  hostname: string;
+  serial: string;
+  groupName: string;
+  volume: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  removedAt: string | null;
+  revealedAt: string | null;
+  revealedBy: string;
+};
+
+export type SecurityActionName =
+  | "defender.quickscan"
+  | "defender.fullscan"
+  | "defender.signatures"
+  | "bitlocker.rotate";
+
+export type SecurityAction = {
+  id: number;
+  deviceId: string;
+  action: SecurityActionName;
+  mount: string;
+  state: "queued" | "running" | "completed" | "failed";
+  message: string;
+  requestedBy: string;
+  createdAt: string;
+  finishedAt: string | null;
+};
+
+export type DeviceSecurity = {
+  reported: boolean;
+  collectedAt: string | null;
+  receivedAt: string | null;
+  summary: SecuritySummary | null;
+  report: SecurityReport | null;
+  canKeys: boolean;
+  keys: RecoveryKey[];
+  actions: SecurityAction[];
 };

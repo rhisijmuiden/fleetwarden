@@ -1,0 +1,2697 @@
+{
+ "resultsPerPage": 39368,
+ "startIndex": 0,
+ "totalResults": 10,
+ "format": "NVD_CVE",
+ "version": "2.0",
+ "timestamp": "2026-11-08T03:01:38.0456174",
+ "vulnerabilities": [
+  {
+   "cve": {
+    "id": "CVE-2024-0222",
+    "sourceIdentifier": "chrome-cve-admin@google.com",
+    "published": "2024-01-04T02:15:28.933",
+    "lastModified": "2026-06-17T06:53:01.663",
+    "vulnStatus": "Modified",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "Use after free in ANGLE in Google Chrome prior to 120.0.6099.199 allowed a remote attacker who had compromised the renderer process to potentially exploit heap corruption via a crafted HTML page. (Chromium security severity: High)"
+     },
+     {
+      "lang": "es",
+      "value": "El use after free en ANGLE en Google Chrome anterior a 120.0.6099.199 permiti\u00f3 a un atacante remoto que hab\u00eda comprometido el proceso de renderizado explotar potencialmente la corrupci\u00f3n del mont\u00f3n a trav\u00e9s de una p\u00e1gina HTML manipulada. (Severidad de seguridad de Chrome: alta)"
+     }
+    ],
+    "affected": [
+     {
+      "source": "chrome-cve-admin@google.com",
+      "affectedData": [
+       {
+        "vendor": "Google",
+        "product": "Chrome",
+        "versions": [
+         {
+          "version": "120.0.6099.199",
+          "lessThan": "120.0.6099.199",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV31": [
+      {
+       "source": "nvd@nist.gov",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+        "baseScore": 8.8,
+        "baseSeverity": "HIGH",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 5.9
+      },
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+        "baseScore": 8.8,
+        "baseSeverity": "HIGH",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 5.9
+      }
+     ],
+     "ssvcV203": [
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "ssvcData": {
+        "timestamp": "2024-01-04T16:52:28.296883Z",
+        "id": "CVE-2024-0222",
+        "options": [
+         {
+          "exploitation": "none"
+         },
+         {
+          "automatable": "yes"
+         },
+         {
+          "technicalImpact": "partial"
+         }
+        ],
+        "role": "CISA Coordinator",
+        "version": "2.0.3"
+       }
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "nvd@nist.gov",
+      "type": "Primary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-416"
+       }
+      ]
+     },
+     {
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "type": "Secondary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-416"
+       }
+      ]
+     }
+    ],
+    "configurations": [
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:google:chrome:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "120.0.6099.199",
+          "matchCriteriaId": "281E8DFE-903C-4F9E-8698-9183F2309F23"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:fedoraproject:fedora:38:*:*:*:*:*:*:*",
+          "matchCriteriaId": "CC559B26-5DFC-4B7A-A27C-B77DE755DFF9"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:fedoraproject:fedora:39:*:*:*:*:*:*:*",
+          "matchCriteriaId": "B8EDB836-4E6A-4B71-B9B2-AA3E03E0F646"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://chromereleases.googleblog.com/2024/01/stable-channel-update-for-desktop.html",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Release Notes",
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://crbug.com/1501798",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Permissions Required",
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/AYONA2XSNFMXLAW4IHLFI5UVV3QRNG5K/",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/D6C2HN4T2S6GYNTAUXLH45LQZHK7QPHP/",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://security.gentoo.org/glsa/202401-34",
+      "source": "chrome-cve-admin@google.com"
+     },
+     {
+      "url": "https://chromereleases.googleblog.com/2024/01/stable-channel-update-for-desktop.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Release Notes",
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://crbug.com/1501798",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Permissions Required",
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/AYONA2XSNFMXLAW4IHLFI5UVV3QRNG5K/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/D6C2HN4T2S6GYNTAUXLH45LQZHK7QPHP/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://security.gentoo.org/glsa/202401-34",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     }
+    ]
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2024-0223",
+    "sourceIdentifier": "chrome-cve-admin@google.com",
+    "published": "2024-01-04T02:15:28.987",
+    "lastModified": "2026-06-17T06:53:01.827",
+    "vulnStatus": "Modified",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "Heap buffer overflow in ANGLE in Google Chrome prior to 120.0.6099.199 allowed a remote attacker to potentially exploit heap corruption via a crafted HTML page. (Chromium security severity: High)"
+     },
+     {
+      "lang": "es",
+      "value": "El desbordamiento de b\u00fafer de almacenamiento din\u00e1mico en ANGLE en Google Chrome anterior a 120.0.6099.199 permit\u00eda a un atacante remoto explotar potencialmente la corrupci\u00f3n del mont\u00f3n a trav\u00e9s de una p\u00e1gina HTML manipulada. (Severidad de seguridad de Chrome: alta)"
+     }
+    ],
+    "affected": [
+     {
+      "source": "chrome-cve-admin@google.com",
+      "affectedData": [
+       {
+        "vendor": "Google",
+        "product": "Chrome",
+        "versions": [
+         {
+          "version": "120.0.6099.199",
+          "lessThan": "120.0.6099.199",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV31": [
+      {
+       "source": "nvd@nist.gov",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+        "baseScore": 8.8,
+        "baseSeverity": "HIGH",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 5.9
+      },
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+        "baseScore": 8.8,
+        "baseSeverity": "HIGH",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 5.9
+      }
+     ],
+     "ssvcV203": [
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "ssvcData": {
+        "timestamp": "2024-01-04T16:48:46.543652Z",
+        "id": "CVE-2024-0223",
+        "options": [
+         {
+          "exploitation": "none"
+         },
+         {
+          "automatable": "yes"
+         },
+         {
+          "technicalImpact": "partial"
+         }
+        ],
+        "role": "CISA Coordinator",
+        "version": "2.0.3"
+       }
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "nvd@nist.gov",
+      "type": "Primary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-787"
+       }
+      ]
+     },
+     {
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "type": "Secondary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-787"
+       }
+      ]
+     }
+    ],
+    "configurations": [
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:google:chrome:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "120.0.6099.199",
+          "matchCriteriaId": "281E8DFE-903C-4F9E-8698-9183F2309F23"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:fedoraproject:fedora:38:*:*:*:*:*:*:*",
+          "matchCriteriaId": "CC559B26-5DFC-4B7A-A27C-B77DE755DFF9"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:fedoraproject:fedora:39:*:*:*:*:*:*:*",
+          "matchCriteriaId": "B8EDB836-4E6A-4B71-B9B2-AA3E03E0F646"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://chromereleases.googleblog.com/2024/01/stable-channel-update-for-desktop.html",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Release Notes"
+      ]
+     },
+     {
+      "url": "https://crbug.com/1505009",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Permissions Required",
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/AYONA2XSNFMXLAW4IHLFI5UVV3QRNG5K/",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/D6C2HN4T2S6GYNTAUXLH45LQZHK7QPHP/",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://security.gentoo.org/glsa/202401-34",
+      "source": "chrome-cve-admin@google.com"
+     },
+     {
+      "url": "https://chromereleases.googleblog.com/2024/01/stable-channel-update-for-desktop.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Release Notes"
+      ]
+     },
+     {
+      "url": "https://crbug.com/1505009",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Permissions Required",
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/AYONA2XSNFMXLAW4IHLFI5UVV3QRNG5K/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/D6C2HN4T2S6GYNTAUXLH45LQZHK7QPHP/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://security.gentoo.org/glsa/202401-34",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     }
+    ]
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2024-0741",
+    "sourceIdentifier": "security@mozilla.org",
+    "published": "2024-01-23T14:15:38.173",
+    "lastModified": "2026-06-17T06:54:09.150",
+    "vulnStatus": "Modified",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "An out of bounds write in ANGLE could have allowed an attacker to corrupt memory leading to a potentially exploitable crash. This vulnerability affects Firefox < 122, Firefox ESR < 115.7, and Thunderbird < 115.7."
+     },
+     {
+      "lang": "es",
+      "value": "Una escritura fuera de los l\u00edmites en ANGLE podr\u00eda haber permitido que un atacante corrompiera la memoria y provocara un bloqueo potencialmente explotable. Esta vulnerabilidad afecta a Firefox &lt; 122, Firefox ESR &lt; 115.7 y Thunderbird &lt; 115.7."
+     }
+    ],
+    "affected": [
+     {
+      "source": "security@mozilla.org",
+      "affectedData": [
+       {
+        "vendor": "Mozilla",
+        "product": "Firefox",
+        "versions": [
+         {
+          "version": "unspecified",
+          "lessThan": "122",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       },
+       {
+        "vendor": "Mozilla",
+        "product": "Firefox ESR",
+        "versions": [
+         {
+          "version": "unspecified",
+          "lessThan": "115.7",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       },
+       {
+        "vendor": "Mozilla",
+        "product": "Thunderbird",
+        "versions": [
+         {
+          "version": "unspecified",
+          "lessThan": "115.7",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV31": [
+      {
+       "source": "nvd@nist.gov",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+        "baseScore": 6.5,
+        "baseSeverity": "MEDIUM",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "NONE",
+        "integrityImpact": "NONE",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 3.6
+      },
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+        "baseScore": 6.5,
+        "baseSeverity": "MEDIUM",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "NONE",
+        "integrityImpact": "NONE",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 3.6
+      }
+     ],
+     "ssvcV203": [
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "ssvcData": {
+        "timestamp": "2025-05-08T17:35:29.653089Z",
+        "id": "CVE-2024-0741",
+        "options": [
+         {
+          "exploitation": "none"
+         },
+         {
+          "automatable": "no"
+         },
+         {
+          "technicalImpact": "partial"
+         }
+        ],
+        "role": "CISA Coordinator",
+        "version": "2.0.3"
+       }
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "nvd@nist.gov",
+      "type": "Primary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-787"
+       }
+      ]
+     },
+     {
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "type": "Secondary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-787"
+       }
+      ]
+     }
+    ],
+    "configurations": [
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:mozilla:firefox:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "122.0",
+          "matchCriteriaId": "EEF7698D-52B1-4E62-8ADD-782A4BC59AD8"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:mozilla:firefox_esr:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "115.7",
+          "matchCriteriaId": "2FEFC245-B7AC-4DA2-B7FF-4F94583C81CC"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:mozilla:thunderbird:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "115.7",
+          "matchCriteriaId": "DC502C20-2D21-4F44-AE8A-2943144BA047"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:debian:debian_linux:10.0:*:*:*:*:*:*:*",
+          "matchCriteriaId": "07B237A9-69A3-4A9C-9DA0-4E06BD37AE73"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://bugzilla.mozilla.org/show_bug.cgi?id=1864587",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Issue Tracking",
+       "Permissions Required"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/01/msg00015.html",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/01/msg00022.html",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-01/",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-02/",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-04/",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://bugzilla.mozilla.org/show_bug.cgi?id=1864587",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Issue Tracking",
+       "Permissions Required"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/01/msg00015.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/01/msg00022.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-01/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-02/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-04/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2024-0742",
+    "sourceIdentifier": "security@mozilla.org",
+    "published": "2024-01-23T14:15:38.230",
+    "lastModified": "2026-06-17T06:54:09.330",
+    "vulnStatus": "Modified",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "It was possible for certain browser prompts and dialogs to be activated or dismissed unintentionally by the user due to an incorrect timestamp used to prevent input after page load. This vulnerability affects Firefox < 122, Firefox ESR < 115.7, and Thunderbird < 115.7."
+     },
+     {
+      "lang": "es",
+      "value": "Era posible que el usuario activara o descartara ciertas indicaciones y cuadros de di\u00e1logo del navegador sin querer debido a una marca de tiempo incorrecta utilizada para evitar la entrada despu\u00e9s de cargar la p\u00e1gina. Esta vulnerabilidad afecta a Firefox &lt; 122, Firefox ESR &lt; 115.7 y Thunderbird &lt; 115.7."
+     }
+    ],
+    "affected": [
+     {
+      "source": "security@mozilla.org",
+      "affectedData": [
+       {
+        "vendor": "Mozilla",
+        "product": "Firefox",
+        "versions": [
+         {
+          "version": "unspecified",
+          "lessThan": "122",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       },
+       {
+        "vendor": "Mozilla",
+        "product": "Firefox ESR",
+        "versions": [
+         {
+          "version": "unspecified",
+          "lessThan": "115.7",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       },
+       {
+        "vendor": "Mozilla",
+        "product": "Thunderbird",
+        "versions": [
+         {
+          "version": "unspecified",
+          "lessThan": "115.7",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV31": [
+      {
+       "source": "nvd@nist.gov",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:N",
+        "baseScore": 4.3,
+        "baseSeverity": "MEDIUM",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "NONE",
+        "integrityImpact": "LOW",
+        "availabilityImpact": "NONE"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 1.4
+      },
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:N",
+        "baseScore": 4.3,
+        "baseSeverity": "MEDIUM",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "NONE",
+        "integrityImpact": "LOW",
+        "availabilityImpact": "NONE"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 1.4
+      }
+     ],
+     "ssvcV203": [
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "ssvcData": {
+        "timestamp": "2025-05-08T17:35:26.769881Z",
+        "id": "CVE-2024-0742",
+        "options": [
+         {
+          "exploitation": "none"
+         },
+         {
+          "automatable": "no"
+         },
+         {
+          "technicalImpact": "partial"
+         }
+        ],
+        "role": "CISA Coordinator",
+        "version": "2.0.3"
+       }
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "nvd@nist.gov",
+      "type": "Primary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "NVD-CWE-noinfo"
+       }
+      ]
+     }
+    ],
+    "configurations": [
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:mozilla:firefox:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "122.0",
+          "matchCriteriaId": "EEF7698D-52B1-4E62-8ADD-782A4BC59AD8"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:mozilla:firefox_esr:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "115.7",
+          "matchCriteriaId": "2FEFC245-B7AC-4DA2-B7FF-4F94583C81CC"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:mozilla:thunderbird:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "115.7",
+          "matchCriteriaId": "DC502C20-2D21-4F44-AE8A-2943144BA047"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:debian:debian_linux:10.0:*:*:*:*:*:*:*",
+          "matchCriteriaId": "07B237A9-69A3-4A9C-9DA0-4E06BD37AE73"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://bugzilla.mozilla.org/show_bug.cgi?id=1867152",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Issue Tracking",
+       "Permissions Required"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/01/msg00015.html",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/01/msg00022.html",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-01/",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-02/",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-04/",
+      "source": "security@mozilla.org",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://bugzilla.mozilla.org/show_bug.cgi?id=1867152",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Issue Tracking",
+       "Permissions Required"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/01/msg00015.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/01/msg00022.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-01/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-02/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.mozilla.org/security/advisories/mfsa2024-04/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2024-11477",
+    "sourceIdentifier": "zdi-disclosures@trendmicro.com",
+    "published": "2024-11-22T21:15:08.613",
+    "lastModified": "2026-06-17T06:57:48.637",
+    "vulnStatus": "Modified",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "7-Zip Zstandard Decompression Integer Underflow Remote Code Execution Vulnerability. This vulnerability allows remote attackers to execute arbitrary code on affected installations of 7-Zip. Interaction with this library is required to exploit this vulnerability but attack vectors may vary depending on the implementation.\n\nThe specific flaw exists within the implementation of Zstandard decompression. The issue results from the lack of proper validation of user-supplied data, which can result in an integer underflow before writing to memory. An attacker can leverage this vulnerability to execute code in the context of the current process. Was ZDI-CAN-24346."
+     },
+     {
+      "lang": "es",
+      "value": "Vulnerabilidad de ejecuci\u00f3n remota de c\u00f3digo por desbordamiento de enteros en la descompresi\u00f3n Zstandard de 7-Zip. Esta vulnerabilidad permite a atacantes remotos ejecutar c\u00f3digo arbitrario en las instalaciones afectadas de 7-Zip. Se requiere la interacci\u00f3n con esta librer\u00eda para explotar esta vulnerabilidad, pero los vectores de ataque pueden variar seg\u00fan la implementaci\u00f3n. La falla espec\u00edfica existe dentro de la implementaci\u00f3n de la descompresi\u00f3n Zstandard. El problema es el resultado de la falta de una validaci\u00f3n adecuada de los datos proporcionados por el usuario, lo que puede provocar un desbordamiento de enteros antes de escribir en la memoria. Un atacante puede aprovechar esta vulnerabilidad para ejecutar c\u00f3digo en el contexto del proceso actual. Era ZDI-CAN-24346."
+     }
+    ],
+    "affected": [
+     {
+      "source": "zdi-disclosures@trendmicro.com",
+      "affectedData": [
+       {
+        "vendor": "7-Zip",
+        "product": "7-Zip",
+        "defaultStatus": "unknown",
+        "versions": [
+         {
+          "version": "24.06",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "affectedData": [
+       {
+        "vendor": "7-zip",
+        "product": "7zip",
+        "defaultStatus": "unknown",
+        "cpes": [
+         "cpe:2.3:a:7-zip:7zip:*:*:*:*:*:*:*:*"
+        ],
+        "versions": [
+         {
+          "version": "24.06",
+          "lessThan": "24.07",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV31": [
+      {
+       "source": "nvd@nist.gov",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+        "baseScore": 7.8,
+        "baseSeverity": "HIGH",
+        "attackVector": "LOCAL",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 1.8,
+       "impactScore": 5.9
+      }
+     ],
+     "cvssMetricV30": [
+      {
+       "source": "zdi-disclosures@trendmicro.com",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "3.0",
+        "vectorString": "CVSS:3.0/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+        "baseScore": 7.8,
+        "baseSeverity": "HIGH",
+        "attackVector": "LOCAL",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 1.8,
+       "impactScore": 5.9
+      }
+     ],
+     "ssvcV203": [
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "ssvcData": {
+        "timestamp": "2024-11-30T04:55:53.034971Z",
+        "id": "CVE-2024-11477",
+        "options": [
+         {
+          "exploitation": "poc"
+         },
+         {
+          "automatable": "no"
+         },
+         {
+          "technicalImpact": "total"
+         }
+        ],
+        "role": "CISA Coordinator",
+        "version": "2.0.3"
+       }
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "zdi-disclosures@trendmicro.com",
+      "type": "Secondary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-191"
+       }
+      ]
+     }
+    ],
+    "configurations": [
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:7-zip:7-zip:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "24.07",
+          "matchCriteriaId": "01AEC7B4-8443-4267-A0E3-3C41EDFFBB38"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://www.zerodayinitiative.com/advisories/ZDI-24-1532/",
+      "source": "zdi-disclosures@trendmicro.com",
+      "tags": [
+       "Third Party Advisory",
+       "VDB Entry"
+      ]
+     },
+     {
+      "url": "https://security.netapp.com/advisory/ntap-20250214-0007/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     }
+    ]
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2024-11612",
+    "sourceIdentifier": "zdi-disclosures@trendmicro.com",
+    "published": "2024-11-22T21:15:17.387",
+    "lastModified": "2026-06-17T06:58:04.137",
+    "vulnStatus": "Analyzed",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "7-Zip CopyCoder Infinite Loop Denial-of-Service Vulnerability. This vulnerability allows remote attackers to create a denial-of-service condition on affected installations of 7-Zip. Interaction with this library is required to exploit this vulnerability but attack vectors may vary depending on the implementation.\n\nThe specific flaw exists within the processing of streams. The issue results from a logic error that can lead to an infinite loop. An attacker can leverage this vulnerability to create a denial-of-service condition on the system. Was ZDI-CAN-24307."
+     },
+     {
+      "lang": "es",
+      "value": "Vulnerabilidad de denegaci\u00f3n de servicio de bucle infinito en 7-Zip CopyCoder. Esta vulnerabilidad permite a atacantes remotos crear una condici\u00f3n de denegaci\u00f3n de servicio en las instalaciones afectadas de 7-Zip. Se requiere la interacci\u00f3n con esta librer\u00eda para explotar esta vulnerabilidad, pero los vectores de ataque pueden variar seg\u00fan la implementaci\u00f3n. La falla espec\u00edfica existe dentro del procesamiento de flujos. El problema es el resultado de un error l\u00f3gico que puede conducir a un bucle infinito. Un atacante puede aprovechar esta vulnerabilidad para crear una condici\u00f3n de denegaci\u00f3n de servicio en el sistema. Era ZDI-CAN-24307."
+     }
+    ],
+    "affected": [
+     {
+      "source": "zdi-disclosures@trendmicro.com",
+      "affectedData": [
+       {
+        "vendor": "7-Zip",
+        "product": "7-Zip",
+        "defaultStatus": "unknown",
+        "versions": [
+         {
+          "version": "24.06",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV30": [
+      {
+       "source": "zdi-disclosures@trendmicro.com",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "3.0",
+        "vectorString": "CVSS:3.0/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+        "baseScore": 6.5,
+        "baseSeverity": "MEDIUM",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "NONE",
+        "integrityImpact": "NONE",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 3.6
+      }
+     ],
+     "ssvcV203": [
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "ssvcData": {
+        "timestamp": "2024-11-26T15:12:13.757081Z",
+        "id": "CVE-2024-11612",
+        "options": [
+         {
+          "exploitation": "none"
+         },
+         {
+          "automatable": "no"
+         },
+         {
+          "technicalImpact": "partial"
+         }
+        ],
+        "role": "CISA Coordinator",
+        "version": "2.0.3"
+       }
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "zdi-disclosures@trendmicro.com",
+      "type": "Secondary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-835"
+       }
+      ]
+     }
+    ],
+    "configurations": [
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:7-zip:7-zip:*:*:*:*:*:*:*:*",
+          "versionStartIncluding": "24.06",
+          "versionEndExcluding": "24.08",
+          "matchCriteriaId": "F7ACFF85-DAEC-4889-A3C1-2EBEBBC93F6E"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://www.zerodayinitiative.com/advisories/ZDI-24-1606/",
+      "source": "zdi-disclosures@trendmicro.com",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2024-31497",
+    "sourceIdentifier": "cve@mitre.org",
+    "published": "2024-04-15T20:15:11.077",
+    "lastModified": "2026-06-17T07:28:32.987",
+    "vulnStatus": "Modified",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "In PuTTY 0.68 through 0.80 before 0.81, biased ECDSA nonce generation allows an attacker to recover a user's NIST P-521 secret key via a quick attack in approximately 60 signatures. This is especially important in a scenario where an adversary is able to read messages signed by PuTTY or Pageant. The required set of signed messages may be publicly readable because they are stored in a public Git service that supports use of SSH for commit signing, and the signatures were made by Pageant through an agent-forwarding mechanism. In other words, an adversary may already have enough signature information to compromise a victim's private key, even if there is no further use of vulnerable PuTTY versions. After a key compromise, an adversary may be able to conduct supply-chain attacks on software maintained in Git. A second, independent scenario is that the adversary is an operator of an SSH server to which the victim authenticates (for remote login or file copy), even though this server is not fully trusted by the victim, and the victim uses the same private key for SSH connections to other services operated by other entities. Here, the rogue server operator (who would otherwise have no way to determine the victim's private key) can derive the victim's private key, and then use it for unauthorized access to those other services. If the other services include Git services, then again it may be possible to conduct supply-chain attacks on software maintained in Git. This also affects, for example, FileZilla before 3.67.0, WinSCP before 6.3.3, TortoiseGit before 2.15.0.1, and TortoiseSVN through 1.14.6."
+     },
+     {
+      "lang": "es",
+      "value": "En PuTTY 0.68 a 0.80 antes de 0.81, la generaci\u00f3n nonce ECDSA sesgada permite a un atacante recuperar la clave secreta NIST P-521 de un usuario mediante un ataque r\u00e1pido en aproximadamente 60 firmas. Esto es especialmente importante en un escenario en el que un adversario puede leer mensajes firmados por PuTTY o Pageant. El conjunto requerido de mensajes firmados puede ser legible p\u00fablicamente porque est\u00e1n almacenados en un servicio p\u00fablico Git que admite el uso de SSH para la firma de confirmaci\u00f3n, y Pageant realiz\u00f3 las firmas a trav\u00e9s de un mecanismo de reenv\u00edo de agentes. En otras palabras, es posible que un adversario ya tenga suficiente informaci\u00f3n de firma para comprometer la clave privada de una v\u00edctima, incluso si no se utilizan m\u00e1s versiones vulnerables de PuTTY. Despu\u00e9s de un compromiso clave, un adversario puede realizar ataques a la cadena de suministro del software mantenido en Git. Un segundo escenario independiente es que el adversario sea un operador de un servidor SSH en el que la v\u00edctima se autentica (para inicio de sesi\u00f3n remoto o copia de archivos), aunque la v\u00edctima no conf\u00ede plenamente en este servidor y la v\u00edctima utilice la misma clave privada. para conexiones SSH a otros servicios operados por otras entidades. Aqu\u00ed, el operador del servidor fraudulento (que de otro modo no tendr\u00eda forma de determinar la clave privada de la v\u00edctima) puede obtener la clave privada de la v\u00edctima y luego usarla para acceder no autorizado a esos otros servicios. Si los otros servicios incluyen servicios Git, nuevamente es posible realizar ataques a la cadena de suministro del software mantenido en Git. Esto tambi\u00e9n afecta, por ejemplo, a FileZilla anterior a 3.67.0, WinSCP anterior a 6.3.3, TortoiseGit anterior a 2.15.0.1 y TortoiseSVN hasta 1.14.6."
+     }
+    ],
+    "affected": [
+     {
+      "source": "cve@mitre.org",
+      "affectedData": [
+       {
+        "vendor": "n/a",
+        "product": "n/a",
+        "versions": [
+         {
+          "version": "n/a",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "affectedData": [
+       {
+        "vendor": "putty",
+        "product": "putty",
+        "defaultStatus": "unknown",
+        "cpes": [
+         "cpe:2.3:a:putty:putty:-:*:*:*:*:*:*:*"
+        ],
+        "versions": [
+         {
+          "version": "0.68",
+          "lessThan": "0.81",
+          "versionType": "semver",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV31": [
+      {
+       "source": "nvd@nist.gov",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        "baseScore": 5.9,
+        "baseSeverity": "MEDIUM",
+        "attackVector": "NETWORK",
+        "attackComplexity": "HIGH",
+        "privilegesRequired": "NONE",
+        "userInteraction": "NONE",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "NONE",
+        "availabilityImpact": "NONE"
+       },
+       "exploitabilityScore": 2.2,
+       "impactScore": 3.6
+      },
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        "baseScore": 5.9,
+        "baseSeverity": "MEDIUM",
+        "attackVector": "NETWORK",
+        "attackComplexity": "HIGH",
+        "privilegesRequired": "NONE",
+        "userInteraction": "NONE",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "NONE",
+        "availabilityImpact": "NONE"
+       },
+       "exploitabilityScore": 2.2,
+       "impactScore": 3.6
+      }
+     ],
+     "ssvcV203": [
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "ssvcData": {
+        "timestamp": "2024-04-19T04:01:10.059065Z",
+        "id": "CVE-2024-31497",
+        "options": [
+         {
+          "exploitation": "none"
+         },
+         {
+          "automatable": "no"
+         },
+         {
+          "technicalImpact": "partial"
+         }
+        ],
+        "role": "CISA Coordinator",
+        "version": "2.0.3"
+       }
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "nvd@nist.gov",
+      "type": "Primary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-338"
+       }
+      ]
+     },
+     {
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "type": "Secondary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-338"
+       }
+      ]
+     }
+    ],
+    "configurations": [
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:putty:putty:*:*:*:*:*:*:*:*",
+          "versionStartIncluding": "0.68",
+          "versionEndExcluding": "0.81",
+          "matchCriteriaId": "E0D6294C-4365-4187-8053-35F3AAC5229F"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:filezilla-project:filezilla_client:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "3.67.0",
+          "matchCriteriaId": "A0E9886A-527F-444B-AFB3-33CF777182CC"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:winscp:winscp:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "6.3.3",
+          "matchCriteriaId": "5DA80FE9-039E-4BF4-AC16-6E65FFAB22A2"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:tortoisegit:tortoisegit:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "2.15.0.1",
+          "matchCriteriaId": "A1C171EB-2081-44AC-9017-B3BA3A88B10A"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:tigris:tortoisesvn:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "1.14.6",
+          "matchCriteriaId": "26F28A31-E86D-43C1-8043-2B8ECD723AF7"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:fedoraproject:fedora:38:*:*:*:*:*:*:*",
+          "matchCriteriaId": "CC559B26-5DFC-4B7A-A27C-B77DE755DFF9"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:fedoraproject:fedora:39:*:*:*:*:*:*:*",
+          "matchCriteriaId": "B8EDB836-4E6A-4B71-B9B2-AA3E03E0F646"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:fedoraproject:fedora:40:*:*:*:*:*:*:*",
+          "matchCriteriaId": "CA277A6C-83EC-4536-9125-97B84C4FAF59"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "http://www.openwall.com/lists/oss-security/2024/04/15/6",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://bugzilla.redhat.com/show_bug.cgi?id=2275183",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Issue Tracking"
+      ]
+     },
+     {
+      "url": "https://bugzilla.suse.com/show_bug.cgi?id=1222864",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Issue Tracking"
+      ]
+     },
+     {
+      "url": "https://docs.ccv.brown.edu/oscar/connecting-to-oscar/ssh/ssh-agent-forwarding/key-generation-and-agent-forwarding-with-putty",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Product"
+      ]
+     },
+     {
+      "url": "https://filezilla-project.org/versions.php",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Release Notes"
+      ]
+     },
+     {
+      "url": "https://git.tartarus.org/?h=c193fe9848f50a88a4089aac647fecc31ae96d27&p=simon/putty.git",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Mailing List",
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://github.com/advisories/GHSA-6p4c-r453-8743",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://github.com/daedalus/BreakingECDSAwithLLL",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/06/msg00014.html",
+      "source": "cve@mitre.org"
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/IZS3B37GNGWOOV7QU7B7JFK76U4TOP4V/",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/MMHILY2K7HQGQRHOC375KRRG2M6625RD/",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/PUOTQVGC4DISVHQGSPUYGXO6TLDK65LA/",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/WFDZBV7ZCAZ6AH3VCQ34SSY7L3J7VZXZ/",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/WMJH7M663BVO3SY6MFAW2FAZWLLXAPRQ/",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://news.ycombinator.com/item?id=40044665",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Issue Tracking"
+      ]
+     },
+     {
+      "url": "https://security-tracker.debian.org/tracker/CVE-2024-31497",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://securityonline.info/cve-2024-31497-critical-putty-vulnerability-exposes-private-keys-immediate-action-required/",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Press/Media Coverage"
+      ]
+     },
+     {
+      "url": "https://tartarus.org/~simon/putty-snapshots/htmldoc/Chapter9.html#pageant-forward",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Product"
+      ]
+     },
+     {
+      "url": "https://tortoisegit.org",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://twitter.com/CCBalert/status/1780229237569470549",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Press/Media Coverage"
+      ]
+     },
+     {
+      "url": "https://twitter.com/lambdafu/status/1779969509522133272",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Press/Media Coverage"
+      ]
+     },
+     {
+      "url": "https://winscp.net/eng/news.php",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://www.bleepingcomputer.com/news/security/putty-ssh-client-flaw-allows-recovery-of-cryptographic-private-keys/",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Press/Media Coverage"
+      ]
+     },
+     {
+      "url": "https://www.chiark.greenend.org.uk/~sgtatham/putty/changes.html",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Release Notes",
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/vuln-p521-bias.html",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.openwall.com/lists/oss-security/2024/04/15/6",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://www.reddit.com/r/sysadmin/comments/1c4wmoj/putty_vulnerability_affecting_v068_to_v08/",
+      "source": "cve@mitre.org",
+      "tags": [
+       "Press/Media Coverage"
+      ]
+     },
+     {
+      "url": "http://www.openwall.com/lists/oss-security/2024/04/15/6",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://bugzilla.redhat.com/show_bug.cgi?id=2275183",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Issue Tracking"
+      ]
+     },
+     {
+      "url": "https://bugzilla.suse.com/show_bug.cgi?id=1222864",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Issue Tracking"
+      ]
+     },
+     {
+      "url": "https://docs.ccv.brown.edu/oscar/connecting-to-oscar/ssh/ssh-agent-forwarding/key-generation-and-agent-forwarding-with-putty",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Product"
+      ]
+     },
+     {
+      "url": "https://filezilla-project.org/versions.php",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Release Notes"
+      ]
+     },
+     {
+      "url": "https://git.tartarus.org/?h=c193fe9848f50a88a4089aac647fecc31ae96d27&p=simon/putty.git",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://github.com/advisories/GHSA-6p4c-r453-8743",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://github.com/daedalus/BreakingECDSAwithLLL",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/06/msg00014.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/IZS3B37GNGWOOV7QU7B7JFK76U4TOP4V/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/MMHILY2K7HQGQRHOC375KRRG2M6625RD/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/PUOTQVGC4DISVHQGSPUYGXO6TLDK65LA/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/WFDZBV7ZCAZ6AH3VCQ34SSY7L3J7VZXZ/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/WMJH7M663BVO3SY6MFAW2FAZWLLXAPRQ/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/IZS3B37GNGWOOV7QU7B7JFK76U4TOP4V/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/MMHILY2K7HQGQRHOC375KRRG2M6625RD/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/PUOTQVGC4DISVHQGSPUYGXO6TLDK65LA/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/WMJH7M663BVO3SY6MFAW2FAZWLLXAPRQ/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     },
+     {
+      "url": "https://news.ycombinator.com/item?id=40044665",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Issue Tracking"
+      ]
+     },
+     {
+      "url": "https://security-tracker.debian.org/tracker/CVE-2024-31497",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://securityonline.info/cve-2024-31497-critical-putty-vulnerability-exposes-private-keys-immediate-action-required/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Press/Media Coverage"
+      ]
+     },
+     {
+      "url": "https://tartarus.org/~simon/putty-snapshots/htmldoc/Chapter9.html#pageant-forward",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Product"
+      ]
+     },
+     {
+      "url": "https://tortoisegit.org",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://twitter.com/CCBalert/status/1780229237569470549",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Press/Media Coverage"
+      ]
+     },
+     {
+      "url": "https://twitter.com/lambdafu/status/1779969509522133272",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Press/Media Coverage"
+      ]
+     },
+     {
+      "url": "https://winscp.net/eng/news.php",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://www.bleepingcomputer.com/news/security/putty-ssh-client-flaw-allows-recovery-of-cryptographic-private-keys/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Press/Media Coverage"
+      ]
+     },
+     {
+      "url": "https://www.chiark.greenend.org.uk/~sgtatham/putty/changes.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Release Notes",
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/vuln-p521-bias.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://www.openwall.com/lists/oss-security/2024/04/15/6",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Mailing List",
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://www.reddit.com/r/sysadmin/comments/1c4wmoj/putty_vulnerability_affecting_v068_to_v08/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Press/Media Coverage"
+      ]
+     },
+     {
+      "url": "https://www.vicarius.io/vsociety/posts/understanding-a-critical-vulnerability-in-putty-biased-ecdsa-nonce-generation-revealing-nist-p-521-private-keys-cve-2024-31497",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     }
+    ]
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2024-0727",
+    "sourceIdentifier": "openssl-security@openssl.org",
+    "published": "2024-01-26T09:15:07.637",
+    "lastModified": "2026-10-15T01:17:18.263",
+    "vulnStatus": "Modified",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "Issue summary: Processing a maliciously formatted PKCS12 file may lead OpenSSL\nto crash leading to a potential Denial of Service attack\n\nImpact summary: Applications loading files in the PKCS12 format from untrusted\nsources might terminate abruptly.\n\nA file in PKCS12 format can contain certificates and keys and may come from an\nuntrusted source. The PKCS12 specification allows certain fields to be NULL, but\nOpenSSL does not correctly check for this case. This can lead to a NULL pointer\ndereference that results in OpenSSL crashing. If an application processes PKCS12\nfiles from an untrusted source using the OpenSSL APIs then that application will\nbe vulnerable to this issue.\n\nOpenSSL APIs that are vulnerable to this are: PKCS12_parse(),\nPKCS12_unpack_p7data(), PKCS12_unpack_p7encdata(), PKCS12_unpack_authsafes()\nand PKCS12_newpass().\n\nWe have also fixed a similar issue in SMIME_write_PKCS7(). However since this\nfunction is related to writing data we do not consider it security significant.\n\nThe FIPS modules in 3.2, 3.1 and 3.0 are not affected by this issue."
+     },
+     {
+      "lang": "es",
+      "value": "Resumen del problema: el procesamiento de un archivo PKCS12 con formato malintencionado puede hacer que OpenSSL falle y provoque un posible ataque de denegaci\u00f3n de servicio. Resumen de impacto: las aplicaciones que cargan archivos en formato PKCS12 desde fuentes que no son de confianza pueden finalizar abruptamente. Un archivo en formato PKCS12 puede contener certificados y claves y puede provenir de una fuente que no es de confianza. La especificaci\u00f3n PKCS12 permite que ciertos campos sean NULL, pero OpenSSL no verifica correctamente este caso. Esto puede provocar una desreferencia del puntero NULL que provoque el bloqueo de OpenSSL. Si una aplicaci\u00f3n procesa archivos PKCS12 de una fuente que no es de confianza utilizando las API de OpenSSL, esa aplicaci\u00f3n ser\u00e1 vulnerable a este problema. Las API de OpenSSL que son vulnerables a esto son: PKCS12_parse(), PKCS12_unpack_p7data(), PKCS12_unpack_p7encdata(), PKCS12_unpack_authsafes() y PKCS12_newpass(). Tambi\u00e9n solucionamos un problema similar en SMIME_write_PKCS7(). Sin embargo, dado que esta funci\u00f3n est\u00e1 relacionada con la escritura de datos, no la consideramos importante para la seguridad. Los m\u00f3dulos FIPS en 3.2, 3.1 y 3.0 no se ven afectados por este problema."
+     }
+    ],
+    "affected": [
+     {
+      "source": "openssl-security@openssl.org",
+      "affectedData": [
+       {
+        "vendor": "OpenSSL",
+        "product": "OpenSSL",
+        "defaultStatus": "unaffected",
+        "versions": [
+         {
+          "version": "3.2.0",
+          "lessThan": "3.2.1",
+          "versionType": "semver",
+          "status": "affected"
+         },
+         {
+          "version": "3.1.0",
+          "lessThan": "3.1.5",
+          "versionType": "semver",
+          "status": "affected"
+         },
+         {
+          "version": "3.0.0",
+          "lessThan": "3.0.13",
+          "versionType": "semver",
+          "status": "affected"
+         },
+         {
+          "version": "1.1.1",
+          "lessThan": "1.1.1x",
+          "versionType": "custom",
+          "status": "affected"
+         },
+         {
+          "version": "1.0.2",
+          "lessThan": "1.0.2zj",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "source": "0b142b55-0307-4c5a-b3c9-f314f3fb7c5e",
+      "affectedData": [
+       {
+        "vendor": "Siemens",
+        "product": "SIDIS Prime",
+        "defaultStatus": "unknown",
+        "versions": [
+         {
+          "version": "0",
+          "lessThan": "V4.0.700",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       },
+       {
+        "vendor": "Siemens",
+        "product": "SIMATIC S7-1500 TM MFP - GNU/Linux subsystem",
+        "defaultStatus": "unknown",
+        "versions": [
+         {
+          "version": "0",
+          "lessThan": "V1.1.1",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       },
+       {
+        "vendor": "Siemens",
+        "product": "SINEC NMS",
+        "defaultStatus": "unknown",
+        "versions": [
+         {
+          "version": "0",
+          "lessThan": "V3.0 SP1",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV31": [
+      {
+       "source": "nvd@nist.gov",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+        "baseScore": 5.5,
+        "baseSeverity": "MEDIUM",
+        "attackVector": "LOCAL",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "NONE",
+        "integrityImpact": "NONE",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 1.8,
+       "impactScore": 3.6
+      },
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+        "baseScore": 5.5,
+        "baseSeverity": "MEDIUM",
+        "attackVector": "LOCAL",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "NONE",
+        "integrityImpact": "NONE",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 1.8,
+       "impactScore": 3.6
+      }
+     ],
+     "ssvcV203": [
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "ssvcData": {
+        "timestamp": "2025-05-08T20:15:21.221130Z",
+        "id": "CVE-2024-0727",
+        "options": [
+         {
+          "exploitation": "none"
+         },
+         {
+          "automatable": "no"
+         },
+         {
+          "technicalImpact": "partial"
+         }
+        ],
+        "role": "CISA Coordinator",
+        "version": "2.0.3"
+       }
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "openssl-security@openssl.org",
+      "type": "Secondary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-476"
+       }
+      ]
+     },
+     {
+      "source": "nvd@nist.gov",
+      "type": "Primary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "NVD-CWE-noinfo"
+       }
+      ]
+     },
+     {
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "type": "Secondary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-476"
+       }
+      ]
+     }
+    ],
+    "configurations": [
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*",
+          "versionStartIncluding": "1.0.2",
+          "versionEndExcluding": "1.0.2zj",
+          "matchCriteriaId": "E30B9424-68AA-4ED4-A1CB-3DA32A2350EC"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*",
+          "versionStartIncluding": "1.1.1",
+          "versionEndExcluding": "1.1.1x",
+          "matchCriteriaId": "93CF937D-2520-44AF-B40B-B41720BEAB36"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*",
+          "versionStartIncluding": "3.0.0",
+          "versionEndExcluding": "3.0.13",
+          "matchCriteriaId": "21346C7C-ED3A-43D4-BBCB-41D62F7ACBF2"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*",
+          "versionStartIncluding": "3.1.0",
+          "versionEndExcluding": "3.1.5",
+          "matchCriteriaId": "AAD34F57-90D2-415F-9544-70B594D04E53"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:openssl:openssl:3.2.0:-:*:*:*:*:*:*",
+          "matchCriteriaId": "AA5220D8-3CAD-4524-BA73-1656FB437446"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://github.com/openssl/openssl/commit/09df4395b5071217b76dc7d3d2e630eb8c5a79c2",
+      "source": "openssl-security@openssl.org",
+      "tags": [
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://github.com/openssl/openssl/commit/775acfdbd0c6af9ac855f34969cdab0c0c90844a",
+      "source": "openssl-security@openssl.org",
+      "tags": [
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://github.com/openssl/openssl/commit/d135eeab8a5dbf72b3da5240bab9ddb7678dbd2c",
+      "source": "openssl-security@openssl.org",
+      "tags": [
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://github.openssl.org/openssl/extended-releases/commit/03b3941d60c4bce58fab69a0c22377ab439bc0e8",
+      "source": "openssl-security@openssl.org",
+      "tags": [
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://github.openssl.org/openssl/extended-releases/commit/aebaa5883e31122b404e450732dc833dc9dee539",
+      "source": "openssl-security@openssl.org",
+      "tags": [
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://www.openssl.org/news/secadv/20240125.txt",
+      "source": "openssl-security@openssl.org",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "http://www.openwall.com/lists/oss-security/2024/03/11/1",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     },
+     {
+      "url": "https://github.com/openssl/openssl/commit/09df4395b5071217b76dc7d3d2e630eb8c5a79c2",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://github.com/openssl/openssl/commit/775acfdbd0c6af9ac855f34969cdab0c0c90844a",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://github.com/openssl/openssl/commit/d135eeab8a5dbf72b3da5240bab9ddb7678dbd2c",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://github.openssl.org/openssl/extended-releases/commit/03b3941d60c4bce58fab69a0c22377ab439bc0e8",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://github.openssl.org/openssl/extended-releases/commit/aebaa5883e31122b404e450732dc833dc9dee539",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Patch"
+      ]
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/10/msg00033.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     },
+     {
+      "url": "https://lists.debian.org/debian-lts-announce/2024/11/msg00000.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     },
+     {
+      "url": "https://security.netapp.com/advisory/ntap-20240208-0006/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108"
+     },
+     {
+      "url": "https://www.openssl.org/news/secadv/20240125.txt",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Vendor Advisory"
+      ]
+     },
+     {
+      "url": "https://cert-portal.siemens.com/productcert/html/ssa-265688.html",
+      "source": "0b142b55-0307-4c5a-b3c9-f314f3fb7c5e"
+     },
+     {
+      "url": "https://cert-portal.siemens.com/productcert/html/ssa-277137.html",
+      "source": "0b142b55-0307-4c5a-b3c9-f314f3fb7c5e"
+     },
+     {
+      "url": "https://cert-portal.siemens.com/productcert/html/ssa-331112.html",
+      "source": "0b142b55-0307-4c5a-b3c9-f314f3fb7c5e"
+     },
+     {
+      "url": "https://cert-portal.siemens.com/productcert/html/ssa-769027.html",
+      "source": "0b142b55-0307-4c5a-b3c9-f314f3fb7c5e"
+     },
+     {
+      "url": "https://cert-portal.siemens.com/productcert/html/ssa-915275.html",
+      "source": "0b142b55-0307-4c5a-b3c9-f314f3fb7c5e"
+     }
+    ]
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2024-0069",
+    "sourceIdentifier": "security@hypr.com",
+    "published": "2023-11-28T00:15:07.140",
+    "lastModified": "2023-11-28T00:15:07.140",
+    "vulnStatus": "Rejected",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "Rejected reason: This CVE ID was unused by the CNA."
+     }
+    ],
+    "metrics": {},
+    "references": []
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2024-0519",
+    "sourceIdentifier": "chrome-cve-admin@google.com",
+    "published": "2024-01-16T22:15:37.753",
+    "lastModified": "2026-06-17T06:53:41.133",
+    "vulnStatus": "Analyzed",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "Out of bounds memory access in V8 in Google Chrome prior to 120.0.6099.224 allowed a remote attacker to potentially exploit heap corruption via a crafted HTML page. (Chromium security severity: High)"
+     },
+     {
+      "lang": "es",
+      "value": "El acceso a memoria fuera de los l\u00edmites en V8 en Google Chrome anterior a 120.0.6099.224 permit\u00eda a un atacante remoto explotar potencialmente la corrupci\u00f3n del mont\u00f3n a trav\u00e9s de una p\u00e1gina HTML manipulada. (Severidad de seguridad de Chrome: alta)"
+     }
+    ],
+    "affected": [
+     {
+      "source": "chrome-cve-admin@google.com",
+      "affectedData": [
+       {
+        "vendor": "Google",
+        "product": "Chrome",
+        "versions": [
+         {
+          "version": "120.0.6099.224",
+          "lessThan": "120.0.6099.224",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "affectedData": [
+       {
+        "vendor": "google",
+        "product": "chrome",
+        "defaultStatus": "unknown",
+        "cpes": [
+         "cpe:2.3:a:google:chrome:*:*:*:*:*:*:*:*"
+        ],
+        "versions": [
+         {
+          "version": "0",
+          "lessThan": "120.0.6099.224",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV31": [
+      {
+       "source": "nvd@nist.gov",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+        "baseScore": 8.8,
+        "baseSeverity": "HIGH",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 5.9
+      },
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+        "baseScore": 8.8,
+        "baseSeverity": "HIGH",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "REQUIRED",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 2.8,
+       "impactScore": 5.9
+      }
+     ],
+     "ssvcV203": [
+      {
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "ssvcData": {
+        "timestamp": "2024-01-18T20:18:46.152236Z",
+        "id": "CVE-2024-0519",
+        "options": [
+         {
+          "exploitation": "active"
+         },
+         {
+          "automatable": "no"
+         },
+         {
+          "technicalImpact": "total"
+         }
+        ],
+        "role": "CISA Coordinator",
+        "version": "2.0.3"
+       }
+      }
+     ]
+    },
+    "cisaExploitAdd": "2024-01-17",
+    "cisaActionDue": "2024-02-07",
+    "cisaRequiredAction": "Apply mitigations per vendor instructions or discontinue use of the product if mitigations are unavailable.",
+    "cisaVulnerabilityName": "Google Chromium V8 Out-of-Bounds Memory Access Vulnerability",
+    "weaknesses": [
+     {
+      "source": "nvd@nist.gov",
+      "type": "Primary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-787"
+       }
+      ]
+     },
+     {
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "type": "Secondary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-125"
+       },
+       {
+        "lang": "en",
+        "value": "CWE-787"
+       }
+      ]
+     }
+    ],
+    "configurations": [
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:google:chrome:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "120.0.6099.224",
+          "matchCriteriaId": "F1333551-8202-4042-AD12-C0767B189306"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:fedoraproject:fedora:38:*:*:*:*:*:*:*",
+          "matchCriteriaId": "CC559B26-5DFC-4B7A-A27C-B77DE755DFF9"
+         },
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:o:fedoraproject:fedora:39:*:*:*:*:*:*:*",
+          "matchCriteriaId": "B8EDB836-4E6A-4B71-B9B2-AA3E03E0F646"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "nodes": [
+       {
+        "operator": "OR",
+        "negate": false,
+        "cpeMatch": [
+         {
+          "vulnerable": true,
+          "criteria": "cpe:2.3:a:couchbase:couchbase_server:*:*:*:*:*:*:*:*",
+          "versionEndExcluding": "7.2.5",
+          "matchCriteriaId": "6EF8247D-D1FA-4C35-88A3-0F0AF4F7DA15"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://chromereleases.googleblog.com/2024/01/stable-channel-update-for-desktop_16.html",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Release Notes"
+      ]
+     },
+     {
+      "url": "https://crbug.com/1517354",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Permissions Required"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/IIUBRVICICWREJQUVT67RS7E4PVZQ5RS/",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Broken Link",
+       "Mailing List"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/TNN4SO5UI3U3Q6ASTVT6WMZ4723FYDLH/",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Broken Link",
+       "Mailing List"
+      ]
+     },
+     {
+      "url": "https://www.couchbase.com/alerts/",
+      "source": "chrome-cve-admin@google.com",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://chromereleases.googleblog.com/2024/01/stable-channel-update-for-desktop_16.html",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Release Notes"
+      ]
+     },
+     {
+      "url": "https://crbug.com/1517354",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Permissions Required"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/IIUBRVICICWREJQUVT67RS7E4PVZQ5RS/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Broken Link",
+       "Mailing List"
+      ]
+     },
+     {
+      "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/TNN4SO5UI3U3Q6ASTVT6WMZ4723FYDLH/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Broken Link",
+       "Mailing List"
+      ]
+     },
+     {
+      "url": "https://www.couchbase.com/alerts/",
+      "source": "af854a3a-2127-422b-91ae-364da2661108",
+      "tags": [
+       "Third Party Advisory"
+      ]
+     },
+     {
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2024-0519",
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "tags": [
+       "US Government Resource"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

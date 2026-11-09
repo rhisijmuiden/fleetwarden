@@ -1,12 +1,50 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { BellRing, Check, CheckCircle2, HardDrive, Pencil, Plus, Trash2, WifiOff } from "lucide-react";
-import { del, get, post, put, type AlertRule, type DeviceKind, type FleetAlert } from "../../api";
+import {
+  BellRing,
+  BrickWall,
+  Bug,
+  Check,
+  CheckCircle2,
+  HardDrive,
+  Lock,
+  Pencil,
+  Plus,
+  ShieldAlert,
+  ShieldOff,
+  Trash2,
+  WifiOff,
+} from "lucide-react";
+import {
+  del,
+  get,
+  post,
+  put,
+  securityAlertKinds,
+  type AlertKind,
+  type AlertRule,
+  type DeviceKind,
+  type FleetAlert,
+} from "../../api";
 import { useAuth } from "../../auth";
 import { useGroups } from "../../components/GroupScope";
 import { formatInterval, IntervalInput } from "../../components/IntervalInput";
-import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Switch, formatDate, useErrorText } from "../../components/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Field,
+  Input,
+  Modal,
+  PageHeader,
+  Select,
+  Spinner,
+  Switch,
+  formatDate,
+  useErrorText,
+} from "../../components/ui";
 import { timeAgo } from "../devices/util";
 
 type Tab = "open" | "history" | "rules";
@@ -16,14 +54,26 @@ export function Alerts() {
   const { can, me } = useAuth();
   const [params, setParams] = useSearchParams();
   const rules = can("alerts.manage") && !me?.scoped;
-  const tabs: Tab[] = ["open", "history", ...(rules ? (["rules"] as Tab[]) : [])];
-  const tab = (tabs.includes(params.get("tab") as Tab) ? params.get("tab") : "open") as Tab;
+  const tabs: Tab[] = [
+    "open",
+    "history",
+    ...(rules ? (["rules"] as Tab[]) : []),
+  ];
+  const tab = (
+    tabs.includes(params.get("tab") as Tab) ? params.get("tab") : "open"
+  ) as Tab;
   const setTab = (k: Tab) => setParams(k === "open" ? {} : { tab: k });
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("alerts.title")} description={t("alerts.subtitle")} />
-      <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <PageHeader
+        title={t("alerts.title")}
+        description={t("alerts.subtitle")}
+      />
+      <div
+        className="flex gap-1 overflow-x-auto border-b border-line"
+        role="tablist"
+      >
         {tabs.map((k) => (
           <button
             key={k}
@@ -41,11 +91,46 @@ export function Alerts() {
   );
 }
 
-function KindIcon({ kind, resolved }: { kind: FleetAlert["kind"]; resolved: boolean }) {
-  const tone = resolved ? "bg-success/10 text-success" : kind === "offline" ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning";
+function RuleIcon({ kind }: { kind: AlertKind }) {
+  switch (kind) {
+    case "offline":
+      return <WifiOff className="size-4" />;
+    case "disk":
+      return <HardDrive className="size-4" />;
+    case "warranty":
+      return <ShieldOff className="size-4" />;
+    case "threat":
+      return <Bug className="size-4" />;
+    case "antivirus":
+      return <ShieldAlert className="size-4" />;
+    case "firewall":
+      return <BrickWall className="size-4" />;
+    default:
+      return <Lock className="size-4" />;
+  }
+}
+
+function KindIcon({
+  kind,
+  resolved,
+}: {
+  kind: FleetAlert["kind"];
+  resolved: boolean;
+}) {
+  const tone = resolved
+    ? "bg-success/10 text-success"
+    : kind === "offline" || kind === "threat"
+      ? "bg-danger/10 text-danger"
+      : "bg-warning/10 text-warning";
   return (
-    <span className={`grid size-9 shrink-0 place-items-center rounded-md ${tone}`}>
-      {resolved ? <CheckCircle2 className="size-4" /> : kind === "offline" ? <WifiOff className="size-4" /> : <HardDrive className="size-4" />}
+    <span
+      className={`grid size-9 shrink-0 place-items-center rounded-md ${tone}`}
+    >
+      {resolved ? (
+        <CheckCircle2 className="size-4" />
+      ) : (
+        <RuleIcon kind={kind} />
+      )}
     </span>
   );
 }
@@ -88,35 +173,72 @@ function AlertList({ history }: { history: boolean }) {
   return (
     <div className="space-y-4">
       {error && <Alert tone="danger">{error}</Alert>}
-      <Card title={history ? t("alerts.historyTitle") : t("alerts.openTitle", { count: list.length })}>
+      <Card
+        title={
+          history
+            ? t("alerts.historyTitle")
+            : t("alerts.openTitle", { count: list.length })
+        }
+      >
         {list.length === 0 ? (
           <div className="grid place-items-center rounded-md border border-dashed border-line px-6 py-10 text-center">
             <CheckCircle2 className="size-8 text-success" strokeWidth={1.5} />
-            <p className="mt-3 max-w-sm text-sm text-muted">{history ? t("alerts.noHistory") : t("alerts.none")}</p>
+            <p className="mt-3 max-w-sm text-sm text-muted">
+              {history ? t("alerts.noHistory") : t("alerts.none")}
+            </p>
           </div>
         ) : (
           <ul className="-mx-5 -my-5 divide-y divide-line">
             {list.map((a) => (
-              <li key={a.id} className="flex flex-wrap items-start gap-4 px-5 py-4">
+              <li
+                key={a.id}
+                className="flex flex-wrap items-start gap-4 px-5 py-4"
+              >
                 <KindIcon kind={a.kind} resolved={!!a.resolvedAt} />
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Link to={`/devices/${a.deviceId}`} className="font-medium hover:text-primary">
+                    <Link
+                      to={`/devices/${a.deviceId}`}
+                      className="font-medium hover:text-primary"
+                    >
                       {a.hostname}
                     </Link>
                     <span className="text-sm text-muted">{a.groupName}</span>
-                    <Badge tone={a.resolvedAt ? "success" : a.kind === "offline" ? "danger" : "warning"}>{a.ruleName}</Badge>
-                    {a.acknowledgedAt && !a.resolvedAt && <Badge>{t("alerts.acknowledged")}</Badge>}
+                    <Badge
+                      tone={
+                        a.resolvedAt
+                          ? "success"
+                          : a.kind === "offline" || a.kind === "threat"
+                            ? "danger"
+                            : "warning"
+                      }
+                    >
+                      {a.ruleName}
+                    </Badge>
+                    {a.acknowledgedAt && !a.resolvedAt && (
+                      <Badge>{t("alerts.acknowledged")}</Badge>
+                    )}
                   </div>
                   <p className="text-sm">{a.text}</p>
                   <p className="text-xs text-muted">
-                    {t("alerts.opened", { when: timeAgo(a.openedAt, i18n.language), date: formatDate(a.openedAt, i18n.language) })}
-                    {a.resolvedAt && ` · ${t("alerts.resolved", { date: formatDate(a.resolvedAt, i18n.language) })}`}
-                    {a.acknowledgedAt && ` · ${t("alerts.acknowledgedBy", { user: a.acknowledgedBy, date: formatDate(a.acknowledgedAt, i18n.language) })}`}
+                    {t("alerts.opened", {
+                      when: timeAgo(a.openedAt, i18n.language),
+                      date: formatDate(a.openedAt, i18n.language),
+                    })}
+                    {a.resolvedAt &&
+                      ` · ${t("alerts.resolved", { date: formatDate(a.resolvedAt, i18n.language) })}`}
+                    {a.acknowledgedAt &&
+                      ` · ${t("alerts.acknowledgedBy", { user: a.acknowledgedBy, date: formatDate(a.acknowledgedAt, i18n.language) })}`}
                   </p>
                 </div>
                 {!a.resolvedAt && !a.acknowledgedAt && can("alerts.manage") && (
-                  <Button size="sm" variant="secondary" icon={<Check className="size-4" />} loading={busy === a.id} onClick={() => acknowledge(a)}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<Check className="size-4" />}
+                    loading={busy === a.id}
+                    onClick={() => acknowledge(a)}
+                  >
                     {t("alerts.acknowledge")}
                   </Button>
                 )}
@@ -129,7 +251,9 @@ function AlertList({ history }: { history: boolean }) {
   );
 }
 
-type Draft = Omit<AlertRule, "id" | "openAlerts" | "createdBy"> & { id?: number };
+type Draft = Omit<AlertRule, "id" | "openAlerts" | "createdBy"> & {
+  id?: number;
+};
 
 const emptyDraft = (lang: string): Draft => ({
   name: "",
@@ -167,10 +291,22 @@ function Rules() {
       .catch((e) => setError(errorText(e)));
   };
   const condition = (r: Pick<AlertRule, "kind" | "threshold">) =>
-    r.kind === "offline" ? t("alerts.rules.offlineFor", { time: formatInterval(r.threshold, t) }) : t("alerts.rules.diskBelow", { percent: r.threshold });
+    r.kind === "offline"
+      ? t("alerts.rules.offlineFor", { time: formatInterval(r.threshold, t) })
+      : r.kind === "disk"
+        ? t("alerts.rules.diskBelow", { percent: r.threshold })
+        : r.kind === "warranty"
+          ? t("alerts.rules.warrantyWithin", { count: r.threshold })
+          : t(`alerts.rules.condition.${r.kind}`);
   const scope = (r: AlertRule) => {
-    const kinds = r.deviceKinds.length ? r.deviceKinds.map((k) => t(`alerts.kinds.${k}`)).join(", ") : t("alerts.kinds.all");
-    const names = r.groupIds.length ? r.groupIds.map((id) => groups?.find((g) => g.id === id)?.name ?? `#${id}`).join(", ") : t("reports.allGroups");
+    const kinds = r.deviceKinds.length
+      ? r.deviceKinds.map((k) => t(`alerts.kinds.${k}`)).join(", ")
+      : t("alerts.kinds.all");
+    const names = r.groupIds.length
+      ? r.groupIds
+          .map((id) => groups?.find((g) => g.id === id)?.name ?? `#${id}`)
+          .join(", ")
+      : t("reports.allGroups");
     return `${kinds} · ${names}`;
   };
 
@@ -182,7 +318,10 @@ function Rules() {
         title={t("alerts.rules.title")}
         description={t("alerts.rules.subtitle")}
         actions={
-          <Button icon={<Plus className="size-4" />} onClick={() => setDraft(emptyDraft(i18n.language))}>
+          <Button
+            icon={<Plus className="size-4" />}
+            onClick={() => setDraft(emptyDraft(i18n.language))}
+          >
             {t("alerts.rules.new")}
           </Button>
         }
@@ -190,24 +329,36 @@ function Rules() {
         {list.length === 0 ? (
           <div className="grid place-items-center rounded-md border border-dashed border-line px-6 py-10 text-center">
             <BellRing className="size-8 text-muted" strokeWidth={1.5} />
-            <p className="mt-3 max-w-sm text-sm text-muted">{t("alerts.rules.empty")}</p>
+            <p className="mt-3 max-w-sm text-sm text-muted">
+              {t("alerts.rules.empty")}
+            </p>
           </div>
         ) : (
           <ul className="-mx-5 -my-5 divide-y divide-line">
             {list.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-start gap-4 px-5 py-4">
+              <li
+                key={r.id}
+                className="flex flex-wrap items-start gap-4 px-5 py-4"
+              >
                 <span className="grid size-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                  {r.kind === "offline" ? <WifiOff className="size-4" /> : <HardDrive className="size-4" />}
+                  <RuleIcon kind={r.kind} />
                 </span>
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{r.name}</span>
                     {!r.enabled && <Badge>{t("alerts.rules.paused")}</Badge>}
-                    {r.openAlerts > 0 && <Badge tone="danger">{t("alerts.rules.open", { count: r.openAlerts })}</Badge>}
+                    {r.openAlerts > 0 && (
+                      <Badge tone="danger">
+                        {t("alerts.rules.open", { count: r.openAlerts })}
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm">{condition(r)}</p>
                   <p className="text-xs text-muted">
-                    {scope(r)} · {r.recipients.length ? r.recipients.join(", ") : t("alerts.rules.noRecipients")}
+                    {scope(r)} ·{" "}
+                    {r.recipients.length
+                      ? r.recipients.join(", ")
+                      : t("alerts.rules.noRecipients")}
                   </p>
                 </div>
                 <div className="flex gap-1">
@@ -238,7 +389,15 @@ function Rules() {
   );
 }
 
-function RuleForm({ draft: initial, onClose, onSaved }: { draft: Draft | null; onClose: () => void; onSaved: () => void }) {
+function RuleForm({
+  draft: initial,
+  onClose,
+  onSaved,
+}: {
+  draft: Draft | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const { t } = useTranslation();
   const errorText = useErrorText();
   const groups = useGroups();
@@ -253,8 +412,20 @@ function RuleForm({ draft: initial, onClose, onSaved }: { draft: Draft | null; o
   }, [initial]);
   if (!d) return null;
   const set = (p: Partial<Draft>) => setD({ ...d, ...p });
-  const toggle = <T,>(list: T[], v: T, on: boolean) => (on ? [...list.filter((x) => x !== v), v] : list.filter((x) => x !== v));
-  const setKind = (kind: Draft["kind"]) => set({ kind, threshold: kind === "offline" ? 60 : 10 });
+  const toggle = <T,>(list: T[], v: T, on: boolean) =>
+    on ? [...list.filter((x) => x !== v), v] : list.filter((x) => x !== v);
+  const setKind = (kind: Draft["kind"]) =>
+    set({
+      kind,
+      threshold:
+        kind === "offline"
+          ? 60
+          : kind === "warranty"
+            ? 60
+            : kind === "disk"
+              ? 10
+              : 0,
+    });
 
   const save = () => {
     setBusy(true);
@@ -288,28 +459,91 @@ function RuleForm({ draft: initial, onClose, onSaved }: { draft: Draft | null; o
     >
       {error && <Alert tone="danger">{error}</Alert>}
       <Field label={t("alerts.rules.name")}>
-        {(id) => <Input id={id} value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder={t("alerts.rules.namePlaceholder")} />}
+        {(id) => (
+          <Input
+            id={id}
+            value={d.name}
+            onChange={(e) => set({ name: e.target.value })}
+            placeholder={t("alerts.rules.namePlaceholder")}
+          />
+        )}
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("alerts.rules.kind")}>
           {(id) => (
-            <Select id={id} value={d.kind} onChange={(e) => setKind(e.target.value as Draft["kind"])}>
+            <Select
+              id={id}
+              value={d.kind}
+              onChange={(e) => setKind(e.target.value as Draft["kind"])}
+            >
               <option value="offline">{t("alerts.rules.kindOffline")}</option>
               <option value="disk">{t("alerts.rules.kindDisk")}</option>
+              <option value="warranty">{t("alerts.rules.kindWarranty")}</option>
+              <optgroup label={t("alerts.rules.kindSecurity")}>
+                {securityAlertKinds.map((k) => (
+                  <option key={k} value={k}>
+                    {t(`alerts.rules.kinds.${k}`)}
+                  </option>
+                ))}
+              </optgroup>
             </Select>
           )}
         </Field>
         {d.kind === "offline" ? (
-          <Field label={t("alerts.rules.offlineAfter")} hint={t("alerts.rules.offlineHint")}>
-            {(id) => <IntervalInput id={id} value={d.threshold} onChange={(v) => set({ threshold: v })} />}
+          <Field
+            label={t("alerts.rules.offlineAfter")}
+            hint={t("alerts.rules.offlineHint")}
+          >
+            {(id) => (
+              <IntervalInput
+                id={id}
+                value={d.threshold}
+                onChange={(v) => set({ threshold: v })}
+              />
+            )}
+          </Field>
+        ) : d.kind === "warranty" ? (
+          <Field
+            label={t("alerts.rules.warrantyDays")}
+            hint={t("alerts.rules.warrantyHint")}
+          >
+            {(id) => (
+              <Input
+                id={id}
+                type="number"
+                min={0}
+                max={365}
+                value={d.threshold}
+                onChange={(e) => set({ threshold: Number(e.target.value) })}
+              />
+            )}
+          </Field>
+        ) : d.kind === "disk" ? (
+          <Field
+            label={t("alerts.rules.diskPercent")}
+            hint={t("alerts.rules.diskHint")}
+          >
+            {(id) => (
+              <Input
+                id={id}
+                type="number"
+                min={1}
+                max={90}
+                value={d.threshold}
+                onChange={(e) => set({ threshold: Number(e.target.value) })}
+              />
+            )}
           </Field>
         ) : (
-          <Field label={t("alerts.rules.diskPercent")} hint={t("alerts.rules.diskHint")}>
-            {(id) => <Input id={id} type="number" min={1} max={90} value={d.threshold} onChange={(e) => set({ threshold: Number(e.target.value) })} />}
-          </Field>
+          <p className="self-end pb-2 text-sm text-muted">
+            {t(`alerts.rules.hint.${d.kind}`)}
+          </p>
         )}
       </div>
-      <Field label={t("alerts.rules.deviceKinds")} hint={d.deviceKinds.length === 0 ? t("alerts.kinds.all") : undefined}>
+      <Field
+        label={t("alerts.rules.deviceKinds")}
+        hint={d.deviceKinds.length === 0 ? t("alerts.kinds.all") : undefined}
+      >
         {() => (
           <div className="flex flex-wrap gap-4">
             {deviceKinds.map((k) => (
@@ -318,7 +552,11 @@ function RuleForm({ draft: initial, onClose, onSaved }: { draft: Draft | null; o
                   type="checkbox"
                   className="size-4 accent-primary"
                   checked={d.deviceKinds.includes(k)}
-                  onChange={(e) => set({ deviceKinds: toggle(d.deviceKinds, k, e.target.checked) })}
+                  onChange={(e) =>
+                    set({
+                      deviceKinds: toggle(d.deviceKinds, k, e.target.checked),
+                    })
+                  }
                 />
                 {t(`alerts.kinds.${k}`)}
               </label>
@@ -326,16 +564,26 @@ function RuleForm({ draft: initial, onClose, onSaved }: { draft: Draft | null; o
           </div>
         )}
       </Field>
-      <Field label={t("reports.schedules.groups")} hint={d.groupIds.length === 0 ? t("reports.allGroups") : undefined}>
+      <Field
+        label={t("reports.schedules.groups")}
+        hint={d.groupIds.length === 0 ? t("reports.allGroups") : undefined}
+      >
         {() => (
           <div className="grid max-h-40 gap-1 overflow-y-auto rounded-md border border-line p-2 sm:grid-cols-2">
             {(groups ?? []).map((g) => (
-              <label key={g.id} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-surface-muted">
+              <label
+                key={g.id}
+                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-surface-muted"
+              >
                 <input
                   type="checkbox"
                   className="size-4 accent-primary"
                   checked={d.groupIds.includes(g.id)}
-                  onChange={(e) => set({ groupIds: toggle(d.groupIds, g.id, e.target.checked) })}
+                  onChange={(e) =>
+                    set({
+                      groupIds: toggle(d.groupIds, g.id, e.target.checked),
+                    })
+                  }
                 />
                 <span className="truncate">{g.name}</span>
               </label>
@@ -343,19 +591,43 @@ function RuleForm({ draft: initial, onClose, onSaved }: { draft: Draft | null; o
           </div>
         )}
       </Field>
-      <Field label={t("alerts.rules.recipients")} hint={t("alerts.rules.recipientsHint")}>
-        {(id) => <Input id={id} value={rcpt} onChange={(e) => setRcpt(e.target.value)} placeholder="it@example.com" />}
+      <Field
+        label={t("alerts.rules.recipients")}
+        hint={t("alerts.rules.recipientsHint")}
+      >
+        {(id) => (
+          <Input
+            id={id}
+            value={rcpt}
+            onChange={(e) => setRcpt(e.target.value)}
+            placeholder="it@example.com"
+          />
+        )}
       </Field>
       <Field label={t("reports.schedules.language")}>
         {(id) => (
-          <Select id={id} value={d.language} onChange={(e) => set({ language: e.target.value as Draft["language"] })}>
+          <Select
+            id={id}
+            value={d.language}
+            onChange={(e) =>
+              set({ language: e.target.value as Draft["language"] })
+            }
+          >
             <option value="en">English</option>
             <option value="nl">Nederlands</option>
           </Select>
         )}
       </Field>
-      <Switch checked={d.notifyResolved} onChange={(v) => set({ notifyResolved: v })} label={t("alerts.rules.notifyResolved")} />
-      <Switch checked={d.enabled} onChange={(v) => set({ enabled: v })} label={t("alerts.rules.enabled")} />
+      <Switch
+        checked={d.notifyResolved}
+        onChange={(v) => set({ notifyResolved: v })}
+        label={t("alerts.rules.notifyResolved")}
+      />
+      <Switch
+        checked={d.enabled}
+        onChange={(v) => set({ enabled: v })}
+        label={t("alerts.rules.enabled")}
+      />
     </Modal>
   );
 }

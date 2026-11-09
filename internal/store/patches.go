@@ -42,8 +42,10 @@ type PatchPolicy struct {
 	PostponeMinutes  int                 `json:"postponeMinutes"`
 	CountdownSeconds int                 `json:"countdownSeconds"`
 	TakeOver         bool                `json:"takeOver"`
-	Drivers          bool                `json:"drivers"`  // install repository drivers in the window
-	Firmware         bool                `json:"firmware"` // install repository firmware (BIOS/UEFI) in the window
+	Drivers          bool                `json:"drivers"`       // install repository drivers in the window
+	Firmware         bool                `json:"firmware"`      // install repository firmware (BIOS/UEFI) in the window
+	WakeForWindow    bool                `json:"wakeForWindow"` // wake devices that are off when the window opens
+	ShutdownAfter    bool                `json:"shutdownAfter"` // shut down the devices that were woken once they are done
 	ScanHours        int                 `json:"scanHours"`
 	CreatedAt        time.Time           `json:"createdAt"`
 	UpdatedAt        time.Time           `json:"updatedAt"`
@@ -58,7 +60,7 @@ type GroupRef struct {
 
 const policyCols = `p.id, p.name, p.description, p.enabled, p.window_days, p.window_start, p.window_minutes, p.time_zone,
 	p.approvals, p.reboot, p.notify_users, p.max_postpones, p.postpone_minutes, p.countdown_seconds, p.take_over,
-	p.scan_hours, p.drivers, p.firmware, p.created_at, p.updated_at,
+	p.scan_hours, p.drivers, p.firmware, p.wake_for_window, p.shutdown_after, p.created_at, p.updated_at,
 	COALESCE((SELECT json_agg(json_build_object('id', g.id, 'name', g.name) ORDER BY lower(g.name))
 		FROM device_groups g WHERE g.patch_policy_id = p.id), '[]')`
 
@@ -67,7 +69,7 @@ func scanPolicy(row pgx.Row) (PatchPolicy, error) {
 	var days, start, mins, postpones, postponeMins, countdown, scan int16
 	var approvals, groups []byte
 	err := row.Scan(&p.ID, &p.Name, &p.Description, &p.Enabled, &days, &start, &mins, &p.TimeZone, &approvals, &p.Reboot,
-		&p.NotifyUsers, &postpones, &postponeMins, &countdown, &p.TakeOver, &scan, &p.Drivers, &p.Firmware, &p.CreatedAt, &p.UpdatedAt, &groups)
+		&p.NotifyUsers, &postpones, &postponeMins, &countdown, &p.TakeOver, &scan, &p.Drivers, &p.Firmware, &p.WakeForWindow, &p.ShutdownAfter, &p.CreatedAt, &p.UpdatedAt, &groups)
 	if err != nil {
 		return p, mapErr(err)
 	}
@@ -107,7 +109,7 @@ func policyArgs(p PatchPolicy) []any {
 	approvals, _ := json.Marshal(p.Approvals)
 	return []any{p.Name, p.Description, p.Enabled, int16(p.WindowDays), int16(p.WindowStart), int16(p.WindowMinutes), p.TimeZone,
 		approvals, p.Reboot, p.NotifyUsers, int16(p.MaxPostpones), int16(p.PostponeMinutes), int16(p.CountdownSeconds), p.TakeOver,
-		int16(p.ScanHours), p.Drivers, p.Firmware}
+		int16(p.ScanHours), p.Drivers, p.Firmware, p.WakeForWindow, p.ShutdownAfter}
 }
 
 // CreatePatchPolicy inserts a policy.
@@ -115,7 +117,8 @@ func (s *Store) CreatePatchPolicy(ctx context.Context, p PatchPolicy) (PatchPoli
 	var id int64
 	err := s.pool.QueryRow(ctx, `INSERT INTO patch_policies (name, description, enabled, window_days, window_start, window_minutes,
 		time_zone, approvals, reboot, notify_users, max_postpones, postpone_minutes, countdown_seconds, take_over, scan_hours,
-		drivers, firmware) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`, policyArgs(p)...).Scan(&id)
+		drivers, firmware, wake_for_window, shutdown_after) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
+		$18, $19) RETURNING id`, policyArgs(p)...).Scan(&id)
 	if err != nil {
 		return p, mapErr(err)
 	}
@@ -127,7 +130,7 @@ func (s *Store) UpdatePatchPolicy(ctx context.Context, p PatchPolicy) error {
 	tag, err := s.pool.Exec(ctx, `UPDATE patch_policies SET name = $2, description = $3, enabled = $4, window_days = $5,
 		window_start = $6, window_minutes = $7, time_zone = $8, approvals = $9, reboot = $10, notify_users = $11,
 		max_postpones = $12, postpone_minutes = $13, countdown_seconds = $14, take_over = $15, scan_hours = $16,
-		drivers = $17, firmware = $18, updated_at = now() WHERE id = $1`, append([]any{p.ID}, policyArgs(p)...)...)
+		drivers = $17, firmware = $18, wake_for_window = $19, shutdown_after = $20, updated_at = now() WHERE id = $1`, append([]any{p.ID}, policyArgs(p)...)...)
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}
@@ -251,7 +254,7 @@ func (s *Store) SaveScanResult(ctx context.Context, id string, r ScanResult) err
 		}
 	}
 	if _, err := tx.Exec(ctx, `UPDATE devices SET patch_scan_at = now(), patch_scan_requested_at = NULL, patch_scan_error = $2,
-		patch_source = $3, patch_cluster = $4, patch_reboot_pending = $5 WHERE id::text = $1`,
+		patch_source = $3, patch_cluster = $4, patch_reboot_pending = $5, vuln_dirty = true WHERE id::text = $1`,
 		id, r.Error, r.Source, r.Cluster, r.RebootPending); err != nil {
 		return err
 	}

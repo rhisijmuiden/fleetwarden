@@ -39,10 +39,10 @@ import {
   type RemoteEvent,
 } from "./protocol";
 
-type Phase = RemoteState | "starting";
-type StatusMsg = { type: "status"; state: RemoteState; reason?: string; consent?: string };
+export type Phase = RemoteState | "starting";
+export type StatusMsg = { type: "status"; state: RemoteState; reason?: string; consent?: string };
 
-const finished = (p: Phase) => p === "ended" || p === "denied" || p === "failed";
+export const finished = (p: Phase) => p === "ended" || p === "denied" || p === "failed";
 
 // RemoteViewer is the full-window remote control page, opened in its own
 // tab from a device. It starts a session, shows the remote screen and sends
@@ -511,7 +511,7 @@ export function RemoteViewer() {
   );
 }
 
-function Tool({ label, onClick, pressed, children }: { label: string; onClick: () => void; pressed?: boolean; children: ReactNode }) {
+export function Tool({ label, onClick, pressed, children }: { label: string; onClick: () => void; pressed?: boolean; children: ReactNode }) {
   return (
     <button
       type="button"
@@ -531,7 +531,7 @@ function StateLabel({ phase }: { phase: Phase }) {
   return <>{t(`remote.states.${phase}`)}</>;
 }
 
-function Overlay(props: {
+export function Overlay(props: {
   phase: Phase;
   reason: string;
   startError: string | null;

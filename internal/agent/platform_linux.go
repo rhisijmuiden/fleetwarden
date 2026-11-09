@@ -241,14 +241,14 @@ func collectSoftware(ctx context.Context) ([]agentproto.Software, error) {
 	if _, err := exec.LookPath("dpkg-query"); err != nil {
 		return nil, errors.New("dpkg-query not found; software inventory skipped")
 	}
-	out, err := exec.CommandContext(ctx, "dpkg-query", "-W", "-f", "${db:Status-Abbrev}\t${Package}\t${Version}\t${Maintainer}\t${Installed-Size}\n").Output()
+	out, err := exec.CommandContext(ctx, "dpkg-query", "-W", "-f", "${db:Status-Abbrev}\t${Package}\t${Version}\t${Maintainer}\t${Installed-Size}\t${source:Package}\t${source:Version}\n").Output()
 	if err != nil {
 		return nil, err
 	}
 	var sw []agentproto.Software
 	for _, l := range strings.Split(string(out), "\n") {
 		f := strings.Split(l, "\t")
-		if len(f) != 5 || !strings.HasPrefix(f[0], "ii") {
+		if len(f) != 7 || !strings.HasPrefix(f[0], "ii") {
 			continue
 		}
 		pub := f[3]
@@ -256,7 +256,12 @@ func collectSoftware(ctx context.Context) ([]agentproto.Software, error) {
 			pub = strings.TrimSpace(pub[:i])
 		}
 		kb, _ := strconv.ParseInt(f[4], 10, 64)
-		sw = append(sw, agentproto.Software{Name: f[1], Version: f[2], Publisher: pub, Source: "dpkg", SizeBytes: kb * 1024})
+		s := agentproto.Software{Name: f[1], Version: f[2], Publisher: pub, Source: "dpkg", SizeBytes: kb * 1024}
+		// The source package, for the Debian security tracker (phase 13).
+		if f[5] != f[1] || f[6] != f[2] {
+			s.SourcePackage, s.SourceVersion = f[5], f[6]
+		}
+		sw = append(sw, s)
 	}
 	return sortSoftware(sw), nil
 }
