@@ -36,7 +36,8 @@
     "reverseProxy": "Reverse proxy",
     "gateways": "Secure gateway",
     "configurations": "Configurations",
-    "drivers": "Drivers & firmware"
+    "drivers": "Drivers & firmware",
+    "assets": "Assets"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -345,7 +346,16 @@
     "manage_busy": "The agent is busy with other requests. Try again in a moment.",
     "manage_failed": "The action failed on the device.",
     "manage_too_large": "The file is larger than 4 GB.",
-    "invalid_terminal_shell": "Choose PowerShell or Command Prompt."
+    "invalid_terminal_shell": "Choose PowerShell or Command Prompt.",
+    "invalid_date": "Enter a valid date.",
+    "invalid_match": "Enter which program names count, for example Microsoft 365 Apps*.",
+    "invalid_seats": "The number of seats must be between 0 and 1,000,000.",
+    "invalid_cost": "Enter a valid amount.",
+    "invalid_notes": "The notes are too long.",
+    "invalid_key": "The licence key is too long.",
+    "invalid_csv": "The file is not a CSV file with a heading row and at least one row.",
+    "too_many_rows": "The file has more than 5,000 rows.",
+    "csv_columns": "The file needs a column with the host name or serial number, and at least one column to import (owner, location, warranty end, ...)."
   },
   "login": {
     "title": "Sign in",
@@ -470,7 +480,8 @@
     "alerts_manage": "Acknowledge alerts and manage alert rules",
     "config_manage": "Manage configurations (browser policies, registry, scripts)",
     "drivers_manage": "Add drivers and firmware to the repository",
-    "remote_manage": "Manage devices without taking over (processes, services, logs, files)"
+    "remote_manage": "Manage devices without taking over (processes, services, logs, files)",
+    "assets_manage": "Manage assets and software licences"
   },
   "auth": {
     "title": "Authentication",
@@ -1807,7 +1818,8 @@
       "patches": "Missing patches",
       "software": "Outdated software",
       "schedules": "Scheduled reports",
-      "settings": "Settings"
+      "settings": "Settings",
+      "assets": "Assets"
     },
     "cols": {
       "group": "Group",
@@ -1929,7 +1941,9 @@
       "ignored": "Programs left out",
       "ignoredHint": "These winget packages do not count as outdated software, for example programs that update themselves or that you keep on an older version on purpose.",
       "noneIgnored": "No programs are left out.",
-      "unignore": "Count {{id}} again"
+      "unignore": "Count {{id}} again",
+      "expiringDays": "Ending soon (days)",
+      "expiringHint": "Warranties and licences ending within this many days count as ending soon."
     }
   },
   "interval": {
@@ -1948,7 +1962,7 @@
   },
   "alerts": {
     "title": "Alerts",
-    "subtitle": "Devices that have been offline too long or are running out of disk space. Alerts close by themselves once the problem is gone.",
+    "subtitle": "Devices that have been offline too long, are running out of disk space or whose warranty ends. Alerts close by themselves once the problem is gone.",
     "tabs": {
       "open": "Open",
       "history": "History",
@@ -1996,7 +2010,12 @@
       "recipients": "Recipients",
       "recipientsHint": "Up to 20 addresses, separated by commas. Leave empty to only show alerts here.",
       "notifyResolved": "Also mail when an alert is resolved",
-      "enabled": "Rule is active"
+      "enabled": "Rule is active",
+      "warrantyWithin_one": "Warranty ends within {{count}} day",
+      "warrantyWithin_other": "Warranty ends within {{count}} days",
+      "kindWarranty": "The warranty ends",
+      "warrantyDays": "Days before the end",
+      "warrantyHint": "0 to 365. A device whose warranty has ended stays alerted until the date is changed. Warranty dates come from Assets."
     }
   },
   "proxy": {
@@ -3006,6 +3025,144 @@
       "hintWindows": "A PowerShell or Command Prompt console as SYSTEM, in its own browser tab. The user does not see it.",
       "hintLinux": "A root shell in its own browser tab. Nobody signed in on the device sees it.",
       "noPermission": "Opening a console needs the permission to open a remote terminal."
+    }
+  },
+  "assets": {
+    "title": "Assets",
+    "subtitle": "Who has which device, where it is and until when the warranty runs, and how many software licences you have against how many are in use.",
+    "tabs": {
+      "devices": "Devices",
+      "licenses": "Software licences"
+    },
+    "card": "Asset details",
+    "edit": "Edit asset details",
+    "ownerPlaceholder": "Name or e-mail address",
+    "useLoggedIn": "Use the signed-in user ({{user}})",
+    "fields": {
+      "assetTag": "Asset tag",
+      "owner": "Owner",
+      "location": "Location",
+      "department": "Department",
+      "supplier": "Supplier",
+      "orderNumber": "Order number",
+      "purchaseDate": "Purchased",
+      "warrantyEnd": "Warranty until"
+    },
+    "warranty": {
+      "unknown": "Unknown",
+      "expired": "Ended",
+      "valid": "Valid",
+      "daysLeft_one": "{{count}} day left",
+      "daysLeft_other": "{{count}} days left"
+    },
+    "summary": {
+      "expired": "Warranty ended",
+      "expiring": "Warranty ending soon",
+      "valid": "Under warranty",
+      "unknown": "No warranty date",
+      "withinDays_one": "within {{count}} day",
+      "withinDays_other": "within {{count}} days"
+    },
+    "searchPlaceholder": "Search by name, serial, owner, location, asset tag or supplier",
+    "search": "Search assets",
+    "export": "Export CSV",
+    "empty": "No devices yet. Devices appear here as soon as an agent is installed.",
+    "cols": {
+      "hardware": "Hardware"
+    },
+    "bulk": {
+      "button": "Edit asset details",
+      "title_one": "Edit {{count}} device",
+      "title_other": "Edit {{count}} devices",
+      "hint": "Tick the fields to change. Fields that are not ticked keep their current value on every device.",
+      "apply": "Apply",
+      "change": "Change {{field}}",
+      "done_one": "{{count}} device updated.",
+      "done_other": "{{count}} devices updated."
+    },
+    "import": {
+      "button": "Import CSV",
+      "title": "Import asset details",
+      "hint": "Upload a CSV file, for example the asset list of your supplier. Devices are found by serial number first and then by host name. Recognised columns: asset tag, owner, location, department, supplier, order number, purchase date and warranty end (headings in English or Dutch). Empty cells keep the current value, a dash (-) clears it. Dates as YYYY-MM-DD or DD-MM-YYYY.",
+      "choose": "Choose a CSV file",
+      "apply_one": "Import {{count}} device",
+      "apply_other": "Import {{count}} devices",
+      "done_one": "{{count}} device imported.",
+      "done_other": "{{count}} devices imported.",
+      "columns": "Columns",
+      "ignored": "ignored: {{list}}",
+      "summary": "{{update}} of {{total}} rows change a device.",
+      "line": "Row",
+      "result": "Result",
+      "key": {
+        "hostname": "Host name",
+        "serial": "Serial number"
+      },
+      "status": {
+        "update": "Will be updated",
+        "unchanged": "Unchanged",
+        "not_found": "No device found",
+        "ambiguous": "Several devices match",
+        "invalid": "Skipped"
+      },
+      "errors": {
+        "no_key": "No host name or serial number.",
+        "duplicate": "This device is already in an earlier row.",
+        "invalid_date": "A date cannot be read."
+      }
+    },
+    "licenses": {
+      "title": "Software licences",
+      "subtitle": "Licences you bought, compared with the devices on which the agents find the program.",
+      "new": "New licence",
+      "edit": "Edit licence",
+      "empty": "No licences yet.",
+      "emptyHint": "Add a licence with the number of seats you bought and which program names count. FleetWarden counts the devices that have it installed.",
+      "name": "Licence",
+      "vendor": "Vendor",
+      "usage": "In use",
+      "free": "Free",
+      "expiresOn": "Ends",
+      "state": "Status",
+      "inUse": "In use",
+      "ofSeats": "{{inUse}} of {{seats}}",
+      "hasKey": "Licence key stored",
+      "perpetual": "Perpetual",
+      "states": {
+        "over_one": "{{count}} too few",
+        "over_other": "{{count}} too few",
+        "expired": "Ended",
+        "expiring": "Ending soon",
+        "ok": "OK"
+      },
+      "devices": "Devices using this licence",
+      "total": "Total",
+      "delete": "Delete licence",
+      "confirmDelete": "Delete the licence \"{{name}}\"? Installed programs are not touched.",
+      "matchName": "Program name",
+      "matchNameHint": "As shown under Software on a device. Use * as a wildcard, for example Microsoft 365 Apps*.",
+      "matchPublisher": "Publisher (optional)",
+      "matchPublisherHint": "Only count programs of this publisher. * is a wildcard.",
+      "previewTitle_one": "Found on {{count}} device",
+      "previewTitle_other": "Found on {{count}} devices",
+      "seats": "Seats",
+      "expiresHint": "Leave empty for a perpetual licence.",
+      "cost": "Cost",
+      "key": "Licence key",
+      "keyKept": "A key is stored. Type a new key to replace it, or clear the field to remove it.",
+      "keyHint": "Optional. Stored encrypted; only users who manage assets can show it.",
+      "notes": "Notes",
+      "costValue": "cost {{cost}}",
+      "showKey": "Show licence key",
+      "noDevices": "No device has a matching program.",
+      "program": "Program",
+      "outsideScope_one": "{{count}} more device is outside the groups you can see.",
+      "outsideScope_other": "{{count}} more devices are outside the groups you can see."
+    },
+    "report": {
+      "licensesOver": "Licences over-used",
+      "warranty": "Warranty ended or ending soon",
+      "noWarranty": "No warranty ends soon."
     }
   }
 }

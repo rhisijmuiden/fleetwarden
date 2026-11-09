@@ -9,7 +9,7 @@ closes by itself once the problem is gone.
 
 ## Rules
 
-There are two kinds of rules:
+There are three kinds of rules:
 
 - **A device is offline**: the agent hasn't been in touch for the chosen
   time (at least 5 minutes; agents check in every minute).
@@ -17,13 +17,16 @@ There are two kinds of rules:
   percentage. Disks smaller than 2 GB (EFI and recovery partitions) are left
   out. An alert stays open until the disk has at least one percentage point
   more free space than the limit, so it doesn't open and close all the time.
+- **The warranty ends**: the warranty date of the device (from
+  [Assets](assets.md)) is at most the chosen number of days away (0 to 365),
+  or has passed. The alert closes when a later date is filled in.
 
 Each rule can be limited to device groups and to workstations, servers or
 hypervisors, and mails up to 20 addresses in English or Dutch, also when the
 alert is resolved if you want. Without recipients the alerts only show in the
 web interface. New installations start with two rules without recipients:
 *Server offline* (servers and hypervisors, 15 minutes) and *Low disk space*
-(10%). The rules are checked every minute; one e-mail lists all alerts a rule
+(10%), plus *Warranty ending* (60 days) since asset management. The rules are checked every minute; one e-mail lists all alerts a rule
 opened at the same time.
 
 Agents send their free disk space with every heartbeat, so a disk alert

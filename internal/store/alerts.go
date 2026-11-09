@@ -127,13 +127,15 @@ type AlertDevice struct {
 	Kind       string
 	LastSeenAt time.Time
 	Volumes    []ReportVolume
+	// WarrantyEnd is the end of the warranty from the asset register.
+	WarrantyEnd *time.Time
 }
 
 // AlertDevices returns every device with its latest volumes.
 func (s *Store) AlertDevices(ctx context.Context) ([]AlertDevice, error) {
 	rows, err := s.pool.Query(ctx, `SELECT d.id::text, d.hostname, d.group_id, g.name, d.kind, d.last_seen_at,
-		COALESCE(d.volumes, d.hardware->'volumes', '[]'::jsonb)
-		FROM devices d JOIN device_groups g ON g.id = d.group_id`)
+		COALESCE(d.volumes, d.hardware->'volumes', '[]'::jsonb), a.warranty_end
+		FROM devices d JOIN device_groups g ON g.id = d.group_id LEFT JOIN device_assets a ON a.device_id = d.id`)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +144,7 @@ func (s *Store) AlertDevices(ctx context.Context) ([]AlertDevice, error) {
 	for rows.Next() {
 		var d AlertDevice
 		var vol []byte
-		if err := rows.Scan(&d.ID, &d.Hostname, &d.GroupID, &d.GroupName, &d.Kind, &d.LastSeenAt, &vol); err != nil {
+		if err := rows.Scan(&d.ID, &d.Hostname, &d.GroupID, &d.GroupName, &d.Kind, &d.LastSeenAt, &vol, &d.WarrantyEnd); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(vol, &d.Volumes)

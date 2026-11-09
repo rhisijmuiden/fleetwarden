@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { BellRing, Check, CheckCircle2, HardDrive, Pencil, Plus, Trash2, WifiOff } from "lucide-react";
+import { BellRing, Check, CheckCircle2, HardDrive, Pencil, Plus, ShieldOff, Trash2, WifiOff } from "lucide-react";
 import { del, get, post, put, type AlertRule, type DeviceKind, type FleetAlert } from "../../api";
 import { useAuth } from "../../auth";
 import { useGroups } from "../../components/GroupScope";
@@ -41,11 +41,17 @@ export function Alerts() {
   );
 }
 
+function RuleIcon({ kind }: { kind: FleetAlert["kind"] }) {
+  if (kind === "offline") return <WifiOff className="size-4" />;
+  if (kind === "warranty") return <ShieldOff className="size-4" />;
+  return <HardDrive className="size-4" />;
+}
+
 function KindIcon({ kind, resolved }: { kind: FleetAlert["kind"]; resolved: boolean }) {
   const tone = resolved ? "bg-success/10 text-success" : kind === "offline" ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning";
   return (
     <span className={`grid size-9 shrink-0 place-items-center rounded-md ${tone}`}>
-      {resolved ? <CheckCircle2 className="size-4" /> : kind === "offline" ? <WifiOff className="size-4" /> : <HardDrive className="size-4" />}
+      {resolved ? <CheckCircle2 className="size-4" /> : <RuleIcon kind={kind} />}
     </span>
   );
 }
@@ -167,7 +173,11 @@ function Rules() {
       .catch((e) => setError(errorText(e)));
   };
   const condition = (r: Pick<AlertRule, "kind" | "threshold">) =>
-    r.kind === "offline" ? t("alerts.rules.offlineFor", { time: formatInterval(r.threshold, t) }) : t("alerts.rules.diskBelow", { percent: r.threshold });
+    r.kind === "offline"
+      ? t("alerts.rules.offlineFor", { time: formatInterval(r.threshold, t) })
+      : r.kind === "warranty"
+        ? t("alerts.rules.warrantyWithin", { count: r.threshold })
+        : t("alerts.rules.diskBelow", { percent: r.threshold });
   const scope = (r: AlertRule) => {
     const kinds = r.deviceKinds.length ? r.deviceKinds.map((k) => t(`alerts.kinds.${k}`)).join(", ") : t("alerts.kinds.all");
     const names = r.groupIds.length ? r.groupIds.map((id) => groups?.find((g) => g.id === id)?.name ?? `#${id}`).join(", ") : t("reports.allGroups");
@@ -197,7 +207,7 @@ function Rules() {
             {list.map((r) => (
               <li key={r.id} className="flex flex-wrap items-start gap-4 px-5 py-4">
                 <span className="grid size-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                  {r.kind === "offline" ? <WifiOff className="size-4" /> : <HardDrive className="size-4" />}
+                  <RuleIcon kind={r.kind} />
                 </span>
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -254,7 +264,7 @@ function RuleForm({ draft: initial, onClose, onSaved }: { draft: Draft | null; o
   if (!d) return null;
   const set = (p: Partial<Draft>) => setD({ ...d, ...p });
   const toggle = <T,>(list: T[], v: T, on: boolean) => (on ? [...list.filter((x) => x !== v), v] : list.filter((x) => x !== v));
-  const setKind = (kind: Draft["kind"]) => set({ kind, threshold: kind === "offline" ? 60 : 10 });
+  const setKind = (kind: Draft["kind"]) => set({ kind, threshold: kind === "offline" ? 60 : kind === "warranty" ? 60 : 10 });
 
   const save = () => {
     setBusy(true);
@@ -296,12 +306,17 @@ function RuleForm({ draft: initial, onClose, onSaved }: { draft: Draft | null; o
             <Select id={id} value={d.kind} onChange={(e) => setKind(e.target.value as Draft["kind"])}>
               <option value="offline">{t("alerts.rules.kindOffline")}</option>
               <option value="disk">{t("alerts.rules.kindDisk")}</option>
+              <option value="warranty">{t("alerts.rules.kindWarranty")}</option>
             </Select>
           )}
         </Field>
         {d.kind === "offline" ? (
           <Field label={t("alerts.rules.offlineAfter")} hint={t("alerts.rules.offlineHint")}>
             {(id) => <IntervalInput id={id} value={d.threshold} onChange={(v) => set({ threshold: v })} />}
+          </Field>
+        ) : d.kind === "warranty" ? (
+          <Field label={t("alerts.rules.warrantyDays")} hint={t("alerts.rules.warrantyHint")}>
+            {(id) => <Input id={id} type="number" min={0} max={365} value={d.threshold} onChange={(e) => set({ threshold: Number(e.target.value) })} />}
           </Field>
         ) : (
           <Field label={t("alerts.rules.diskPercent")} hint={t("alerts.rules.diskHint")}>
