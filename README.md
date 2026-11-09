@@ -9,22 +9,42 @@ and ManageEngine Endpoint Central. It runs entirely on your own Debian 13
 server and manages Windows workstations, Windows servers, Debian machines and
 Proxmox VE nodes through a lightweight agent.
 
-> **Status:** early development (phase 2: sign-in, roles, mail, updates from the UI, backup and restore). Not ready for production use.
+> **Status:** version 1.0. Tested with 2,000 simulated agents; see
+> [docs/load-test.md](docs/load-test.md) and the security review in
+> [docs/hardening.md](docs/hardening.md).
 
-## Planned features
+## Features
 
-- Hardware and software inventory
-- Patch management for Windows (Windows Update takeover, maintenance windows,
-  user notifications with deferral) and Debian/Proxmox (apt)
-- Software deployment from public repositories (winget) and your own MSI/EXE
-  installers
-- Browser-based remote control with multi-monitor support and Ctrl+Alt+Del;
-  web terminal for Linux
-- Reports on outdated software and missing patches, scheduled e-mail reports
-- Entra ID single sign-on with role mapping
-- Built-in backups (FTP, FTPS, SCP, OneDrive; full and incremental) and restore
-- Update the server and agents from the UI, with a production and a test channel
+- **Inventory**: hardware, software, disks, logged-on users, warranty and
+  owner; device groups and role-based access limited to groups
+- **Patch management**: Windows Update and Debian/Proxmox (apt) with policies,
+  approvals, maintenance windows and user notifications with deferral
+- **Drivers and firmware** from Windows Update, Dell, HP and Lenovo and fwupd,
+  through your own approved repository
+- **Software deployment** from winget and your own MSI/EXE/DEB packages,
+  uninstalls and forced browser updates
+- **Configuration management**: browser policies, drive and printer mappings,
+  registry, firewall, power and other Windows settings, scripts
+- **Remote control** in the browser, a remote terminal, and management
+  without taking over (processes, services, event logs, files)
+- **Security status** (BitLocker keys, Defender, firewall, local admins) and
+  **vulnerabilities** (CVEs from NVD, CISA KEV, Microsoft and Debian) with a
+  fix rollout
+- **Power management**: Wake-on-LAN, scheduled restarts and shutdowns
+- **Self-service** from the tray app: software catalog, updates, help requests
+- **Reports, alerts and asset management** (licences, warranty)
+- **Secure gateway** for agents on the internet, **Entra ID** sign-in,
+  **backups** (FTP, FTPS, SCP, OneDrive; full and incremental) with restore
+- Server and agent **updates from the UI** with a production and a test channel
 - English and Dutch user interface, fully white-label (logo, colours)
+
+## Requirements
+
+- Debian 13 (amd64) with 4 vCPU and 8 GB RAM for up to 1,000 endpoints (see
+  [sizing](docs/load-test.md#sizing))
+- A reverse proxy with TLS (Zoraxy, nginx, Caddy, Traefik, ...)
+- Agents: Windows 10/11 and Windows Server 2016 or newer; Debian,
+  Ubuntu and Proxmox VE
 
 ## Installation
 
@@ -41,22 +61,32 @@ The installer prints a one-time password for the `admin` account; you choose
 your own password at the first sign-in. Lost it? Run
 `sudo fleetwarden-server reset-admin`.
 
+## Documentation
+
+Every page also exists in Dutch (`.nl.md`).
+
+- Reverse proxy: [docs/reverse-proxy.md](docs/reverse-proxy.md)
+- Security and hardening checklist: [docs/hardening.md](docs/hardening.md)
 - Optional Microsoft Entra ID sign-in: [docs/entra-sso.md](docs/entra-sso.md)
 - Updates and channels: [docs/updates.md](docs/updates.md)
 - Backup and restore: [docs/backup.md](docs/backup.md)
 - Agents, Add client and enrollment: [docs/agents.md](docs/agents.md)
 - Patch management: [docs/patching.md](docs/patching.md)
 - Drivers and firmware (own repository): [docs/drivers.md](docs/drivers.md)
+- Configurations (policies, mappings, Windows settings, scripts): [docs/configurations.md](docs/configurations.md)
 - Security status and BitLocker recovery keys: [docs/security.md](docs/security.md)
 - Vulnerabilities (CVEs): [docs/vulnerabilities.md](docs/vulnerabilities.md)
 - Software deployment: [docs/software.md](docs/software.md)
-- Remote control: [docs/remote.md](docs/remote.md)
+- Self-service from the tray app: [docs/selfservice.md](docs/selfservice.md)
+- Remote control and terminal: [docs/remote.md](docs/remote.md)
 - Power management (Wake-on-LAN, scheduled restarts and shutdowns): [docs/power.md](docs/power.md)
 - Management without taking over (processes, services, event logs, files): [docs/manage.md](docs/manage.md)
 - Reports and scheduled report mails: [docs/reports.md](docs/reports.md)
 - Alerts: [docs/alerts.md](docs/alerts.md)
 - Asset management (owner, location, warranty, software licences): [docs/assets.md](docs/assets.md)
 - Secure gateway in the DMZ for agents outside the network: [docs/gateway.md](docs/gateway.md)
+- Load test and sizing: [docs/load-test.md](docs/load-test.md)
+- What changed: [CHANGELOG.md](CHANGELOG.md)
 
 ## Development
 
