@@ -232,4 +232,3 @@ func windowsAdmin(path, sid, cls string) agentproto.LocalAdmin {
 	}
 	return a
 }
-
