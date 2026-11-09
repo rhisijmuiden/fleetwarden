@@ -254,7 +254,7 @@ func (s *Store) SaveScanResult(ctx context.Context, id string, r ScanResult) err
 		}
 	}
 	if _, err := tx.Exec(ctx, `UPDATE devices SET patch_scan_at = now(), patch_scan_requested_at = NULL, patch_scan_error = $2,
-		patch_source = $3, patch_cluster = $4, patch_reboot_pending = $5 WHERE id::text = $1`,
+		patch_source = $3, patch_cluster = $4, patch_reboot_pending = $5, vuln_dirty = true WHERE id::text = $1`,
 		id, r.Error, r.Source, r.Cluster, r.RebootPending); err != nil {
 		return err
 	}

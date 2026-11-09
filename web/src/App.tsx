@@ -27,6 +27,8 @@ import { AgentUpdates } from "./pages/admin/AgentUpdates";
 import { Gateways } from "./pages/admin/Gateways";
 import { Patches } from "./pages/patches/Patches";
 import { Drivers } from "./pages/drivers/Drivers";
+import { Vulnerabilities } from "./pages/vulnerabilities/Vulnerabilities";
+import { VulnDetail } from "./pages/vulnerabilities/VulnDetail";
 import { Software } from "./pages/software/Software";
 import { DeploymentDetail, Deployments } from "./pages/software/Deployments";
 import { Remote } from "./pages/remote/Remote";
@@ -50,6 +52,8 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/asset-management", perm: "devices.view", element: <Assets /> },
   { path: "/patches", perm: "devices.view", element: <Patches /> },
   { path: "/drivers", perm: "devices.view", element: <Drivers /> },
+  { path: "/vulnerabilities", perm: "devices.view", element: <Vulnerabilities /> },
+  { path: "/vulnerabilities/:cve", perm: "devices.view", element: <VulnDetail /> },
   { path: "/software", perm: "devices.view", element: <Software /> },
   { path: "/deployments", perm: "devices.view", element: <Deployments /> },
   { path: "/deployments/:id", perm: "devices.view", element: <DeploymentDetail /> },

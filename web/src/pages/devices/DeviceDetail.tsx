@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, FolderInput, PackagePlus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { del, get, patch, post, type Device, type PackagesView, type SoftwareJob, type SoftwareRow } from "../../api";
@@ -16,9 +16,11 @@ import { DeviceConfigsTab } from "../configurations/DeviceConfigs";
 import { PowerButtons } from "../power/DevicePower";
 import { DeviceAssetCard } from "../assets/DeviceAsset";
 import { DeviceManageTab } from "../manage/Manage";
+import { DeviceVulnsTab } from "../vulnerabilities/DeviceVulns";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
-type Tab = "overview" | "manage" | "software" | "updates" | "drivers" | "configurations" | "notes";
+type Tab = "overview" | "manage" | "software" | "updates" | "vulnerabilities" | "drivers" | "configurations" | "notes";
+const deviceTabs: Tab[] = ["overview", "manage", "software", "updates", "vulnerabilities", "drivers", "configurations", "notes"];
 
 export function DeviceDetail() {
   const { id = "" } = useParams();
@@ -29,7 +31,8 @@ export function DeviceDetail() {
   const [device, setDevice] = useState<Device | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("overview");
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => (deviceTabs.includes(params.get("tab") as Tab) ? (params.get("tab") as Tab) : "overview"));
   const [moving, setMoving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const manage = can("devices.manage");
@@ -118,7 +121,7 @@ export function DeviceDetail() {
       {notice && <Alert tone="success">{notice}</Alert>}
 
       <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
-        {(["overview", "manage", "software", "updates", "drivers", "configurations", "notes"] as Tab[])
+        {deviceTabs
           .filter((k) => k !== "manage" || can("remote.manage"))
           .map((k) => (
           <button
@@ -126,7 +129,7 @@ export function DeviceDetail() {
             role="tab"
             aria-selected={tab === k}
             onClick={() => setTab(k)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? "border-primary text-fg" : "border-transparent text-muted hover:text-fg"}`}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap ${tab === k ? "border-primary text-fg" : "border-transparent text-muted hover:text-fg"}`}
           >
             {t(`devices.tabs.${k}`)}
           </button>
@@ -243,6 +246,7 @@ export function DeviceDetail() {
       {tab === "manage" && <DeviceManageTab device={device} />}
       {tab === "software" && <SoftwareTab device={device} />}
       {tab === "updates" && <DevicePatchesTab device={device} />}
+      {tab === "vulnerabilities" && <DeviceVulnsTab device={device} />}
       {tab === "drivers" && <DeviceDriversTab device={device} />}
       {tab === "configurations" && <DeviceConfigsTab device={device} />}
       {tab === "notes" && <NotesTab device={device} editable={manage} onSaved={load} />}

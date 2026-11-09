@@ -316,6 +316,10 @@ type Software struct {
 	InstalledOn string `json:"installedOn,omitempty"` // YYYY-MM-DD
 	Source      string `json:"source"`
 	SizeBytes   int64  `json:"sizeBytes,omitempty"`
+	// SourcePackage and SourceVersion are the Debian source package of a
+	// binary package, when they differ from its name and version.
+	SourcePackage string `json:"sourcePackage,omitempty"`
+	SourceVersion string `json:"sourceVersion,omitempty"`
 }
 
 // ---- signed HTTP requests (file downloads) ----

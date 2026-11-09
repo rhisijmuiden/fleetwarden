@@ -90,6 +90,13 @@ func (s *Store) SoftwarePackageByID(ctx context.Context, id int64) (SoftwarePack
 	return scanPackage(s.pool.QueryRow(ctx, "SELECT "+packageCols+" FROM software_packages p WHERE p.id = $1", id))
 }
 
+// SoftwarePackageByWinget returns the unpinned winget package of the
+// library for a winget identifier (the newest version installs).
+func (s *Store) SoftwarePackageByWinget(ctx context.Context, wingetID string) (SoftwarePackage, error) {
+	return scanPackage(s.pool.QueryRow(ctx, "SELECT "+packageCols+` FROM software_packages p
+		WHERE p.source = 'winget' AND p.version = '' AND lower(p.winget_id) = lower($1) ORDER BY p.id LIMIT 1`, wingetID))
+}
+
 func packageArgs(p SoftwarePackage) []any {
 	return []any{p.Name, p.Publisher, p.Description, p.Platform, p.Source, p.WingetID, p.Version, p.FileSHA256, p.FileName, p.FileSize,
 		p.InstallerKind, p.InstallArgs, p.AptPackage, p.DetectName, p.ProductCode, p.AnyHash, int16(p.TimeoutMinutes)}

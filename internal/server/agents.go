@@ -593,7 +593,8 @@ func (s *Server) saveInventory(ctx context.Context, id string, inv agentproto.In
 			continue
 		}
 		row := store.SoftwareRow{Name: name, Version: cleanText(p.Version, 100), Publisher: cleanText(p.Publisher, 200),
-			Source: cleanText(p.Source, 20), SizeBytes: max(p.SizeBytes, 0)}
+			Source: cleanText(p.Source, 20), SizeBytes: max(p.SizeBytes, 0),
+			SrcPackage: cleanText(p.SourcePackage, 128), SrcVersion: cleanText(p.SourceVersion, 100)}
 		if on := cleanText(p.InstalledOn, 10); on != "" {
 			row.InstalledOn = &on
 		}

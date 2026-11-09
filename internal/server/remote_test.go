@@ -296,10 +296,10 @@ func TestRemoteDesktopSession(t *testing.T) {
 		t.Errorf("direct session: %+v, asked %d", done, len(consent.asked))
 	}
 
-	// The audit log has the starts and ends.
-	// endRemote writes the audit entry just after the end time, so wait for it.
+	// The audit log has the starts and ends. The end entry is written just
+	// after the session row is closed, so give the last one a moment.
 	starts, ends := 0, 0
-	for i := 0; i < 100; i++ {
+	for deadline := time.Now().Add(5 * time.Second); ; {
 		entries, _ := e.st.ListAudit(context.Background(), store.AuditQuery{Search: "remote."})
 		starts, ends = 0, 0
 		for _, en := range entries {
@@ -310,7 +310,7 @@ func TestRemoteDesktopSession(t *testing.T) {
 				ends++
 			}
 		}
-		if ends >= 3 {
+		if ends >= 3 || time.Now().After(deadline) {
 			break
 		}
 		time.Sleep(20 * time.Millisecond)

@@ -38,6 +38,7 @@ const (
 	PermDriversManage  Permission = "drivers.manage"  // add driver and firmware updates to the repository
 	PermPowerControl   Permission = "power.control"   // wake, restart and shut down devices
 	PermPowerManage    Permission = "power.manage"    // power schedules and Wake-on-LAN settings
+	PermVulnsManage    Permission = "vulns.manage"    // vulnerability sources and accepted risks
 	PermRemoteManage   Permission = "remote.manage"   // processes, services, event logs and files without taking over the screen
 	PermAssetsManage   Permission = "assets.manage"   // owner, location and warranty of devices, software licences
 )
@@ -46,7 +47,7 @@ const (
 var Roles = []Role{RoleAdministrator, RoleTechnician, RoleReadOnly}
 
 var rolePermissions = map[Role][]Permission{
-	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermRemoteTerminal, PermReportsManage, PermAlertsManage, PermConfigManage, PermDriversManage, PermRemoteManage, PermAssetsManage, PermPowerControl, PermPowerManage},
+	RoleAdministrator: {PermDashboardView, PermDevicesView, PermDevicesManage, PermUsersManage, PermSettingsManage, PermAuditView, PermSystemUpdate, PermBackupManage, PermGroupsManage, PermAgentsManage, PermPatchesManage, PermPatchesApprove, PermSoftwareManage, PermSoftwareDeploy, PermRemoteControl, PermRemoteTerminal, PermReportsManage, PermAlertsManage, PermConfigManage, PermDriversManage, PermRemoteManage, PermAssetsManage, PermVulnsManage, PermPowerControl, PermPowerManage},
 	RoleTechnician:    {PermDashboardView, PermDevicesView, PermDevicesManage, PermPatchesApprove, PermSoftwareDeploy, PermRemoteControl, PermAlertsManage, PermRemoteManage, PermAssetsManage, PermPowerControl},
 	RoleReadOnly:      {PermDashboardView, PermDevicesView},
 }
