@@ -41,6 +41,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 	}
 	s.checkRepository(ctx)
 	s.vendorTick()
+	s.cleanTransfers()
 	s.bgWG.Add(1)
 	go s.agentReleaseLoop(s.bgCtx)
 	mailTick := time.NewTicker(15 * time.Second)
@@ -65,6 +66,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.configTick(ctx)
 			s.reportTick(ctx)
 			s.alertTick(ctx)
+			s.pruneTransfers()
 		case <-houseTick.C:
 			s.checkRepository(ctx)
 			s.vendorTick()

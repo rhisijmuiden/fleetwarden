@@ -324,6 +324,27 @@
     "upload_missing": "The uploaded file is gone. Upload it again.",
     "driver_already_uploaded": "This package was uploaded already.",
     "title_required": "Give the package a name.",
+    "agent_timeout": "The agent did not answer in time. It may be busy, or need an update to a version that supports this.",
+    "too_many_transfers": "You already have three transfers running. Wait until one is done.",
+    "transfer_too_large": "The file is larger than 4 GB.",
+    "invalid_file_name": "That file name is not allowed.",
+    "invalid_path": "That path is not valid.",
+    "disk_full": "There is not enough free space on the server.",
+    "transfer_corrupt": "The file arrived damaged. Try again.",
+    "invalid_service_action": "That is not a valid service action.",
+    "invalid_service": "That is not a valid service name.",
+    "invalid_query": "The filter is not valid.",
+    "invalid_pid": "That is not a valid process ID.",
+    "cancelled": "The request was cancelled.",
+    "manage_unsupported": "The device does not support this.",
+    "manage_not_found": "It no longer exists on the device.",
+    "manage_access_denied": "Access was denied on the device.",
+    "manage_exists": "It already exists, or the folder is not empty.",
+    "manage_invalid": "The device refused the request as not valid.",
+    "manage_protected": "This is protected and cannot be changed from here.",
+    "manage_busy": "The agent is busy with other requests. Try again in a moment.",
+    "manage_failed": "The action failed on the device.",
+    "manage_too_large": "The file is larger than 4 GB.",
     "invalid_terminal_shell": "Choose PowerShell or Command Prompt."
   },
   "login": {
@@ -448,7 +469,8 @@
     "reports_manage": "Manage report schedules and compliance rules",
     "alerts_manage": "Acknowledge alerts and manage alert rules",
     "config_manage": "Manage configurations (browser policies, registry, scripts)",
-    "drivers_manage": "Add drivers and firmware to the repository"
+    "drivers_manage": "Add drivers and firmware to the repository",
+    "remote_manage": "Manage devices without taking over (processes, services, logs, files)"
   },
   "auth": {
     "title": "Authentication",
@@ -652,7 +674,19 @@
       "software_package_create": "Software package added",
       "software_package_update": "Software package changed",
       "software_package_delete": "Software package deleted",
-      "software_upload": "Installer uploaded"
+      "software_upload": "Installer uploaded",
+      "device_process_kill": "Process ended on a device",
+      "device_service_start": "Service started",
+      "device_service_stop": "Service stopped",
+      "device_service_restart": "Service restarted",
+      "device_service_automatic": "Service set to automatic",
+      "device_service_manual": "Service set to manual",
+      "device_service_disabled": "Service disabled",
+      "device_file_mkdir": "Folder created on a device",
+      "device_file_delete": "File deleted on a device",
+      "device_file_rename": "File renamed on a device",
+      "device_file_download": "File downloaded from a device",
+      "device_file_upload": "File uploaded to a device"
     }
   },
   "backup": {
@@ -915,7 +949,8 @@
       "notes": "Notes",
       "updates": "Updates",
       "configurations": "Configurations",
-      "drivers": "Drivers"
+      "drivers": "Drivers",
+      "manage": "Manage"
     },
     "system": "System",
     "osVersion": "Version",
@@ -2776,6 +2811,201 @@
         "fwupd": "The agent installs the cabinet with fwupdmgr on the devices it fits."
       },
       "uploadedBy": "Uploaded by {{user}} on {{date}}"
+    }
+  },
+  "manage": {
+    "title": "Manage",
+    "noTakeover": "The user keeps working: nothing here takes over the screen.",
+    "offlineTitle": "The device is offline",
+    "offline": "Processes, services, logs and files are available while the agent is connected.",
+    "refresh": "Refresh",
+    "autoRefresh": "Refresh every 5 s",
+    "nothingFound": "Nothing matches the filter.",
+    "sections": {
+      "processes": "Processes",
+      "services": "Services",
+      "logs": "Event logs",
+      "files": "Files",
+      "console": "Console"
+    },
+    "processes": {
+      "hint": "Running programs with their CPU and memory use, measured over half a second.",
+      "search": "Search by name, PID, user or command line",
+      "summary": "{{count}} processes · CPU {{cpu}}% · memory {{memory}}",
+      "name": "Name",
+      "user": "User",
+      "memory": "Memory",
+      "started": "Started",
+      "agent": "Agent",
+      "session": "session {{n}}",
+      "stop": "End",
+      "stopTitle": "End process",
+      "stopBody": "End {{name}} (PID {{pid}})? Unsaved work in this program is lost.",
+      "stopped": "{{name}} was ended.",
+      "protected": "Protected: Windows, the system or the agent itself needs this process.",
+      "more": "{{count}} more; narrow the search to see them."
+    },
+    "services": {
+      "hintWindows": "Windows services. Start, stop and restart them, or change how they start.",
+      "hintLinux": "systemd services. Start, stop and restart them, or change whether they start at boot.",
+      "search": "Search services",
+      "filter": "Filter",
+      "filters": {
+        "all": "All services",
+        "running": "Running",
+        "stopped": "Not running",
+        "automatic-stopped": "Automatic but not running"
+      },
+      "count": "{{count}} of {{total}}",
+      "service": "Service",
+      "state": "State",
+      "startType": "Startup type",
+      "account": "Account",
+      "start": "Start",
+      "stop": "Stop",
+      "restart": "Restart",
+      "protected": "This is the agent's own service; it is not changed from here.",
+      "states": {
+        "running": "Running",
+        "stopped": "Stopped",
+        "starting": "Starting",
+        "stopping": "Stopping",
+        "paused": "Paused",
+        "failed": "Failed",
+        "exited": "Done (one-shot)"
+      },
+      "startTypes": {
+        "automatic": "Automatic",
+        "automatic-delayed": "Automatic (delayed)",
+        "manual": "Manual",
+        "disabled": "Disabled",
+        "static": "Static"
+      },
+      "actions": {
+        "start": "Start",
+        "stop": "Stop",
+        "restart": "Restart",
+        "automatic": "Set to automatic",
+        "manual": "Set to manual",
+        "disabled": "Disable"
+      },
+      "confirm": {
+        "stop": "Stop {{name}}?",
+        "restart": "Restart {{name}}?",
+        "disabled": "Disable {{name}}?",
+        "start": "Start {{name}}?",
+        "automatic": "Set {{name}} to automatic?",
+        "manual": "Set {{name}} to manual?"
+      },
+      "confirmBody": "Programs and users that depend on this service may stop working while it is not running.",
+      "done": {
+        "start": "{{name}} was started.",
+        "stop": "{{name}} was stopped.",
+        "restart": "{{name}} was restarted.",
+        "automatic": "{{name}} now starts automatically.",
+        "manual": "{{name}} now starts manually.",
+        "disabled": "{{name}} is disabled."
+      }
+    },
+    "logs": {
+      "hintWindows": "Windows event logs, newest first. Click an event for the full text.",
+      "hintLinux": "The systemd journal, newest first. Click an entry for the full text.",
+      "log": "Log",
+      "level": "Level",
+      "period": "Period",
+      "provider": "Source",
+      "unit": "Unit or program",
+      "search": "Contains",
+      "max": "At most",
+      "apply": "Search",
+      "export": "Export CSV",
+      "time": "Time",
+      "source": "Source",
+      "eventId": "Event ID",
+      "message": "Message",
+      "none": "No events match the filter.",
+      "count": "{{count}} events.",
+      "truncated": "The newest {{count}} events; there are more. Narrow the filter.",
+      "levels": {
+        "1": "Critical",
+        "2": "Error",
+        "3": "Warning",
+        "4": "Information",
+        "5": "Verbose"
+      },
+      "minLevel": {
+        "1": "Critical",
+        "2": "Errors and worse",
+        "3": "Warnings and worse",
+        "4": "Information and worse",
+        "0": "Everything"
+      },
+      "periods": {
+        "1": "Last hour",
+        "24": "Last 24 hours",
+        "168": "Last 7 days",
+        "720": "Last 30 days",
+        "0": "Everything"
+      },
+      "sources": {
+        "Application": "Application",
+        "System": "System",
+        "Security": "Security",
+        "Setup": "Setup",
+        "journal": "Journal (all)",
+        "kernel": "Kernel"
+      }
+    },
+    "files": {
+      "hint": "Browse the file system as SYSTEM (Windows) or root (Linux). Download files or whole folders, upload files.",
+      "showHidden": "Hidden files",
+      "up": "Up",
+      "path": "Path",
+      "go": "Open",
+      "newFolder": "New folder",
+      "upload": "Upload",
+      "drives": "Drives",
+      "name": "Name",
+      "size": "Size",
+      "modified": "Modified",
+      "free": "Free",
+      "driveType": "Type",
+      "freeOf": "{{free}} free of {{size}}",
+      "driveTypes": {
+        "fixed": "Local disk",
+        "removable": "Removable",
+        "network": "Network drive",
+        "cdrom": "CD/DVD",
+        "other": "Other"
+      },
+      "download": "Download",
+      "downloadZip": "Download as zip",
+      "rename": "Rename",
+      "empty": "This folder is empty.",
+      "truncated": "Only the first 10,000 entries are shown.",
+      "dropHint": "Tip: drop files on the list to upload them to this folder.",
+      "created": "Folder {{name}} was created.",
+      "renamed": "Renamed to {{name}}.",
+      "deleted": "{{name}} was deleted.",
+      "deleteTitle": "Delete",
+      "deleteBody": "Delete {{path}}? This cannot be undone.",
+      "deleteFolderBody": "Delete the folder {{path}} and everything in it? This cannot be undone.",
+      "overwriteTitle": "Replace files?",
+      "overwriteBody": "Some of these files already exist in this folder. Replace them?",
+      "overwrite": "Replace",
+      "transfers": "Transfers",
+      "transfersHint": "Downloads stay available for an hour.",
+      "sendingToServer": "Sending {{name}} to the server",
+      "waiting": "Waiting for the agent",
+      "readyDownload": "Ready ({{size}})",
+      "readyUpload": "Saved as {{path}}",
+      "save": "Save",
+      "removeTransfer": "Remove from the list"
+    },
+    "console": {
+      "hintWindows": "A PowerShell or Command Prompt console as SYSTEM, in its own browser tab. The user does not see it.",
+      "hintLinux": "A root shell in its own browser tab. Nobody signed in on the device sees it.",
+      "noPermission": "Opening a console needs the permission to open a remote terminal."
     }
   }
 }
