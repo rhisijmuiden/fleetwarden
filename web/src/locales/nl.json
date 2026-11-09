@@ -37,6 +37,7 @@
     "gateways": "Secure gateway",
     "configurations": "Configuraties",
     "drivers": "Drivers & firmware",
+    "assets": "Assets",
     "power": "Energiebeheer"
   },
   "dashboard": {
@@ -347,6 +348,15 @@
     "manage_failed": "De actie is mislukt op het apparaat.",
     "manage_too_large": "Het bestand is groter dan 4 GB.",
     "invalid_terminal_shell": "Kies PowerShell of Opdrachtprompt.",
+    "invalid_date": "Vul een geldige datum in.",
+    "invalid_match": "Vul in welke programmanamen meetellen, bijvoorbeeld Microsoft 365 Apps*.",
+    "invalid_seats": "Het aantal licenties moet tussen 0 en 1.000.000 liggen.",
+    "invalid_cost": "Vul een geldig bedrag in.",
+    "invalid_notes": "De notities zijn te lang.",
+    "invalid_key": "De licentiesleutel is te lang.",
+    "invalid_csv": "Het bestand is geen CSV-bestand met een kopregel en minstens één regel.",
+    "too_many_rows": "Het bestand heeft meer dan 5.000 regels.",
+    "csv_columns": "Het bestand heeft een kolom met de hostnaam of het serienummer nodig, en minstens één kolom om te importeren (eigenaar, locatie, garantie tot, ...).",
     "invalid_power_action": "Kies wekken, herstarten of afsluiten.",
     "invalid_schedule_time": "Kies een geldige tijd.",
     "schedule_exists": "Er bestaat al een schema met deze naam.",
@@ -479,6 +489,7 @@
     "config_manage": "Configuraties beheren (browserbeleid, register, scripts)",
     "drivers_manage": "Drivers en firmware aan de repository toevoegen",
     "remote_manage": "Apparaten beheren zonder overname (processen, services, logboeken, bestanden)",
+    "assets_manage": "Assets en softwarelicenties beheren",
     "power_control": "Apparaten wekken, herstarten en afsluiten",
     "power_manage": "Energieschema's en Wake-on-LAN-instellingen beheren"
   },
@@ -1830,7 +1841,8 @@
       "patches": "Ontbrekende patches",
       "software": "Verouderde software",
       "schedules": "Geplande rapporten",
-      "settings": "Instellingen"
+      "settings": "Instellingen",
+      "assets": "Assets"
     },
     "cols": {
       "group": "Groep",
@@ -1952,7 +1964,9 @@
       "ignored": "Uitgesloten programma's",
       "ignoredHint": "Deze winget-pakketten tellen niet als verouderde software, bijvoorbeeld programma's die zichzelf bijwerken of die je bewust op een oudere versie houdt.",
       "noneIgnored": "Er zijn geen programma's uitgesloten.",
-      "unignore": "{{id}} weer meetellen"
+      "unignore": "{{id}} weer meetellen",
+      "expiringDays": "Loopt binnenkort af (dagen)",
+      "expiringHint": "Garanties en licenties die binnen zoveel dagen aflopen, tellen als binnenkort aflopend."
     }
   },
   "interval": {
@@ -1971,7 +1985,7 @@
   },
   "alerts": {
     "title": "Meldingen",
-    "subtitle": "Apparaten die te lang offline zijn of bijna geen schijfruimte meer hebben. Meldingen sluiten vanzelf zodra het probleem weg is.",
+    "subtitle": "Apparaten die te lang offline zijn, bijna geen schijfruimte meer hebben of waarvan de garantie afloopt. Meldingen sluiten vanzelf zodra het probleem weg is.",
     "tabs": {
       "open": "Open",
       "history": "Geschiedenis",
@@ -2019,7 +2033,12 @@
       "recipients": "Ontvangers",
       "recipientsHint": "Maximaal 20 adressen, gescheiden door komma's. Laat leeg om meldingen alleen hier te tonen.",
       "notifyResolved": "Ook mailen als een melding is opgelost",
-      "enabled": "Regel is actief"
+      "enabled": "Regel is actief",
+      "warrantyWithin_one": "Garantie loopt binnen {{count}} dag af",
+      "warrantyWithin_other": "Garantie loopt binnen {{count}} dagen af",
+      "kindWarranty": "De garantie afloopt",
+      "warrantyDays": "Dagen voor het einde",
+      "warrantyHint": "0 tot 365. Een apparaat waarvan de garantie verlopen is, blijft gemeld tot de datum verandert. De garantiedatums komen uit Assets."
     }
   },
   "proxy": {
@@ -3029,6 +3048,144 @@
       "hintWindows": "Een PowerShell- of opdrachtpromptconsole als SYSTEM, in een eigen browsertabblad. De gebruiker ziet er niets van.",
       "hintLinux": "Een root-shell in een eigen browsertabblad. Wie op het apparaat is aangemeld, ziet er niets van.",
       "noPermission": "Voor een console is het recht nodig om een terminal op afstand te openen."
+    }
+  },
+  "assets": {
+    "title": "Assets",
+    "subtitle": "Wie welk apparaat heeft, waar het staat en tot wanneer de garantie loopt, en hoeveel softwarelicenties je hebt tegenover hoeveel er in gebruik zijn.",
+    "tabs": {
+      "devices": "Apparaten",
+      "licenses": "Softwarelicenties"
+    },
+    "card": "Assetgegevens",
+    "edit": "Assetgegevens bewerken",
+    "ownerPlaceholder": "Naam of e-mailadres",
+    "useLoggedIn": "Aangemelde gebruiker gebruiken ({{user}})",
+    "fields": {
+      "assetTag": "Inventarisnummer",
+      "owner": "Eigenaar",
+      "location": "Locatie",
+      "department": "Afdeling",
+      "supplier": "Leverancier",
+      "orderNumber": "Ordernummer",
+      "purchaseDate": "Aangeschaft",
+      "warrantyEnd": "Garantie tot"
+    },
+    "warranty": {
+      "unknown": "Onbekend",
+      "expired": "Verlopen",
+      "valid": "Geldig",
+      "daysLeft_one": "nog {{count}} dag",
+      "daysLeft_other": "nog {{count}} dagen"
+    },
+    "summary": {
+      "expired": "Garantie verlopen",
+      "expiring": "Garantie loopt binnenkort af",
+      "valid": "Onder garantie",
+      "unknown": "Geen garantiedatum",
+      "withinDays_one": "binnen {{count}} dag",
+      "withinDays_other": "binnen {{count}} dagen"
+    },
+    "searchPlaceholder": "Zoek op naam, serienummer, eigenaar, locatie, inventarisnummer of leverancier",
+    "search": "Assets zoeken",
+    "export": "CSV exporteren",
+    "empty": "Nog geen apparaten. Apparaten verschijnen hier zodra er een agent is geïnstalleerd.",
+    "cols": {
+      "hardware": "Hardware"
+    },
+    "bulk": {
+      "button": "Assetgegevens bewerken",
+      "title_one": "{{count}} apparaat bewerken",
+      "title_other": "{{count}} apparaten bewerken",
+      "hint": "Vink de velden aan die je wilt wijzigen. Velden die niet zijn aangevinkt houden op elk apparaat hun huidige waarde.",
+      "apply": "Toepassen",
+      "change": "{{field}} wijzigen",
+      "done_one": "{{count}} apparaat bijgewerkt.",
+      "done_other": "{{count}} apparaten bijgewerkt."
+    },
+    "import": {
+      "button": "CSV importeren",
+      "title": "Assetgegevens importeren",
+      "hint": "Upload een CSV-bestand, bijvoorbeeld de assetlijst van je leverancier. Apparaten worden eerst op serienummer gezocht en daarna op hostnaam. Herkende kolommen: inventarisnummer, eigenaar, locatie, afdeling, leverancier, ordernummer, aankoopdatum en garantie tot (kopjes in het Nederlands of Engels). Lege cellen houden de huidige waarde, een streepje (-) maakt het veld leeg. Datums als JJJJ-MM-DD of DD-MM-JJJJ.",
+      "choose": "Kies een CSV-bestand",
+      "apply_one": "{{count}} apparaat importeren",
+      "apply_other": "{{count}} apparaten importeren",
+      "done_one": "{{count}} apparaat geïmporteerd.",
+      "done_other": "{{count}} apparaten geïmporteerd.",
+      "columns": "Kolommen",
+      "ignored": "genegeerd: {{list}}",
+      "summary": "{{update}} van {{total}} regels wijzigen een apparaat.",
+      "line": "Regel",
+      "result": "Resultaat",
+      "key": {
+        "hostname": "Hostnaam",
+        "serial": "Serienummer"
+      },
+      "status": {
+        "update": "Wordt bijgewerkt",
+        "unchanged": "Ongewijzigd",
+        "not_found": "Geen apparaat gevonden",
+        "ambiguous": "Meerdere apparaten passen",
+        "invalid": "Overgeslagen"
+      },
+      "errors": {
+        "no_key": "Geen hostnaam of serienummer.",
+        "duplicate": "Dit apparaat staat al in een eerdere regel.",
+        "invalid_date": "Een datum is niet te lezen."
+      }
+    },
+    "licenses": {
+      "title": "Softwarelicenties",
+      "subtitle": "Gekochte licenties, vergeleken met de apparaten waarop de agents het programma vinden.",
+      "new": "Nieuwe licentie",
+      "edit": "Licentie bewerken",
+      "empty": "Nog geen licenties.",
+      "emptyHint": "Voeg een licentie toe met het aantal gekochte licenties en welke programmanamen meetellen. FleetWarden telt de apparaten waarop het geïnstalleerd is.",
+      "name": "Licentie",
+      "vendor": "Leverancier",
+      "usage": "In gebruik",
+      "free": "Vrij",
+      "expiresOn": "Einde",
+      "state": "Status",
+      "inUse": "In gebruik",
+      "ofSeats": "{{inUse}} van {{seats}}",
+      "hasKey": "Licentiesleutel opgeslagen",
+      "perpetual": "Eeuwigdurend",
+      "states": {
+        "over_one": "{{count}} te weinig",
+        "over_other": "{{count}} te weinig",
+        "expired": "Verlopen",
+        "expiring": "Loopt binnenkort af",
+        "ok": "In orde"
+      },
+      "devices": "Apparaten die deze licentie gebruiken",
+      "total": "Totaal",
+      "delete": "Licentie verwijderen",
+      "confirmDelete": "De licentie \"{{name}}\" verwijderen? Geïnstalleerde programma's blijven staan.",
+      "matchName": "Programmanaam",
+      "matchNameHint": "Zoals op een apparaat onder Software staat. Gebruik * als jokerteken, bijvoorbeeld Microsoft 365 Apps*.",
+      "matchPublisher": "Uitgever (optioneel)",
+      "matchPublisherHint": "Tel alleen programma's van deze uitgever. * is een jokerteken.",
+      "previewTitle_one": "Gevonden op {{count}} apparaat",
+      "previewTitle_other": "Gevonden op {{count}} apparaten",
+      "seats": "Aantal licenties",
+      "expiresHint": "Laat leeg voor een eeuwigdurende licentie.",
+      "cost": "Kosten",
+      "key": "Licentiesleutel",
+      "keyKept": "Er is een sleutel opgeslagen. Typ een nieuwe sleutel om hem te vervangen, of maak het veld leeg om hem te verwijderen.",
+      "keyHint": "Optioneel. Wordt versleuteld opgeslagen; alleen gebruikers die assets beheren kunnen hem tonen.",
+      "notes": "Notities",
+      "costValue": "kosten {{cost}}",
+      "showKey": "Licentiesleutel tonen",
+      "noDevices": "Geen enkel apparaat heeft een passend programma.",
+      "program": "Programma",
+      "outsideScope_one": "Nog {{count}} apparaat valt buiten de groepen die jij kunt zien.",
+      "outsideScope_other": "Nog {{count}} apparaten vallen buiten de groepen die jij kunt zien."
+    },
+    "report": {
+      "licensesOver": "Licenties overschreden",
+      "warranty": "Garantie verlopen of binnenkort verlopen",
+      "noWarranty": "Er loopt binnenkort geen garantie af."
     }
   },
   "power": {

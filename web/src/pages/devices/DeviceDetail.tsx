@@ -14,6 +14,7 @@ import { SourceBadge } from "../software/util";
 import { RemoteButton, TerminalButton } from "../remote/Remote";
 import { DeviceConfigsTab } from "../configurations/DeviceConfigs";
 import { PowerButtons } from "../power/DevicePower";
+import { DeviceAssetCard } from "../assets/DeviceAsset";
 import { DeviceManageTab } from "../manage/Manage";
 import { KindIcon, PlatformBadge, StatusDot, formatBytes, timeAgo } from "./util";
 
@@ -183,6 +184,7 @@ export function DeviceDetail() {
               ]}
             />
           </Card>
+          <DeviceAssetCard device={device} />
           <Card title={t("devices.storage")}>
             <div className="space-y-4">
               {(hw?.volumes ?? []).map((v) => {

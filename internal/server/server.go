@@ -193,6 +193,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/branding/{asset}", s.handleBrandingAsset)
 	s.agentRoutes(mux)
 	s.deviceRoutes(mux)
+	s.assetRoutes(mux)
 	s.patchRoutes(mux)
 	s.powerRoutes(mux)
 	s.driverRoutes(mux)
