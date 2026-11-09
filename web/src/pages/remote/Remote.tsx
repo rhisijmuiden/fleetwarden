@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { History, MonitorPlay, Search, Square } from "lucide-react";
+import { History, MonitorPlay, Search, Square, SquareTerminal } from "lucide-react";
+import { useAuth } from "../../auth";
 import { get, post, type Device, type DeviceList, type RemoteSession, type RemoteSessionList } from "../../api";
 import { Alert, Badge, Button, Card, Input, PageHeader, Spinner, formatDate, useErrorText } from "../../components/ui";
 import { KindIcon, StatusDot } from "../devices/util";
@@ -14,6 +15,36 @@ export function openRemote(deviceId: string) {
 
 export function canRemote(d: Pick<Device, "platform" | "online">) {
   return d.platform === "windows" && d.online;
+}
+
+// openTerminal opens the terminal for a device in its own tab.
+export function openTerminal(deviceId: string) {
+  window.open(`/remote/terminal/${deviceId}`, `fw-terminal-${deviceId}`);
+}
+
+export function canTerminal(d: Pick<Device, "platform" | "online">) {
+  return (d.platform === "windows" || d.platform === "linux") && d.online;
+}
+
+// TerminalButton opens a terminal on the device: a root shell on Linux,
+// PowerShell as SYSTEM on Windows. It is hidden without remote.terminal.
+export function TerminalButton({ device, size = "md", variant = "secondary" }: { device: Device; size?: "sm" | "md"; variant?: "primary" | "secondary" }) {
+  const { t } = useTranslation();
+  const { can } = useAuth();
+  if (!can("remote.terminal")) return null;
+  const supported = device.platform === "windows" || device.platform === "linux";
+  return (
+    <Button
+      size={size}
+      variant={variant}
+      icon={<SquareTerminal className="size-4" />}
+      disabled={!canTerminal(device)}
+      title={!supported ? t("remote.term.unsupported") : !device.online ? t("devices.offlineHint") : t(`remote.term.hint.${device.platform}`)}
+      onClick={() => openTerminal(device.id)}
+    >
+      {t("remote.term.open")}
+    </Button>
+  );
 }
 
 export function RemoteButton({ device, size = "md" }: { device: Device; size?: "sm" | "md" }) {
@@ -58,10 +89,11 @@ function SessionTable({ items, onEnd, showDevice = true }: { items: RemoteSessio
   const { t, i18n } = useTranslation();
   return (
     <div className="-mx-5 -my-5 overflow-x-auto">
-      <table className="w-full min-w-[760px] text-sm">
+      <table className="w-full min-w-[860px] text-sm">
         <thead className="border-b border-line text-left text-xs text-muted uppercase">
           <tr>
             {showDevice && <th className="px-5 py-3 font-medium">{t("remote.cols.device")}</th>}
+            <th className="px-3 py-3 font-medium">{t("remote.cols.kind")}</th>
             <th className="px-3 py-3 font-medium">{t("remote.cols.operator")}</th>
             <th className="px-3 py-3 font-medium">{t("remote.cols.started")}</th>
             <th className="px-3 py-3 font-medium">{t("remote.cols.duration")}</th>
@@ -80,6 +112,12 @@ function SessionTable({ items, onEnd, showDevice = true }: { items: RemoteSessio
                   </Link>
                 </td>
               )}
+              <td className="px-3 py-3">
+                <span className="inline-flex items-center gap-1.5 text-muted">
+                  {s.kind === "terminal" ? <SquareTerminal className="size-4" /> : <MonitorPlay className="size-4" />}
+                  {t(`remote.kinds.${s.kind}`)}
+                </span>
+              </td>
               <td className="px-3 py-3">
                 <div>{s.operator}</div>
                 <div className="text-xs text-muted">{s.remoteIp}</div>
@@ -133,11 +171,11 @@ export function Remote() {
 
   useEffect(() => {
     const ctl = new AbortController();
-    const q = new URLSearchParams({ status: "online", platform: "windows", limit: "12" });
+    const q = new URLSearchParams({ status: "online", limit: "24" });
     if (search.trim()) q.set("search", search.trim());
     const id = setTimeout(() => {
       get<DeviceList>(`/devices?${q}`, ctl.signal)
-        .then((l) => setDevices(l.items))
+        .then((l) => setDevices(l.items.filter((d) => d.platform === "windows" || d.platform === "linux").slice(0, 12)))
         .catch(() => {});
     }, 200);
     return () => {
@@ -184,9 +222,14 @@ export function Remote() {
                     <StatusDot online={d.online} /> {d.loggedInUser || t("devices.nobody")}
                   </p>
                 </div>
-                <Button size="sm" variant="secondary" icon={<MonitorPlay className="size-4" />} onClick={() => openRemote(d.id)}>
-                  {t("remote.connect")}
-                </Button>
+                <div className="flex shrink-0 gap-1.5">
+                  {d.platform === "windows" && (
+                    <Button size="sm" variant="secondary" icon={<MonitorPlay className="size-4" />} onClick={() => openRemote(d.id)}>
+                      {t("remote.connect")}
+                    </Button>
+                  )}
+                  <TerminalButton device={d} size="sm" />
+                </div>
               </li>
             ))}
           </ul>

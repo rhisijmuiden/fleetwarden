@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./auth";
@@ -37,6 +37,9 @@ import { ConfigProfiles, ProfileEditor } from "./pages/configurations/Profiles";
 import { navigation } from "./nav";
 import { useTheme } from "./useTheme";
 import type { Permission } from "./api";
+
+// xterm.js is only loaded for the terminal tab.
+const TerminalViewer = lazy(() => import("./pages/remote/Terminal").then((m) => ({ default: m.TerminalViewer })));
 
 const adminPages: { path: string; perm: Permission; element: React.ReactNode }[] = [
   { path: "/devices", perm: "devices.view", element: <Devices /> },
@@ -84,11 +87,25 @@ export function App() {
   }
   if (me.mustChangePassword) return <ForcePasswordChange />;
   if (location.pathname === "/login") return <Navigate to="/" replace />;
-  // The remote control viewer fills its own tab, without the menu.
+  // The remote control viewer and the terminal fill their own tab, without the menu.
   if (location.pathname.startsWith("/remote/connect/") && can("remote.control")) {
     return (
       <Routes>
         <Route path="/remote/connect/:deviceId" element={<RemoteViewer />} />
+      </Routes>
+    );
+  }
+  if (location.pathname.startsWith("/remote/terminal/") && can("remote.terminal")) {
+    return (
+      <Routes>
+        <Route
+          path="/remote/terminal/:deviceId"
+          element={
+            <Suspense fallback={<Spinner />}>
+              <TerminalViewer />
+            </Suspense>
+          }
+        />
       </Routes>
     );
   }
