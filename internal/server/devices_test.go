@@ -1,7 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -308,4 +312,48 @@ func buildTestDeb(t *testing.T) []byte {
 		t.Fatal(err)
 	}
 	return deb
+}
+
+// enrollRaw enrolls a device directly with the enrollment API.
+func enrollRaw(t *testing.T, e *env, token, host, group string) agentproto.EnrollResponse {
+	t.Helper()
+	pub, key, _ := ed25519.GenerateKey(rand.Reader)
+	body, _ := json.Marshal(agentproto.EnrollRequest{Token: token, PublicKey: pub, MachineID: host, Hostname: host,
+		Platform: "windows", Arch: "amd64", Group: group, Proof: ed25519.Sign(key, agentproto.EnrollProof(token, pub))})
+	res, err := http.Post(e.ts.URL+agentproto.PathEnroll, "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	var out agentproto.EnrollResponse
+	if res.StatusCode != 200 || json.NewDecoder(res.Body).Decode(&out) != nil {
+		t.Fatalf("enroll %s: %d", host, res.StatusCode)
+	}
+	return out
+}
+
+func TestEnrollGroupOverrideStaysInScope(t *testing.T) {
+	e := newEnv(t)
+	admin, _ := e.signedInAdmin()
+	var servers, lab store.DeviceGroup
+	admin.do("POST", "/api/v1/groups", groupReq{Name: "Servers"}, &servers)
+	admin.do("POST", "/api/v1/groups", groupReq{Name: "Lab"}, &lab)
+	if code := admin.do("POST", "/api/v1/users", createUserReq{Username: "labtech", Role: "technician", Password: "blue-kettle-orbit-91",
+		Scoped: true, ScopeGroups: []int64{lab.ID}}, nil); code != 201 {
+		t.Fatalf("create scoped user: %d", code)
+	}
+	tech := e.client()
+	tech.login("labtech", "blue-kettle-orbit-91")
+	tech.do("POST", "/api/v1/me/password", map[string]string{"current": "blue-kettle-orbit-91", "new": "green-lantern-pivot-37"}, nil)
+	_, techInfo := e.createToken(tech, lab.ID)
+	_, adminInfo := e.createToken(admin, 1)
+
+	// A token of a technician limited to Lab cannot place a device in Servers.
+	if got := enrollRaw(t, e, techInfo.Token, "LAB-1", "Servers"); got.GroupName != "Lab" {
+		t.Errorf("scoped token with GROUP=Servers enrolled into %q", got.GroupName)
+	}
+	// An administrator's token may.
+	if got := enrollRaw(t, e, adminInfo.Token, "SRV-1", "Servers"); got.GroupName != "Servers" {
+		t.Errorf("admin token with GROUP=Servers enrolled into %q", got.GroupName)
+	}
 }

@@ -289,8 +289,13 @@ func (s *Server) handleEnroll(w http.ResponseWriter, r *http.Request) {
 	}
 	groupID, groupName := tok.GroupID, tok.GroupName
 	if name := cleanText(req.Group, 100); name != "" {
-		if g, err := s.st.GroupByName(r.Context(), name); err == nil {
-			groupID, groupName = g.ID, g.Name
+		if g, err := s.st.GroupByName(r.Context(), name); err == nil && g.ID != groupID {
+			if s.tokenMayPlaceIn(r.Context(), tok, g.ID) {
+				groupID, groupName = g.ID, g.Name
+			} else {
+				s.auditAs(r, nil, "agent", "device.enroll.group_denied", req.Hostname, false, map[string]any{
+					"group": g.Name, "token": tok.Prefix})
+			}
 		}
 	}
 	d := store.Device{
@@ -319,6 +324,25 @@ func (s *Server) handleEnroll(w http.ResponseWriter, r *http.Request) {
 		"deviceId": d.ID, "group": groupName, "platform": d.Platform, "token": tok.Prefix,
 	})
 	writeJSON(w, http.StatusOK, agentproto.EnrollResponse{DeviceID: d.ID, ServerPublicKey: s.agentPublicKey(), GroupName: groupName})
+}
+
+// tokenMayPlaceIn reports whether a device enrolling with tok may pick group
+// groupID instead of the token's own group (msiexec GROUP=). That is only
+// allowed within the device-group scope of the user who created the token, so
+// a token from a technician limited to some groups cannot place a device in
+// another group and receive that group's configurations and software.
+func (s *Server) tokenMayPlaceIn(ctx context.Context, tok store.EnrollmentToken, groupID int64) bool {
+	if tok.CreatedBy == "" {
+		return false
+	}
+	u, err := s.st.UserByUsername(ctx, tok.CreatedBy)
+	if errors.Is(err, store.ErrNotFound) && tok.CreatedBy == "cli" {
+		return true // made by root on the server console (fleetwarden-server enrollment-token)
+	}
+	if err != nil || u.Disabled {
+		return false
+	}
+	return store.UserScope(u).Allows(groupID)
 }
 
 func newUUID() string {
