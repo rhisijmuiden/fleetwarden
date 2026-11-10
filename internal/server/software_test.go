@@ -35,6 +35,8 @@ type fakeSoftware struct {
 	contents   [][]byte
 	uninstalls []agentproto.Uninstall
 	failNext   int
+	// hold, when set, keeps every install running until it is closed.
+	hold chan struct{}
 }
 
 func newFakeSoftware() *fakeSoftware {
@@ -52,7 +54,17 @@ func (f *fakeSoftware) Find(_ context.Context, d agentproto.Detect) (bool, strin
 	return false, "", nil
 }
 
-func (f *fakeSoftware) Install(_ context.Context, in agentproto.Installer, file string) (agent.RunResult, error) {
+func (f *fakeSoftware) Install(ctx context.Context, in agentproto.Installer, file string) (agent.RunResult, error) {
+	f.mu.Lock()
+	hold := f.hold
+	f.mu.Unlock()
+	if hold != nil {
+		select {
+		case <-hold:
+		case <-ctx.Done():
+			return agent.RunResult{}, ctx.Err()
+		}
+	}
 	var raw []byte
 	if file != "" {
 		var err error

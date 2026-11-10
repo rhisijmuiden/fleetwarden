@@ -120,7 +120,12 @@ func TestSelfService(t *testing.T) {
 		t.Errorf("install of a hidden item: %+v", r.Error)
 	}
 
-	// An install without approval runs right away.
+	// An install without approval runs right away. The installer is held
+	// so the second request surely finds the first one running.
+	hold := make(chan struct{})
+	fs.mu.Lock()
+	fs.hold = hold
+	fs.mu.Unlock()
 	r = ask(agentproto.SelfServiceRequest{Op: agentproto.SelfServiceOpInstall, ItemID: it1.ID})
 	if r.Error != "" || !strings.Contains(r.Message, "LOB App") || !strings.Contains(r.Message, "geïnstalleerd") {
 		t.Fatalf("install: %+v", r)
@@ -128,10 +133,10 @@ func TestSelfService(t *testing.T) {
 	if s := findItem(r.Catalog, "LOB App").State; s != agentproto.ItemQueued && s != agentproto.ItemInstalling && s != agentproto.ItemInstalled {
 		t.Errorf("state after install: %s", s)
 	}
-	if r := ask(agentproto.SelfServiceRequest{Op: agentproto.SelfServiceOpInstall, ItemID: it1.ID}); r.Error != agentproto.SelfServiceErrBusy &&
-		findItem(r.Catalog, "LOB App").State != agentproto.ItemInstalled {
+	if r := ask(agentproto.SelfServiceRequest{Op: agentproto.SelfServiceOpInstall, ItemID: it1.ID}); r.Error != agentproto.SelfServiceErrBusy {
 		t.Errorf("second install while the first runs: %+v", r.Error)
 	}
+	close(hold)
 	waitFor(t, "LOB App installed", func() bool {
 		e.srv.softwareTick(ctx)
 		return findItem(ask(agentproto.SelfServiceRequest{Op: agentproto.SelfServiceOpCatalog}).Catalog, "LOB App").State == agentproto.ItemInstalled
