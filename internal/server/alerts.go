@@ -213,6 +213,7 @@ func (s *Server) alertTick(ctx context.Context) {
 		if len(opened) > 0 {
 			s.log.Info("alerts opened", "rule", r.Name, "count", len(opened))
 			s.mailAlerts(ctx, r, "alert", opened, devices, now)
+			s.integrationAlerts(ctx, r, opened, devices, now)
 		}
 		if len(resolved) > 0 && r.NotifyResolved {
 			s.mailAlerts(ctx, r, "alert_resolved", resolved, devices, now)

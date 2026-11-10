@@ -25,6 +25,7 @@ import { Groups } from "./pages/devices/Groups";
 import { Assets } from "./pages/assets/Assets";
 import { AgentUpdates } from "./pages/admin/AgentUpdates";
 import { Gateways } from "./pages/admin/Gateways";
+import { IntegrationEditor, Integrations } from "./pages/admin/Integrations";
 import { Distribution } from "./pages/admin/Distribution";
 import { Patches } from "./pages/patches/Patches";
 import { Drivers } from "./pages/drivers/Drivers";
@@ -49,6 +50,9 @@ import type { Permission } from "./api";
 const TerminalViewer = lazy(() => import("./pages/remote/Terminal").then((m) => ({ default: m.TerminalViewer })));
 
 const adminPages: { path: string; perm: Permission; element: React.ReactNode }[] = [
+  { path: "/admin/integrations", perm: "settings.manage", element: <Integrations /> },
+  { path: "/admin/integrations/new", perm: "settings.manage", element: <IntegrationEditor /> },
+  { path: "/admin/integrations/:id", perm: "settings.manage", element: <IntegrationEditor /> },
   { path: "/devices", perm: "devices.view", element: <Devices /> },
   { path: "/devices/:id", perm: "devices.view", element: <DeviceDetail /> },
   { path: "/groups", perm: "devices.view", element: <Groups /> },

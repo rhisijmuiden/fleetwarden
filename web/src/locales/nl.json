@@ -42,7 +42,8 @@
     "power": "Energiebeheer",
     "security": "Beveiliging",
     "selfservice": "Selfservice",
-    "distribution": "Distributieservers"
+    "distribution": "Distributieservers",
+    "integrations": "Koppelingen"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -395,7 +396,10 @@
     "item_removed": "Dit programma staat niet meer in de catalogus.",
     "invalid_bandwidth": "Vul een limiet in tussen 0 en 10.000.000 kbit/s.",
     "distribution_offline": "De distributieserver is offline.",
-    "distribution_not_updatable": "Deze distributieserver kan zichzelf niet bijwerken; voer de installer er opnieuw op uit."
+    "distribution_not_updatable": "Deze distributieserver kan zichzelf niet bijwerken; voer de installer er opnieuw op uit.",
+    "invalid_integration": "De koppeling is niet geldig",
+    "integration_in_use": "De koppeling wordt nog gebruikt",
+    "too_many_integrations": "Er zijn te veel koppelingen (maximaal 100)"
   },
   "login": {
     "title": "Inloggen",
@@ -3984,6 +3988,206 @@
       "add": "Voeg hem hier toe: een naam en de netwerken of apparaatgroepen van de vestiging.",
       "install": "Voer de installatieopdracht die verschijnt uit op die machine.",
       "firewall": "Laat de agents op de vestiging hem bereiken op TCP {{port}}."
+    }
+  },
+  "integrations": {
+    "title": "Koppelingen",
+    "subtitle": "Koppel FleetWarden aan je servicedesk en aan elk ander systeem met een API. Selfservicemeldingen en waarschuwingen gebruiken deze koppelingen.",
+    "configured": "Ingestelde koppelingen",
+    "configuredCount_one": "{{count}} koppeling, {{failing}} met fouten.",
+    "configuredCount_other": "{{count}} koppelingen, {{failing}} met fouten.",
+    "none": "Nog geen koppelingen. Koppel hieronder een servicedesk of voeg een eigen API-koppeling toe.",
+    "name": "Naam",
+    "kind": "Soort",
+    "status": "Status",
+    "usedBy": "Gestart door",
+    "lastActivity": "Laatste activiteit",
+    "disabled": "Uitgeschakeld",
+    "notUsedYet": "Nog niet gebruikt",
+    "connected": "Verbonden",
+    "failing": "Fouten",
+    "failed": "Mislukt",
+    "custom": "Eigen API",
+    "serviceDesks": "Servicedesks",
+    "serviceDesksHint": "Kant-en-klare koppelingen: tickets krijgen het apparaatrapport mee, de aanmelder wordt gevonden op het e-mailadres van de gebruiker, en de status van het ticket kan worden teruggelezen.",
+    "configuredOne": "Ingesteld",
+    "connect": "Koppelen",
+    "deskHint": {
+      "topdesk": "Incidenten met aanmelder, operatorgroep, categorie en prioriteit.",
+      "freshservice": "Tickets met aanmelder op e-mail, groep, categorie en prioriteit.",
+      "jsm": "Verzoeken in een serviceproject, namens de gebruiker.",
+      "servicenow": "Incidenten met melder, toewijzingsgroep en urgentie.",
+      "zendesk": "Tickets met aanvrager, groep, prioriteit en interne notities.",
+      "halo": "Tickets met gebruiker, tickettype, team en prioriteit (OAuth).",
+      "zammad": "Open source, zelf te hosten. Tickets in een groep, klant op e-mail.",
+      "glpi": "Open source ITSM. Tickets met categorie en urgentie."
+    },
+    "customTitle": "Eigen API-koppeling",
+    "customHint": "Voor alles zonder kant-en-klare koppeling: bepaal welke URL FleetWarden aanroept, met welke authenticatie en welke gegevens.",
+    "newCustom": "Nieuwe API-koppeling",
+    "customParts": {
+      "trigger": "Wanneer",
+      "triggerText": "Een selfservicemelding, een nieuwe waarschuwing of een nieuw apparaat",
+      "request": "Aanroep",
+      "requestText": "GET, POST, PUT, PATCH of DELETE met JSON, formulier, XML of tekst",
+      "auth": "Authenticatie",
+      "authText": "Bearer, Basic, API-sleutel, OAuth 2.0 client credentials of HMAC-handtekening",
+      "response": "Antwoord",
+      "responseText": "Ticketnummer uit het antwoord, opnieuw proberen, logboek"
+    },
+    "events": {
+      "alert": {
+        "opened": "Waarschuwingen"
+      },
+      "device": {
+        "enrolled": "Nieuwe apparaten"
+      }
+    },
+    "unknownKind": "Onbekende soort koppeling.",
+    "customEditorHint": "FleetWarden roept deze URL aan wanneer een van de triggers hieronder gebeurt. Variabelen worden per apparaat ingevuld.",
+    "deskEditorHint": "Maakt tickets aan in {{name}} vanuit selfservice en waarschuwingen.",
+    "testConnection": "Verbinding testen",
+    "sendTestCall": "Testaanroep sturen",
+    "sendTestTicket": "Testticket sturen",
+    "general": "Algemeen",
+    "enabled": "Ingeschakeld",
+    "enabledHint": "Een uitgeschakelde koppeling wordt nooit aangeroepen.",
+    "connection": "Verbinding",
+    "newTickets": "Nieuwe tickets",
+    "priorityTitle": "Urgentie naar prioriteit",
+    "priorityHint": "Wat de gebruiker in de tray kiest, en de waarde die het in {{name}} wordt. Laat leeg om geen prioriteit mee te sturen.",
+    "sync": "Terugkoppeling",
+    "eventsTitle": "Triggers",
+    "eventsHint": "Naast selfservicemeldingen (te kiezen onder Selfservice > Instellingen) gebruiken ook deze gebeurtenissen de koppeling.",
+    "eventLabel": {
+      "alert": {
+        "opened": "Ticket maken bij nieuwe waarschuwingen"
+      },
+      "device": {
+        "enrolled": "Aanroepen bij een nieuw apparaat"
+      }
+    },
+    "eventHint": {
+      "alert": {
+        "opened": "Voor elke waarschuwing die opent, één ticket of aanroep met het apparaat en de waarschuwing."
+      },
+      "device": {
+        "enrolled": "Eenmaal per nieuw apparaat, met naam, platform en groep."
+      }
+    },
+    "alertRules": "Waarschuwingsregels",
+    "noAlertRules": "Er zijn nog geen waarschuwingsregels.",
+    "alertRulesHint": "Niets gekozen: elke regel.",
+    "calls": "Laatste aanroepen",
+    "callsHint": "Elk verzoek van deze koppeling, 30 dagen bewaard.",
+    "noCalls": "Nog geen aanroepen.",
+    "callEvent": {
+      "test": "Verbindingstest",
+      "test_ticket": "Testticket",
+      "alert": {
+        "opened": "Waarschuwing"
+      },
+      "device": {
+        "enrolled": "Nieuw apparaat"
+      },
+      "ticket": "Selfservicemelding",
+      "note": "Notitie",
+      "status": "Statuscontrole"
+    },
+    "deleteTitle": "Koppeling verwijderen",
+    "deleteText": "{{name}} en het logboek verwijderen? Tickets die al zijn aangemaakt blijven in de servicedesk.",
+    "secretKept": "Versleuteld opgeslagen. Laat leeg om de huidige waarde te houden.",
+    "secretStored": "Wordt versleuteld opgeslagen.",
+    "clearSecret": "Verwijderen",
+    "ticketCreated": "Testticket {{number}} aangemaakt",
+    "testOk": "Verbinding werkt",
+    "testFailed": "De test is mislukt",
+    "fields": {
+      "url": "URL",
+      "username": "Gebruikersnaam",
+      "password": "Wachtwoord",
+      "apiKey": "API-sleutel",
+      "apiToken": "API-token",
+      "email": "E-mailadres",
+      "operatorGroup": "Operatorgroep",
+      "category": "Categorie",
+      "callType": "Soort melding",
+      "entryType": "Soort binnenkomst",
+      "groupId": "Groep-ID",
+      "workspaceId": "Workspace-ID",
+      "serviceDeskId": "Servicedesk-ID",
+      "requestTypeId": "Aanvraagtype-ID",
+      "assignmentGroup": "Toewijzingsgroep (sys_id)",
+      "authUrl": "URL van de autorisatieserver",
+      "tenant": "Tenant",
+      "clientId": "Client-ID",
+      "clientSecret": "Clientgeheim",
+      "ticketTypeId": "Tickettype-ID",
+      "team": "Team",
+      "token": "Toegangstoken",
+      "group": "Groep",
+      "appToken": "App-token",
+      "userToken": "Gebruikerstoken",
+      "categoryId": "Categorie-ID",
+      "priorityLow": "Laag: ik kan doorwerken",
+      "priorityNormal": "Normaal: het hindert me",
+      "priorityHigh": "Hoog: ik kan niet werken",
+      "fallbackRequester": "Reserve-aanmelder",
+      "subject": "Onderwerp",
+      "syncStatus": "Status van het ticket tonen in de tray",
+      "notes": "FleetWarden-acties als interne notitie"
+    },
+    "hints": {
+      "url": "Het adres van je omgeving.",
+      "password": "Voor TOPdesk een applicatiewachtwoord van de operator.",
+      "apiKey": "Gebruik een aparte agent met alleen rechten om tickets aan te maken.",
+      "apiToken": "Een API-token van het account hierboven.",
+      "operatorGroup": "Naam van de operatorgroep; leeg laat het aan TOPdesk.",
+      "fallbackRequester": "Gebruikt als het e-mailadres van de gebruiker onbekend is of niet gevonden wordt.",
+      "subject": "Variabelen zoals device.hostname, ticket.subject en user.displayName tussen dubbele accolades.",
+      "syncStatus": "De status van het ticket wordt teruggelezen en aan de gebruiker getoond in de tray.",
+      "notes": "Chatverslagen en overnames worden als interne notitie aan het ticket toegevoegd.",
+      "authUrl": "Leeg gebruikt de URL hierboven gevolgd door /auth.",
+      "tenant": "Alleen voor HaloITSM gehost door Halo.",
+      "userToken": "Bij de voorkeuren van de gebruiker, Sleutels voor externe toegang.",
+      "appToken": "Alleen als de API-client er een vraagt.",
+      "assignmentGroup": "De sys_id van de groep.",
+      "group": "De Zammad-groep die de tickets krijgt."
+    },
+    "customForm": {
+      "request": "Aanroep",
+      "method": "Methode",
+      "urlHint": "Variabelen mogen in het pad en de query.",
+      "auth": "Authenticatie",
+      "authKinds": {
+        "none": "Geen",
+        "bearer": "Bearer-token",
+        "basic": "Basic (gebruikersnaam + wachtwoord)",
+        "apikey": "API-sleutel in een header",
+        "oauth2": "OAuth 2.0 client credentials",
+        "hmac": "HMAC-handtekening"
+      },
+      "token": "Token",
+      "headerName": "Naam van de header",
+      "headerValue": "Waarde",
+      "tokenUrl": "Token-URL",
+      "scope": "Scope",
+      "hmacKey": "Ondertekensleutel",
+      "hmacHint": "FleetWarden stuurt X-FleetWarden-Timestamp en X-FleetWarden-Signature (sha256 van tijdstip + '.' + body).",
+      "headers": "Headers",
+      "addHeader": "Header toevoegen",
+      "contentType": "Soort inhoud",
+      "text": "Platte tekst",
+      "body": "Body-sjabloon",
+      "bodyHint": "Variabelen worden ge-escaped voor de soort inhoud. Filters: | json (string met aanhalingstekens), | raw, | url, | html.",
+      "response": "Antwoord",
+      "numberPath": "Ticketnummer uit",
+      "numberPathHint": "JSON-pad in het antwoord, zichtbaar voor de gebruiker in de tray.",
+      "urlPath": "Ticketlink uit",
+      "timeout": "Time-out (seconden)",
+      "variables": "Variabelen",
+      "variablesHint": "Klik om aan de body toe te voegen.",
+      "filters": "report.* bevat de apparaatinformatie die je kiest onder Selfservice > Instellingen, als tekst, HTML of JSON."
     }
   }
 }

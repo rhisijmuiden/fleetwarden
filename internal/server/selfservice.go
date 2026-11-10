@@ -54,6 +54,9 @@ type selfServiceSettings struct {
 	// request that needs approval, in Language.
 	Recipients []string `json:"recipients"`
 	Language   string   `json:"language"`
+	// TicketIntegration is the integration that receives help requests as
+	// tickets (0 for none).
+	TicketIntegration int64 `json:"ticketIntegration"`
 }
 
 func defaultSelfService() selfServiceSettings {
@@ -138,6 +141,8 @@ var ssTexts = map[string]map[string]string{
 		"mail.user":        "User",
 		"mail.device":      "Device",
 		"mail.unknownUser": "A user",
+		"testTicket":       "FleetWarden test ticket",
+		"testTicketBody":   "This ticket was created by FleetWarden to test the integration. You can close it.",
 	},
 	"nl": {
 		"requested":        "Je aanvraag voor %s is naar de IT-afdeling gestuurd. Je ziet hier wanneer die is goedgekeurd.",
@@ -152,6 +157,8 @@ var ssTexts = map[string]map[string]string{
 		"mail.user":        "Gebruiker",
 		"mail.device":      "Apparaat",
 		"mail.unknownUser": "Een gebruiker",
+		"testTicket":       "FleetWarden testticket",
+		"testTicketBody":   "Dit ticket is door FleetWarden aangemaakt om de koppeling te testen. Je kunt het sluiten.",
 	},
 }
 

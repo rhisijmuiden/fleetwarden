@@ -7,6 +7,14 @@ testversies verschijnen vóór een release als `X.Y.Z-test.N`.
 ## Nog niet uitgebracht
 
 ### Toegevoegd
+- Koppelingen (Administratie > Koppelingen): kant-en-klare koppelingen met
+  TOPdesk, Freshservice, Jira Service Management, ServiceNow, Zendesk,
+  HaloITSM, Zammad en GLPI (ticket met aanmelder, prioriteit, interne notities,
+  status), en eigen API-koppelingen met methode, URL, authenticatie (bearer,
+  Basic, API-sleutel, OAuth 2.0 client credentials, HMAC), headers en een
+  body-sjabloon met variabelen. Nieuwe waarschuwingen en nieuwe apparaten
+  kunnen ze starten; verbinding testen, testticket en een logboek van 30 dagen.
+  Zie docs/integrations.nl.md.
 - Distributieservers voor vestigingen (Administratie > Distributieservers): een cache
   die geüploade installatiebestanden, drivers en firmware en agentpakketten
   bewaart en uitlevert aan de agents in zijn netwerken of apparaatgroepen. De

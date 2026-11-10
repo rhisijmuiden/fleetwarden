@@ -42,7 +42,8 @@
     "power": "Power",
     "security": "Security",
     "selfservice": "Self-service",
-    "distribution": "Distribution servers"
+    "distribution": "Distribution servers",
+    "integrations": "Integrations"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -395,7 +396,10 @@
     "item_removed": "This program is no longer in the catalog.",
     "invalid_bandwidth": "Enter a limit between 0 and 10,000,000 kbit/s.",
     "distribution_offline": "The distribution server is offline.",
-    "distribution_not_updatable": "This distribution server cannot update itself; run the installer on it again."
+    "distribution_not_updatable": "This distribution server cannot update itself; run the installer on it again.",
+    "invalid_integration": "The integration is not valid",
+    "integration_in_use": "The integration is still in use",
+    "too_many_integrations": "There are too many integrations (at most 100)"
   },
   "login": {
     "title": "Sign in",
@@ -3984,6 +3988,206 @@
       "add": "Add it here: a name and the office's networks or device groups.",
       "install": "Run the install command that appears on that machine.",
       "firewall": "Let the agents in the office reach it on TCP {{port}}."
+    }
+  },
+  "integrations": {
+    "title": "Integrations",
+    "subtitle": "Connect FleetWarden to your service desk and to any other system with an API. Self-service tickets and alerts use these integrations.",
+    "configured": "Configured integrations",
+    "configuredCount_one": "{{count}} integration, {{failing}} failing.",
+    "configuredCount_other": "{{count}} integrations, {{failing}} failing.",
+    "none": "No integrations yet. Connect a service desk below or add a custom API integration.",
+    "name": "Name",
+    "kind": "Type",
+    "status": "Status",
+    "usedBy": "Triggered by",
+    "lastActivity": "Last activity",
+    "disabled": "Disabled",
+    "notUsedYet": "Not used yet",
+    "connected": "Connected",
+    "failing": "Failing",
+    "failed": "Failed",
+    "custom": "Custom API",
+    "serviceDesks": "Service desks",
+    "serviceDesksHint": "Ready-made connectors: tickets get the device report, the requester is matched on the user's e-mail address, and the ticket status can be read back.",
+    "configuredOne": "Configured",
+    "connect": "Connect",
+    "deskHint": {
+      "topdesk": "Incidents with caller lookup, operator group, category and priority.",
+      "freshservice": "Tickets with requester by e-mail, group, category and priority.",
+      "jsm": "Requests in a service project, raised on behalf of the user.",
+      "servicenow": "Incidents with caller lookup, assignment group and urgency.",
+      "zendesk": "Tickets with requester, group, priority and private notes.",
+      "halo": "Tickets with user, ticket type, team and priority (OAuth).",
+      "zammad": "Open source, self-hosted. Tickets in a group, customer by e-mail.",
+      "glpi": "Open source ITSM. Tickets with category and urgency."
+    },
+    "customTitle": "Custom API integration",
+    "customHint": "For everything without a ready-made connector: define which URL FleetWarden calls, with which authentication and which data.",
+    "newCustom": "New API integration",
+    "customParts": {
+      "trigger": "When",
+      "triggerText": "A self-service ticket, a new alert or a new device",
+      "request": "Request",
+      "requestText": "GET, POST, PUT, PATCH or DELETE with JSON, form, XML or text",
+      "auth": "Authentication",
+      "authText": "Bearer, Basic, API key, OAuth 2.0 client credentials or HMAC signature",
+      "response": "Response",
+      "responseText": "Ticket number from the answer, retries, call log"
+    },
+    "events": {
+      "alert": {
+        "opened": "Alerts"
+      },
+      "device": {
+        "enrolled": "New devices"
+      }
+    },
+    "unknownKind": "Unknown integration type.",
+    "customEditorHint": "FleetWarden calls this URL when one of the triggers below happens. Variables are filled in per device.",
+    "deskEditorHint": "Creates tickets in {{name}} from self-service and alerts.",
+    "testConnection": "Test connection",
+    "sendTestCall": "Send test call",
+    "sendTestTicket": "Send test ticket",
+    "general": "General",
+    "enabled": "Enabled",
+    "enabledHint": "A disabled integration is never called.",
+    "connection": "Connection",
+    "newTickets": "New tickets",
+    "priorityTitle": "Urgency to priority",
+    "priorityHint": "What the user picks in the tray, and the value it becomes in {{name}}. Leave empty to not send a priority.",
+    "sync": "Two-way",
+    "eventsTitle": "Triggers",
+    "eventsHint": "Besides self-service tickets (chosen under Self-service > Settings), these events also use the integration.",
+    "eventLabel": {
+      "alert": {
+        "opened": "Create a ticket for new alerts"
+      },
+      "device": {
+        "enrolled": "Call when a new device enrolls"
+      }
+    },
+    "eventHint": {
+      "alert": {
+        "opened": "For each alert that opens, one ticket or call with the device and the alert."
+      },
+      "device": {
+        "enrolled": "Once per new device, with its name, platform and group."
+      }
+    },
+    "alertRules": "Alert rules",
+    "noAlertRules": "There are no alert rules yet.",
+    "alertRulesHint": "None selected: every alert rule.",
+    "calls": "Recent calls",
+    "callsHint": "Every request of this integration, kept for 30 days.",
+    "noCalls": "No calls yet.",
+    "callEvent": {
+      "test": "Connection test",
+      "test_ticket": "Test ticket",
+      "alert": {
+        "opened": "Alert"
+      },
+      "device": {
+        "enrolled": "New device"
+      },
+      "ticket": "Self-service ticket",
+      "note": "Note",
+      "status": "Status check"
+    },
+    "deleteTitle": "Delete integration",
+    "deleteText": "Delete {{name}} and its call log? Tickets already created stay in the service desk.",
+    "secretKept": "Stored encrypted. Leave empty to keep the current value.",
+    "secretStored": "Stored encrypted.",
+    "clearSecret": "Remove",
+    "ticketCreated": "Test ticket {{number}} created",
+    "testOk": "Connection works",
+    "testFailed": "The test failed",
+    "fields": {
+      "url": "URL",
+      "username": "User name",
+      "password": "Password",
+      "apiKey": "API key",
+      "apiToken": "API token",
+      "email": "E-mail address",
+      "operatorGroup": "Operator group",
+      "category": "Category",
+      "callType": "Call type",
+      "entryType": "Entry type",
+      "groupId": "Group ID",
+      "workspaceId": "Workspace ID",
+      "serviceDeskId": "Service desk ID",
+      "requestTypeId": "Request type ID",
+      "assignmentGroup": "Assignment group (sys_id)",
+      "authUrl": "Authorisation server URL",
+      "tenant": "Tenant",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "ticketTypeId": "Ticket type ID",
+      "team": "Team",
+      "token": "Access token",
+      "group": "Group",
+      "appToken": "App token",
+      "userToken": "User token",
+      "categoryId": "Category ID",
+      "priorityLow": "Low: I can keep working",
+      "priorityNormal": "Normal: it bothers me",
+      "priorityHigh": "High: I cannot work",
+      "fallbackRequester": "Fallback requester",
+      "subject": "Subject",
+      "syncStatus": "Show the ticket status in the tray",
+      "notes": "Log FleetWarden actions as private notes"
+    },
+    "hints": {
+      "url": "The address of your environment.",
+      "password": "For TOPdesk an application password of the operator.",
+      "apiKey": "Use a dedicated agent with only the rights to create tickets.",
+      "apiToken": "An API token of the account above.",
+      "operatorGroup": "Name of the operator group; empty leaves it to TOPdesk.",
+      "fallbackRequester": "Used when the user's e-mail address is unknown or not found.",
+      "subject": "Variables such as device.hostname, ticket.subject and user.displayName between double curly braces.",
+      "syncStatus": "The ticket status is read back and shown to the user in the tray.",
+      "notes": "Chat transcripts and remote sessions are added to the ticket as a private note.",
+      "authUrl": "Empty uses the URL above followed by /auth.",
+      "tenant": "Only for HaloITSM hosted by Halo.",
+      "userToken": "Under the user's preferences, Remote access keys.",
+      "appToken": "Only when the API client requires one.",
+      "assignmentGroup": "The sys_id of the group.",
+      "group": "The Zammad group that receives the tickets."
+    },
+    "customForm": {
+      "request": "Request",
+      "method": "Method",
+      "urlHint": "Variables are allowed in the path and query.",
+      "auth": "Authentication",
+      "authKinds": {
+        "none": "None",
+        "bearer": "Bearer token",
+        "basic": "Basic (user name + password)",
+        "apikey": "API key in a header",
+        "oauth2": "OAuth 2.0 client credentials",
+        "hmac": "HMAC signature"
+      },
+      "token": "Token",
+      "headerName": "Header name",
+      "headerValue": "Value",
+      "tokenUrl": "Token URL",
+      "scope": "Scope",
+      "hmacKey": "Signing key",
+      "hmacHint": "FleetWarden sends X-FleetWarden-Timestamp and X-FleetWarden-Signature (sha256 of timestamp + '.' + body).",
+      "headers": "Headers",
+      "addHeader": "Add header",
+      "contentType": "Content type",
+      "text": "Plain text",
+      "body": "Body template",
+      "bodyHint": "Variables are escaped for the content type. Filters: | json (quoted string), | raw, | url, | html.",
+      "response": "Response",
+      "numberPath": "Ticket number from",
+      "numberPathHint": "JSON path in the answer, shown to the user in the tray.",
+      "urlPath": "Ticket link from",
+      "timeout": "Timeout (seconds)",
+      "variables": "Variables",
+      "variablesHint": "Click to add to the body.",
+      "filters": "report.* holds the device information chosen under Self-service > Settings, as text, HTML or JSON."
     }
   }
 }
