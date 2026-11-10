@@ -102,6 +102,9 @@ func (s *Server) RunWorkers(ctx context.Context) {
 				s.log.Warn("purge self-service requests", "err", err)
 			}
 			s.pruneSoftwareFiles(ctx)
+			if err := s.st.PruneIntegrationCalls(ctx, s.now().Add(-integrationCallsDays*24*time.Hour)); err != nil {
+				s.log.Warn("purge integration call log", "err", err)
+			}
 			if err := s.st.PurgeVulnExceptions(ctx); err != nil {
 				s.log.Warn("purge accepted vulnerability risks", "err", err)
 			}

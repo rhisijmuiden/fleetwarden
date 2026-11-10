@@ -7,6 +7,13 @@ published as `X.Y.Z-test.N` before a release.
 ## Unreleased
 
 ### Added
+- Integrations (Administration > Integrations): connectors for TOPdesk,
+  Freshservice, Jira Service Management, ServiceNow, Zendesk, HaloITSM, Zammad
+  and GLPI (ticket with requester lookup, priority mapping, private notes,
+  status), and custom API integrations with a method, URL, authentication
+  (bearer, Basic, API key, OAuth 2.0 client credentials, HMAC), headers and a
+  body template with variables. New alerts and new devices can trigger them;
+  test connection, test ticket and a 30-day call log. See docs/integrations.md.
 - Distribution servers for branch offices (Admin > Distribution servers): a
   cache that keeps uploaded installers, drivers and firmware and agent
   packages, and serves them to the agents in its networks or device groups.

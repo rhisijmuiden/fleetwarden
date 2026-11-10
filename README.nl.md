@@ -84,6 +84,7 @@ eerste login kies je je eigen wachtwoord. Kwijt? Voer
 - Meldingen: [docs/alerts.nl.md](docs/alerts.nl.md)
 - Assetbeheer (eigenaar, locatie, garantie, softwarelicenties): [docs/assets.nl.md](docs/assets.nl.md)
 - Secure gateway in de DMZ voor agents buiten het netwerk: [docs/gateway.nl.md](docs/gateway.nl.md)
+- Koppelingen met servicedesks (TOPdesk, Freshservice, Jira Service Management, ServiceNow, Zendesk, HaloITSM, Zammad, GLPI) en eigen API's: [docs/integrations.nl.md](docs/integrations.nl.md)
 - Distributieservers op vestigingen (cache voor installatiebestanden, drivers en agent-updates): [docs/distribution.nl.md](docs/distribution.nl.md)
 - Belastingtest en dimensionering: [docs/load-test.nl.md](docs/load-test.nl.md)
 - Wat is er veranderd: [CHANGELOG.nl.md](CHANGELOG.nl.md)

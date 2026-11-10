@@ -326,6 +326,9 @@ func (s *Server) handleEnroll(w http.ResponseWriter, r *http.Request) {
 	s.auditAs(r, nil, "agent", action, d.Hostname, true, map[string]any{
 		"deviceId": d.ID, "group": groupName, "platform": d.Platform, "token": tok.Prefix,
 	})
+	if action == "device.enroll" {
+		s.integrationEnrolled(r.Context(), d, groupName)
+	}
 	writeJSON(w, http.StatusOK, agentproto.EnrollResponse{DeviceID: d.ID, ServerPublicKey: s.agentPublicKey(), GroupName: groupName})
 }
 
