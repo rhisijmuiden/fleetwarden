@@ -584,6 +584,8 @@ func (s *Server) handleRemoteAgent(w http.ResponseWriter, r *http.Request) {
 	dev, err := s.st.DeviceByID(r.Context(), devID)
 	if err != nil || !agentproto.VerifyRequest(dev.PublicKey, dev.ID, r.Method, r.URL.Path, ts, sig, s.now(), 5*time.Minute) {
 		s.agentFails.Fail(ip)
+		s.log.Warn("remote session: agent signature refused", "session", rs.ID, "device", devID, "ip", ip,
+			"clockOffset", time.Unix(ts, 0).Sub(s.now()).Round(time.Second))
 		apiError(w, http.StatusUnauthorized, "bad_signature")
 		return
 	}

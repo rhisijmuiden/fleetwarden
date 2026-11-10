@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -220,6 +221,9 @@ func (a *Agent) connectRemote(ctx context.Context, st agentproto.RemoteStart, se
 		if ctx.Err() != nil {
 			return nil, nil, endFromContext(ctx)
 		}
+		if strings.Contains(err.Error(), "got 401") {
+			return nil, nil, failed("connect_unauthorized") // signature refused
+		}
 		return nil, nil, failed("connect_failed")
 	}
 	ws.SetReadLimit(remoteReadLimit)
@@ -248,7 +252,7 @@ func (a *Agent) dialRemote(ctx context.Context, sessionID string, key *agentprot
 		HTTPClient: a.HTTP,
 		HTTPHeader: http.Header{
 			"User-Agent":          {"fleetwarden-agent/" + version.Version},
-			agentproto.HeaderAuth: {agentproto.SignRequest(cfg.Key(), cfg.DeviceID, http.MethodGet, path, time.Now())},
+			agentproto.HeaderAuth: {agentproto.SignRequest(cfg.Key(), cfg.DeviceID, http.MethodGet, path, a.serverNow())},
 		},
 		CompressionMode: websocket.CompressionDisabled,
 	})

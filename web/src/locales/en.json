@@ -1795,6 +1795,7 @@
       "unsupported": "This device does not support remote control.",
       "busy": "The device already has the maximum number of sessions.",
       "connect_failed": "The agent could not reach the server for the session. Check that the reverse proxy passes WebSockets.",
+      "connect_unauthorized": "The server did not accept the agent's signed request for the session. This usually means the device's clock is wrong: update the agent, or set the clock right.",
       "helper_failed": "The screen of this computer could not be captured.",
       "bad_message": "A message failed its integrity check; the session was stopped.",
       "bad_key": "The session keys did not match.",

@@ -599,3 +599,39 @@ func TestRemoteDirectPath(t *testing.T) {
 		t.Errorf("signal while off: %+v %v", sig, err)
 	}
 }
+
+// A device whose clock is off by more than the signature window still opens
+// the session socket: the agent signs with the server's time, which it
+// learns when its connection opens.
+func TestRemoteAgentWithWrongClock(t *testing.T) {
+	e := newEnv(t)
+	e.srv.now = func() time.Time { return time.Now().Add(20 * time.Minute) }
+	admin, _ := e.signedInAdmin()
+	_, info := e.createToken(admin, 1)
+	desk := &fakeDesktop{p: remote.NewFakePlatform()}
+	a := newTestAgent(t, e, info.Token, "PLAYOUT-01", false)
+	a.Remote, a.Notify = desk, &fakeConsent{allow: true}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	go a.Run(ctx)
+
+	var list deviceList
+	for range 100 {
+		if admin.do("GET", "/api/v1/devices?status=online", nil, &list); list.Total == 1 {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if list.Total != 1 {
+		t.Fatal("agent did not come online")
+	}
+	id := list.Items[0].ID
+	setPlatform(t, id, "windows")
+	var rs store.RemoteSession
+	if code := admin.do("POST", "/api/v1/devices/"+id+"/remote", map[string]string{"kind": "desktop"}, &rs); code != 201 {
+		t.Fatalf("start: %d %+v", code, rs)
+	}
+	v := admin.openViewer(rs.ID)
+	v.waitState("active")
+	v.waitBinary(remote.MsgInfo)
+}
