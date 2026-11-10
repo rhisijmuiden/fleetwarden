@@ -1795,6 +1795,7 @@
       "unsupported": "Dit apparaat ondersteunt overnemen niet.",
       "busy": "Op dit apparaat lopen al het maximale aantal sessies.",
       "connect_failed": "De agent kon de server niet bereiken voor de sessie. Controleer of de reverse proxy WebSockets doorgeeft.",
+      "connect_unauthorized": "De server accepteerde het ondertekende verzoek van de agent voor de sessie niet. Meestal staat de klok van het apparaat verkeerd: werk de agent bij of zet de klok goed.",
       "helper_failed": "Het scherm van deze computer kon niet worden opgenomen.",
       "bad_message": "Een bericht kwam niet door de integriteitscontrole; de sessie is gestopt.",
       "bad_key": "De sessiesleutels kwamen niet overeen.",

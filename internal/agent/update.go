@@ -177,7 +177,7 @@ func (a *Agent) fetchSigned(ctx context.Context, cfg Config, base string, client
 	if err != nil {
 		return err
 	}
-	req.Header.Set(agentproto.HeaderAuth, agentproto.SignRequest(cfg.Key(), cfg.DeviceID, http.MethodGet, path, time.Now()))
+	req.Header.Set(agentproto.HeaderAuth, agentproto.SignRequest(cfg.Key(), cfg.DeviceID, http.MethodGet, path, a.serverNow()))
 	req.Header.Set("User-Agent", "fleetwarden-agent/"+version.Version)
 	res, err := client.Do(req)
 	if err != nil {

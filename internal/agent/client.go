@@ -88,15 +88,19 @@ type Agent struct {
 	// BootTime returns when the system started; tests replace it.
 	BootTime func() time.Time
 
-	mu       sync.Mutex
-	cfg      Config
-	updating atomic.Bool
-	patch    patchState
-	software softwareState // guarded by mu
-	remote   remoteState
-	config   configRunner
-	security securityState
-	power    powerState
+	mu  sync.Mutex
+	cfg Config
+	// clockOffset is the server's clock minus this machine's, in
+	// nanoseconds, measured when a session opens. Signed requests use the
+	// server's time, so a machine with a wrong clock can still reach it.
+	clockOffset atomic.Int64
+	updating    atomic.Bool
+	patch       patchState
+	software    softwareState // guarded by mu
+	remote      remoteState
+	config      configRunner
+	security    securityState
+	power       powerState
 	// selfService carries the tray's self-service requests to the server.
 	selfService selfServiceState
 	ctx         context.Context // of Run: jobs outlive a single session
@@ -327,6 +331,7 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 	if ch.Type != agentproto.TypeChallenge || ch.Decode(&c) != nil || len(c.Nonce) < 16 {
 		return errors.New("unexpected first message from the server")
 	}
+	a.noteServerTime(c.ServerTime)
 	sess := agentproto.NewSession(c.Nonce, cfg.Key(), ed25519.PublicKey(cfg.ServerPublicKey), agentproto.ToServer)
 	auth, _ := sess.Seal(agentproto.TypeAuth, "", agentproto.Auth{DeviceID: cfg.DeviceID, AgentVersion: version.Version, ProtocolVersion: agentproto.Version})
 	if err := writeEnvelope(ctx, ws, auth); err != nil {
@@ -715,4 +720,23 @@ func TestConnection(ctx context.Context, server string) TestResult {
 	}
 	res.OK, res.Product, res.Version = true, h.Product, h.Version
 	return res
+}
+
+// noteServerTime records how far this machine's clock is from the server's.
+func (a *Agent) noteServerTime(server time.Time) {
+	if server.IsZero() {
+		return
+	}
+	off := time.Until(server)
+	if off > -time.Minute && off < time.Minute {
+		off = 0 // close enough; the transit time would only add noise
+	} else if a.clockOffset.Load() == 0 {
+		a.Log.Warn("this machine's clock differs from the server's; signed requests use the server's time", "offset", off.Round(time.Second))
+	}
+	a.clockOffset.Store(int64(off))
+}
+
+// serverNow is the current time by the server's clock.
+func (a *Agent) serverNow() time.Time {
+	return time.Now().Add(time.Duration(a.clockOffset.Load()))
 }

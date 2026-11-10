@@ -372,7 +372,7 @@ func (a *Agent) signedRequest(ctx context.Context, method, path, query string, b
 		req.ContentLength = size
 		req.Header.Set("Content-Type", "application/octet-stream")
 	}
-	req.Header.Set(agentproto.HeaderAuth, agentproto.SignRequest(cfg.Key(), cfg.DeviceID, method, path, time.Now()))
+	req.Header.Set(agentproto.HeaderAuth, agentproto.SignRequest(cfg.Key(), cfg.DeviceID, method, path, a.serverNow()))
 	req.Header.Set("User-Agent", "fleetwarden-agent/"+version.Version)
 	client := &http.Client{Transport: a.HTTP.Transport}
 	return client.Do(req)
