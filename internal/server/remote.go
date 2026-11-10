@@ -482,8 +482,14 @@ func (s *Server) handleRemoteViewer(w http.ResponseWriter, r *http.Request) {
 	}
 	ws, err := s.acceptBrowserWS(w, r)
 	if err != nil {
-		s.log.Warn("remote viewer websocket refused", "session", rs.ID, "origin", r.Header.Get("Origin"), "host", r.Host, "err", err)
-		s.endRemote(rs, agentproto.RemoteStateFailed, "viewer_failed")
+		reason := "viewer_failed"
+		if strings.Contains(err.Error(), "Origin") {
+			reason = "viewer_origin" // the browser's address is not one this server knows
+		}
+		s.log.Warn("remote viewer websocket refused", "session", rs.ID, "reason", reason, "origin", r.Header.Get("Origin"),
+			"host", r.Host, "forwardedHost", r.Header.Get("X-Forwarded-Host"), "peer", r.RemoteAddr,
+			"allowed", strings.Join(s.browserOrigins(r), ","), "err", err)
+		s.endRemote(rs, agentproto.RemoteStateFailed, reason)
 		return
 	}
 	defer ws.CloseNow() //nolint:errcheck
@@ -672,6 +678,8 @@ func (s *Server) browserOrigins(r *http.Request) []string {
 	var out []string
 	add := func(h string) {
 		h = strings.ToLower(strings.TrimSpace(h))
+		// Browsers leave a default port out of the Origin.
+		h = strings.TrimSuffix(strings.TrimSuffix(h, ":443"), ":80")
 		// The patterns are globs: never let a header widen them.
 		if h == "" || strings.ContainsAny(h, "*?[]\\/ ") {
 			return
