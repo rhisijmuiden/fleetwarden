@@ -399,7 +399,11 @@
     "distribution_not_updatable": "Deze distributieserver kan zichzelf niet bijwerken; voer de installer er opnieuw op uit.",
     "invalid_integration": "De koppeling is niet geldig",
     "integration_in_use": "De koppeling wordt nog gebruikt",
-    "too_many_integrations": "Er zijn te veel koppelingen (maximaal 100)"
+    "too_many_integrations": "Er zijn te veel koppelingen (maximaal 100)",
+    "unattended_not_allowed": "De groep van dit apparaat staat onbeheerd overnemen niet toe.",
+    "chat_ended": "Deze chat is al beëindigd.",
+    "chat_full": "Deze chat is vol. Beëindig hem en start een nieuwe.",
+    "invalid_message": "Typ eerst een bericht."
   },
   "login": {
     "title": "Inloggen",
@@ -1190,7 +1194,9 @@
     "scans": "Scanintervallen",
     "overrideInventory": "Eigen interval voor software-inventaris",
     "overridePatchScan": "Eigen interval voor updatescan",
-    "scanDefault": "Standaard onder Instellingen: {{value}}."
+    "scanDefault": "Standaard onder Instellingen: {{value}}.",
+    "unattended": "Onbeheerd overnemen toestaan",
+    "unattendedHint": "Als niemand de toestemmingsvraag beantwoordt (gebruiker weg, of niemand aangemeld), mag een technicus toch verbinden. De gebruiker ziet een balk zolang de sessie loopt."
   },
   "agentUpdates": {
     "title": "Agent-updates",
@@ -1886,7 +1892,9 @@
       "directHint": "Het scherm komt rechtstreeks van het apparaat (WebRTC), niet via de server.",
       "relay": "Via server",
       "relayHint": "Het scherm gaat via de server. Een directe verbinding wordt vanzelf geprobeerd als het apparaat bereikbaar is vanuit deze browser."
-    }
+    },
+    "unattended": "Onbeheerd overnemen",
+    "unattendedHint": "Verbindt ook als niemand de toestemmingsvraag beantwoordt, als de groep van het apparaat dat toestaat."
   },
   "reports": {
     "title": "Rapporten",
@@ -4271,12 +4279,16 @@
     "actions": {
       "remote": "Overnemen",
       "terminal": "Terminal",
-      "scan": "Scan starten"
+      "scan": "Scan starten",
+      "chat": "Chatten",
+      "unattended": "Onbeheerd overnemen"
     },
     "actionHints": {
       "remote": "Vraagt toestemming zoals per groep ingesteld",
       "terminal": "Alleen voor medewerkers met terminalrechten",
-      "scan": "Nieuwe inventarisatie en updatescan"
+      "scan": "Nieuwe inventarisatie en updatescan",
+      "chat": "Opent een chat in de tray; het verslag komt bij het ticket",
+      "unattended": "Alleen voor groepen die dat toestaan"
     },
     "linkSafe": "De link bevat geen wachtwoord of token. FleetWarden controleert de aanmelding en rechten van de medewerker; acties volgen de toestemmingsregels van de groep van het apparaat.",
     "preview": "Voorbeeld van het ticket",
@@ -4311,5 +4323,29 @@
     "openHelp": "Hulpvragen",
     "offline": "Het apparaat is offline. Acties kunnen weer zodra het verbinding maakt.",
     "scanStarted": "De scan is aangevraagd. De resultaten verschijnen over een paar minuten."
+  },
+  "chat": {
+    "open": "Chatten",
+    "hint": "Chat met de gebruiker die op dit apparaat is aangemeld. Het bericht verschijnt in de tray.",
+    "withUser": "Chatten met de gebruiker",
+    "title": "Chat · {{host}}",
+    "online": "Online",
+    "offline": "Offline",
+    "linked": "hulpvraag #{{id}}",
+    "empty": "Stuur een bericht om een chat te starten. Die opent op het scherm van de aangemelde gebruiker.",
+    "emptyOffline": "Het apparaat is offline. Een chat kan starten zodra het weer online is.",
+    "previous": "Vorige chat",
+    "ended": "De chat is beëindigd.",
+    "endedIdle": "De chat is beëindigd na een uur zonder berichten.",
+    "delivered": "Getoond in de tray van de gebruiker.",
+    "trayGone": "De tray is niet meer open; de gebruiker ziet de chat bij de volgende aanmelding.",
+    "notDelivered": "Er is niemand aangemeld, of de tray-app draait niet.",
+    "seen": "Afgeleverd",
+    "waiting": "Wacht",
+    "end": "Chat beëindigen",
+    "placeholder": "Typ een bericht",
+    "startPlaceholder": "Typ een bericht om de chat te starten",
+    "offlinePlaceholder": "Het apparaat is offline",
+    "send": "Versturen"
   }
 }

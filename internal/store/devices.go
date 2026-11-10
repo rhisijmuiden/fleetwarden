@@ -51,6 +51,9 @@ type DeviceGroup struct {
 	// RemoteConsent is auto (servers direct, workstations ask), direct,
 	// notify or ask.
 	RemoteConsent string `json:"remoteConsent"`
+	// RemoteUnattended lets a technician take over when nobody answers the
+	// consent prompt (the user is away).
+	RemoteUnattended bool `json:"remoteUnattended"`
 	// InventoryMinutes and PatchScanMinutes override the server-wide scan
 	// intervals for the group; nil uses the default.
 	InventoryMinutes *int      `json:"inventoryMinutes"`
@@ -61,7 +64,7 @@ type DeviceGroup struct {
 }
 
 const groupCols = `g.id, g.name, g.description, g.update_ring, g.agent_channel, g.window_start, g.window_end, g.patch_policy_id, g.remote_consent,
-	g.inventory_minutes, g.patch_scan_minutes, g.created_at,
+	g.remote_unattended, g.inventory_minutes, g.patch_scan_minutes, g.created_at,
 	(SELECT count(*) FROM devices d WHERE d.group_id = g.id)::int`
 
 func scanGroup(row pgx.Row) (DeviceGroup, error) {
@@ -69,7 +72,7 @@ func scanGroup(row pgx.Row) (DeviceGroup, error) {
 	var ring int16
 	var ws, we *int16
 	err := row.Scan(&g.ID, &g.Name, &g.Description, &ring, &g.AgentChannel, &ws, &we, &g.PatchPolicy, &g.RemoteConsent,
-		&g.InventoryMinutes, &g.PatchScanMinutes, &g.CreatedAt, &g.DeviceCount)
+		&g.RemoteUnattended, &g.InventoryMinutes, &g.PatchScanMinutes, &g.CreatedAt, &g.DeviceCount)
 	g.UpdateRing = int(ring)
 	if ws != nil {
 		v := int(*ws)
@@ -129,9 +132,10 @@ func smallint(v *int) any {
 func (s *Store) CreateGroup(ctx context.Context, g DeviceGroup) (DeviceGroup, error) {
 	var id int64
 	err := s.pool.QueryRow(ctx, `INSERT INTO device_groups (name, description, update_ring, agent_channel, window_start, window_end, patch_policy_id, remote_consent,
-		inventory_minutes, patch_scan_minutes)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, g.Name, g.Description, int16(g.UpdateRing), g.AgentChannel,
-		smallint(g.WindowStart), smallint(g.WindowEnd), g.PatchPolicy, consentOrAuto(g.RemoteConsent), g.InventoryMinutes, g.PatchScanMinutes).Scan(&id)
+		inventory_minutes, patch_scan_minutes, remote_unattended)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`, g.Name, g.Description, int16(g.UpdateRing), g.AgentChannel,
+		smallint(g.WindowStart), smallint(g.WindowEnd), g.PatchPolicy, consentOrAuto(g.RemoteConsent), g.InventoryMinutes, g.PatchScanMinutes,
+		g.RemoteUnattended).Scan(&id)
 	if err != nil {
 		return g, mapErr(err)
 	}
@@ -142,8 +146,9 @@ func (s *Store) CreateGroup(ctx context.Context, g DeviceGroup) (DeviceGroup, er
 func (s *Store) UpdateGroup(ctx context.Context, g DeviceGroup) error {
 	tag, err := s.pool.Exec(ctx, `UPDATE device_groups SET name = $2, description = $3, update_ring = $4, agent_channel = $5,
 		window_start = $6, window_end = $7, patch_policy_id = $8, remote_consent = $9,
-		inventory_minutes = $10, patch_scan_minutes = $11 WHERE id = $1`, g.ID, g.Name, g.Description, int16(g.UpdateRing), g.AgentChannel,
-		smallint(g.WindowStart), smallint(g.WindowEnd), g.PatchPolicy, consentOrAuto(g.RemoteConsent), g.InventoryMinutes, g.PatchScanMinutes)
+		inventory_minutes = $10, patch_scan_minutes = $11, remote_unattended = $12 WHERE id = $1`, g.ID, g.Name, g.Description, int16(g.UpdateRing), g.AgentChannel,
+		smallint(g.WindowStart), smallint(g.WindowEnd), g.PatchPolicy, consentOrAuto(g.RemoteConsent), g.InventoryMinutes, g.PatchScanMinutes,
+		g.RemoteUnattended)
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}

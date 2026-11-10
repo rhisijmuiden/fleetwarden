@@ -278,6 +278,8 @@ type groupReq struct {
 	PatchPolicy  *int64  `json:"patchPolicyId"`
 	// RemoteConsent: auto, direct, notify or ask (empty keeps auto).
 	RemoteConsent string `json:"remoteConsent"`
+	// RemoteUnattended allows taking over when nobody answers the prompt.
+	RemoteUnattended bool `json:"remoteUnattended"`
 	// Scan interval overrides in minutes; null uses the default from Settings.
 	InventoryMinutes *int `json:"inventoryMinutes"`
 	PatchScanMinutes *int `json:"patchScanMinutes"`
@@ -286,7 +288,7 @@ type groupReq struct {
 func (req groupReq) toGroup() (store.DeviceGroup, string) {
 	g := store.DeviceGroup{Name: cleanText(req.Name, 100), Description: cleanText(req.Description, 500), UpdateRing: req.UpdateRing,
 		WindowStart: req.WindowStart, WindowEnd: req.WindowEnd, RemoteConsent: req.RemoteConsent,
-		InventoryMinutes: req.InventoryMinutes, PatchScanMinutes: req.PatchScanMinutes}
+		RemoteUnattended: req.RemoteUnattended, InventoryMinutes: req.InventoryMinutes, PatchScanMinutes: req.PatchScanMinutes}
 	if req.PatchPolicy != nil && *req.PatchPolicy > 0 {
 		g.PatchPolicy = req.PatchPolicy
 	}
@@ -376,7 +378,7 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request) {
 		s.internalError(w, r, err)
 		return
 	}
-	s.audit(r, "group.update", g.Name, true, map[string]any{"ring": g.UpdateRing, "channel": g.AgentChannel, "patchPolicy": g.PatchPolicy, "remoteConsent": g.RemoteConsent,
+	s.audit(r, "group.update", g.Name, true, map[string]any{"ring": g.UpdateRing, "channel": g.AgentChannel, "patchPolicy": g.PatchPolicy, "remoteConsent": g.RemoteConsent, "remoteUnattended": g.RemoteUnattended,
 		"inventoryMinutes": g.InventoryMinutes, "patchScanMinutes": g.PatchScanMinutes})
 	g, _ = s.st.GroupByID(r.Context(), id)
 	writeJSON(w, http.StatusOK, g)

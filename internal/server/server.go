@@ -211,6 +211,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.alertRoutes(mux)
 	s.vulnRoutes(mux)
 	s.selfServiceRoutes(mux)
+	s.chatRoutes(mux)
 	s.gatewayRoutes(mux)
 	s.distributionRoutes(mux)
 	s.proxyRoutes(mux)

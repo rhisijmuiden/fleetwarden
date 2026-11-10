@@ -24,6 +24,9 @@ namespace FleetWarden.Tray
         [DataMember(Name = "reason", EmitDefaultValue = false)] public string Reason;
         [DataMember(Name = "help", EmitDefaultValue = false)] public HelpRequest Help;
         [DataMember(Name = "reply", EmitDefaultValue = false)] public SelfServiceReply Reply;
+        // Chat: the user's message (op "chat") and the chat the agent shows.
+        [DataMember(Name = "text", EmitDefaultValue = false)] public string Text;
+        [DataMember(Name = "chat", EmitDefaultValue = false)] public ChatState Chat;
 
         static readonly DataContractJsonSerializer Serializer = new DataContractJsonSerializer(typeof(TrayMessage));
 
@@ -153,6 +156,29 @@ namespace FleetWarden.Tray
         [DataMember(Name = "helpText", EmitDefaultValue = false)] public string HelpText;
         [DataMember(Name = "helpRequests")] public HelpTicket[] HelpRequests;
         [DataMember(Name = "ticket", EmitDefaultValue = false)] public TicketForm Ticket;
+        [DataMember(Name = "chat", EmitDefaultValue = false)] public ChatState Chat;
+    }
+
+    // ChatState is a chat with the IT department (internal/agentproto/chat.go).
+    [DataContract]
+    public sealed class ChatState
+    {
+        [DataMember(Name = "id")] public long Id;
+        [DataMember(Name = "operator")] public string Operator;
+        [DataMember(Name = "open")] public bool Open;
+        [DataMember(Name = "lines")] public ChatLine[] Lines;
+        [DataMember(Name = "productName", EmitDefaultValue = false)] public string ProductName;
+        [DataMember(Name = "accentColor", EmitDefaultValue = false)] public string AccentColor;
+    }
+
+    [DataContract]
+    public sealed class ChatLine
+    {
+        [DataMember(Name = "id")] public long Id;
+        [DataMember(Name = "from")] public string From;
+        [DataMember(Name = "name")] public string Name;
+        [DataMember(Name = "text")] public string Text;
+        [DataMember(Name = "at")] public string At;
     }
 
     [DataContract]

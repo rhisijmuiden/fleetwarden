@@ -501,6 +501,8 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 				a.handleManage(e, reply)
 			case agentproto.TypeSelfServiceReply:
 				a.handleSelfServiceReply(e)
+			case agentproto.TypeChat:
+				a.handleChat(e, send)
 			default:
 				a.Log.Debug("ignoring message", "type", e.Type)
 			}

@@ -156,6 +156,9 @@ func (a *Agent) runRemote(ctx context.Context, st agentproto.RemoteStart, send f
 		send(agentproto.TypeRemoteStatus, agentproto.RemoteStatus{SessionID: st.SessionID, State: agentproto.RemoteStateConsent})
 		ans, err := notifier.Ask(ctx, prompt)
 		switch {
+		case errors.Is(err, ErrNoTray) && st.Unattended:
+			// Somebody is signed in but the tray app does not run: the
+			// technician chose to take over anyway.
 		case errors.Is(err, ErrNoTray):
 			return remoteEnd{agentproto.RemoteStateDenied, "consent_unavailable"}
 		case errors.Is(err, ErrNoUser):
@@ -163,6 +166,10 @@ func (a *Agent) runRemote(ctx context.Context, st agentproto.RemoteStart, send f
 			// sign-in screen).
 		case err != nil:
 			return endFromContext(ctx)
+		case !ans.Answered && st.Unattended:
+			// Nobody answered (the user is away): take over, with the
+			// banner so a returning user sees it and can end it.
+			banner = true
 		case !ans.Answered:
 			return remoteEnd{agentproto.RemoteStateDenied, "no_answer"}
 		case !ans.Allow:

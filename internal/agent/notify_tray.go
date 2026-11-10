@@ -41,6 +41,12 @@ import (
 //	tray  -> agent  {"type":"ss","id":"3","op":"install","itemId":7,"reason":"..."}
 //	agent -> tray   {"type":"ss-reply","id":"3","reply":{...SelfServiceReply}}
 //
+// Chat: the agent shows a chat with the IT department in every tray; the
+// user answers with {"type":"ss","op":"chat","text":"..."}. A tray that
+// connects while a chat is open gets it too.
+//
+//	agent -> tray   {"type":"chat","chat":{...ChatState}}
+//
 // Every connected tray shows the prompt; the first answer counts. A tray
 // that connects while a prompt is open gets it too.
 type trayMsg struct {
@@ -59,7 +65,10 @@ type trayMsg struct {
 	ItemID int64                        `json:"itemId,omitempty"`
 	Reason string                       `json:"reason,omitempty"`
 	Help   *agentproto.HelpRequest      `json:"help,omitempty"`
+	Text   string                       `json:"text,omitempty"`
 	Reply  *agentproto.SelfServiceReply `json:"reply,omitempty"`
+	// chat
+	Chat *agentproto.ChatState `json:"chat,omitempty"`
 }
 
 // trayHub implements Notifier for tray apps that connect to the agent.
@@ -90,6 +99,8 @@ type trayHub struct {
 	remote map[string]remoteBanner
 	// selfService forwards self-service requests to the server.
 	selfService func(ctx context.Context, req agentproto.SelfServiceRequest) agentproto.SelfServiceReply
+	// chat is the last chat state while the chat is open.
+	chat *agentproto.ChatState
 }
 
 type remoteBanner struct {
@@ -184,6 +195,9 @@ func (h *trayHub) handle(conn net.Conn) {
 			for id, b := range h.remote {
 				banners = append(banners, trayMsg{Type: "remote-active", ID: id, Prompt: &b.prompt})
 			}
+			if h.chat != nil {
+				banners = append(banners, trayMsg{Type: "chat", Chat: h.chat})
+			}
 			h.mu.Unlock()
 			if cur != nil {
 				_ = c.send(trayMsg{Type: "prompt", Prompt: cur})
@@ -222,6 +236,27 @@ func (h *trayHub) handle(conn net.Conn) {
 	}
 }
 
+// Chat shows the chat in every connected tray and keeps it for trays that
+// connect later while it is open. It returns the number of trays.
+func (h *trayHub) Chat(c agentproto.ChatState) int {
+	h.mu.Lock()
+	if c.Open {
+		cc := c
+		h.chat = &cc
+	} else {
+		h.chat = nil
+	}
+	h.mu.Unlock()
+	clients, _ := h.snapshot()
+	n := 0
+	for _, cl := range clients {
+		if cl.send(trayMsg{Type: "chat", Chat: &c}) == nil {
+			n++
+		}
+	}
+	return n
+}
+
 // SetSelfService sets the function that forwards self-service requests.
 func (h *trayHub) SetSelfService(fn func(ctx context.Context, req agentproto.SelfServiceRequest) agentproto.SelfServiceReply) {
 	h.mu.Lock()
@@ -243,7 +278,7 @@ func (h *trayHub) handleSelfService(c *trayClient, m trayMsg) {
 		r.Error = agentproto.SelfServiceErrNoUser
 	default:
 		ctx, cancel := context.WithTimeout(context.Background(), selfServiceTimeout+5*time.Second)
-		r = fn(ctx, agentproto.SelfServiceRequest{Op: m.Op, User: c.user, Lang: c.lang, ItemID: m.ItemID, Reason: m.Reason, Help: m.Help})
+		r = fn(ctx, agentproto.SelfServiceRequest{Op: m.Op, User: c.user, Lang: c.lang, ItemID: m.ItemID, Reason: m.Reason, Help: m.Help, Text: m.Text})
 		cancel()
 	}
 	r.RequestID = ""

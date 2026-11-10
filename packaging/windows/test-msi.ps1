@@ -64,6 +64,14 @@ foreach ($demo in @('install', 'en', '--light'), @('reboot', 'nl', '--dark'), @(
     if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw "tray app could not render its pop-up ($($demo -join ' '), exit $($p.ExitCode))" }
     Write-Host "rendered $png ($((Get-Item $png).Length) bytes)"
 }
+# The chat window with example messages.
+foreach ($demo in @('en', '--light'), @('nl', '--dark')) {
+    $png = Join-Path $shots "chat-$($demo[0]).png"
+    $p = Start-Process $tray -ArgumentList '--demo', 'chat', '--lang', $demo[0], $demo[1], '--screenshot', "`"$png`"" -PassThru
+    if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "tray app hung rendering the chat ($($demo -join ' '))" }
+    if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw "tray app could not render the chat ($($demo -join ' '), exit $($p.ExitCode))" }
+    Write-Host "rendered $png ($((Get-Item $png).Length) bytes)"
+}
 # The self-service window with example data, every page in both languages.
 foreach ($demo in @('software', 'en', '--light'), @('software', 'nl', '--dark'), @('updates', 'en', '--light'), @('updates', 'nl', '--light'), @('help', 'en', '--dark'), @('help', 'nl', '--light')) {
     $png = Join-Path $shots "selfservice-$($demo[0])-$($demo[1]).png"

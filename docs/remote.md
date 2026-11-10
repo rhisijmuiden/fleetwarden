@@ -76,6 +76,16 @@ When nobody is signed in, a session starts directly (there is no one to ask).
 When someone is signed in but the pop-up app cannot start, an *ask* session is
 refused (`consent_unavailable`).
 
+### Unattended takeover
+
+For a user who is away from the desk, a group can **Allow unattended
+takeover** (only with *Ask the user* or *Automatic*). A technician then uses
+**Unattended takeover** (also a ticket link action): the user still gets the
+pop-up, but when nobody answers within 30 seconds, or the pop-up app cannot
+start, the session connects anyway and the bar is shown. **Deny** still
+refuses. Without the group setting the server refuses it
+(`unattended_not_allowed`); the audit log marks these sessions as unattended.
+
 ## Session log
 
 Every session is logged with the device, operator, IP address, consent mode,

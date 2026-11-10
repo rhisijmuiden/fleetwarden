@@ -40,6 +40,8 @@ type SelfServiceRequest struct {
 	Reason string `json:"reason,omitempty"`
 	// Help is for SelfServiceHelp.
 	Help *HelpRequest `json:"help,omitempty"`
+	// Text is the user's message for SelfServiceOpChat.
+	Text string `json:"text,omitempty"`
 }
 
 // HelpRequest is what the user writes when asking for help.
@@ -148,6 +150,8 @@ type SelfServiceCatalog struct {
 	HelpRequests []HelpTicket `json:"helpRequests"`
 	// Ticket describes the help form (nil from servers before tickets).
 	Ticket *TicketForm `json:"ticket,omitempty"`
+	// Chat is the open chat with the IT department, if any.
+	Chat *ChatState `json:"chat,omitempty"`
 }
 
 // Catalog item states for the user.

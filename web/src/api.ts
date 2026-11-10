@@ -111,6 +111,8 @@ export type DeviceGroup = {
   windowEnd: number | null;
   patchPolicyId: number | null;
   remoteConsent: RemoteConsentSetting;
+  /** Remote control may connect when nobody answers the consent prompt. */
+  remoteUnattended: boolean;
   /** Scan interval overrides in minutes; null uses the default from Settings. */
   inventoryMinutes: number | null;
   patchScanMinutes: number | null;
@@ -128,6 +130,25 @@ export type ScanSettings = {
 export type Platform = "windows" | "linux";
 
 export type RemoteConsentSetting = "auto" | "direct" | "notify" | "ask";
+
+/** A chat between a technician and the user signed on to a device. */
+export type ChatMessage = { id: number; sender: "tech" | "user"; name: string; body: string; createdAt: string };
+export type Chat = {
+  id: number;
+  deviceId: string;
+  helpRequestId: number | null;
+  startedBy: string;
+  operator: string;
+  username: string;
+  startedAt: string;
+  endedAt: string | null;
+  endedBy: string;
+  deliveredAt: string | null;
+  /** Trays that show the chat right now. */
+  trays: number;
+  messages: ChatMessage[];
+};
+export type ChatView = { chat: Chat | null; online: boolean };
 export type RemoteState =
   | "pending"
   | "consent"

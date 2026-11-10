@@ -15,7 +15,7 @@ import {
   type ScanSettings,
 } from "../../api";
 import { useAuth } from "../../auth";
-import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, formatDate, useErrorText } from "../../components/ui";
+import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, formatDate, useErrorText, Switch } from "../../components/ui";
 import { IntervalInput, formatInterval } from "../../components/IntervalInput";
 import { AddClient } from "./AddClient";
 
@@ -223,6 +223,7 @@ function GroupForm({
   const [end, setEnd] = useState(6);
   const [policy, setPolicy] = useState(0);
   const [consent, setConsent] = useState<RemoteConsentSetting>("auto");
+  const [unattended, setUnattended] = useState(false);
   const [inventory, setInventory] = useState<number | null>(null);
   const [patchScan, setPatchScan] = useState<number | null>(null);
   const [defaults, setDefaults] = useState<ScanSettings | null>(null);
@@ -239,6 +240,7 @@ function GroupForm({
     setEnd(group?.windowEnd ?? 6);
     setPolicy(group?.patchPolicyId ?? 0);
     setConsent(group?.remoteConsent ?? "auto");
+    setUnattended(group?.remoteUnattended ?? false);
     setInventory(group?.inventoryMinutes ?? null);
     setPatchScan(group?.patchScanMinutes ?? null);
     setError(null);
@@ -262,6 +264,7 @@ function GroupForm({
       windowEnd: windowOn ? end : null,
       patchPolicyId: policy || null,
       remoteConsent: consent,
+      remoteUnattended: unattended,
       inventoryMinutes: inventory,
       patchScanMinutes: patchScan,
     };
@@ -397,6 +400,9 @@ function GroupForm({
             </Select>
           )}
         </Field>
+        {consent !== "direct" && consent !== "notify" && (
+          <Switch checked={unattended} onChange={setUnattended} label={t("groups.unattended")} description={t("groups.unattendedHint")} />
+        )}
       </form>
     </Modal>
   );

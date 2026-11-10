@@ -83,6 +83,23 @@ ticketformulier. Onder **Selfservice > Instellingen** kies je:
 **Voorbeeld van het ticket** toont het ticket dat een echt apparaat zou
 versturen met de instellingen in het formulier, nog voordat je ze opslaat.
 
+## Chatten met de gebruiker
+
+Op een Windows-apparaat opent **Chatten** (apparaatpagina, of **Chatten met de
+gebruiker** in een hulpvraag) rechtsonder een chatpaneel. Het eerste bericht
+start de chat: die opent als venster rechtsonder op het scherm van de
+aangemelde gebruiker, in de tray-app. De gebruiker kan alleen antwoorden op
+een open chat, er nooit zelf een starten. Het paneel laat zien of een tray de
+chat toont. Bij snel wisselen van gebruiker ziet iedere aangemelde gebruiker
+hem.
+
+**Chat beëindigen** sluit hem voor beide kanten; een chat zonder berichten
+stopt na een uur vanzelf. Een chat die vanuit een hulpvraag (of de
+ticketlink-actie *Chatten*) is gestart, is daaraan gekoppeld: als hij stopt,
+komt het verslag als privénotitie bij het servicedeskticket. Starten en
+beëindigen staan in het auditlogboek. Grenzen: 2.000 tekens per bericht en
+1.000 berichten per chat. Vereist `selfservice.handle`.
+
 ## Rechten
 
 | Recht | Beheerder | Technicus |

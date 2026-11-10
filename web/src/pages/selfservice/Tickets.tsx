@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Cpu, ExternalLink, Eye, LifeBuoy, Mail, Monitor, Package, Plug, RefreshCw, Server, ShieldCheck, SquareTerminal, MonitorPlay, TriangleAlert } from "lucide-react";
+import { Cpu, ExternalLink, Eye, LifeBuoy, Mail, MessageSquare, Monitor, Package, Plug, RefreshCw, Server, ShieldCheck, SquareTerminal, MonitorPlay, TriangleAlert } from "lucide-react";
 import { get, post, type Device, type DeviceList } from "../../api";
 import { useAuth } from "../../auth";
 import { Alert, Badge, Button, Card, Field, Input, Modal, Select, Spinner, Switch, formatDate, useErrorText } from "../../components/ui";
-import { RemoteButton, TerminalButton } from "../remote/Remote";
+import { RemoteButton, TerminalButton, UnattendedButton } from "../remote/Remote";
+import { ChatButton } from "../devices/Chat";
 import type { Integration } from "../admin/Integrations";
 import type { HelpRequest, SelfServiceSettings, TicketDestination, TicketReport } from "./types";
 
@@ -14,7 +15,7 @@ export const reportGroups: { key: string; parts: string[] }[] = [
   { key: "hardware", parts: ["hardware", "disk", "uptime"] },
   { key: "status", parts: ["reboot", "updates", "software", "security", "alerts"] },
 ];
-const linkActions = ["remote", "terminal", "scan"];
+const linkActions = ["chat", "remote", "unattended", "terminal", "scan"];
 
 function Choice({ on, onClick, icon, title, hint, children }: { on: boolean; onClick: () => void; icon: ReactNode; title: string; hint: string; children?: ReactNode }) {
   return (
@@ -209,7 +210,9 @@ const sectionIcon: Record<string, ReactNode> = {
 };
 const linkIcon: Record<string, ReactNode> = {
   device: <ExternalLink className="size-4" />,
+  chat: <MessageSquare className="size-4" />,
   remote: <MonitorPlay className="size-4" />,
+  unattended: <MonitorPlay className="size-4" />,
   terminal: <SquareTerminal className="size-4" />,
   scan: <RefreshCw className="size-4" />,
 };
@@ -356,7 +359,19 @@ export function PreviewButton({ settings }: { settings: SelfServiceSettings }) {
  * ticket: what the user reported, and the action the link was for. Actions
  * start only on a click (consent and pop-up blockers).
  */
-export function TicketBanner({ device, ticket, action, onNotice }: { device: Device; ticket: number; action: string; onNotice: (m: string) => void }) {
+export function TicketBanner({
+  device,
+  ticket,
+  action,
+  onNotice,
+  onChat,
+}: {
+  device: Device;
+  ticket: number;
+  action: string;
+  onNotice: (m: string) => void;
+  onChat: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const { can } = useAuth();
   const errorText = useErrorText();
@@ -399,7 +414,9 @@ export function TicketBanner({ device, ticket, action, onNotice }: { device: Dev
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          {action === "chat" && device.platform === "windows" && <ChatButton variant="primary" onOpen={onChat} />}
           {action === "remote" && can("remote.control") && device.platform === "windows" && <RemoteButton device={device} />}
+          {action === "unattended" && <UnattendedButton device={device} variant="primary" />}
           {action === "terminal" && <TerminalButton device={device} variant="primary" />}
           {action === "scan" && can("devices.manage") && (
             <Button icon={<RefreshCw className="size-4" />} disabled={!device.online} title={!device.online ? t("devices.offlineHint") : undefined} onClick={scan}>

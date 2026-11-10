@@ -128,6 +128,9 @@ type startRemoteReq struct {
 	Shell string `json:"shell"` // terminal on Windows: powershell or cmd
 	Cols  int    `json:"cols"`
 	Rows  int    `json:"rows"`
+	// Unattended connects when nobody answers the consent prompt; the
+	// device's group must allow it.
+	Unattended bool `json:"unattended"`
 }
 
 // Sessions per device, by kind.
@@ -203,6 +206,12 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 	if !terminal {
 		consent = consentFor(g.RemoteConsent, dev.Kind)
 	}
+	// Unattended only matters when the user would be asked.
+	unattended := req.Unattended && consent == agentproto.ConsentAsk
+	if unattended && !g.RemoteUnattended {
+		apiError(w, http.StatusForbidden, "unattended_not_allowed")
+		return
+	}
 	rs := &remoteSession{key: key, viewC: make(chan remoteMsg, 64), done: make(chan struct{})}
 	rs.RemoteSession = store.RemoteSession{ID: newUUID(), DeviceID: dev.ID, Hostname: dev.Hostname, GroupID: dev.GroupID, UserID: &u.ID,
 		Operator: u.Username, Kind: req.Kind, Consent: consent, State: "pending", RemoteIP: ClientIP(r),
@@ -223,7 +232,7 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 	resp := rs.RemoteSession
 	s.remote.put(rs)
 	if !s.hub.send(dev.ID, agentproto.TypeRemoteStart, agentproto.RemoteStart{
-		SessionID: rs.ID, Kind: rs.Kind, Operator: operator, Consent: rs.Consent, ConsentSeconds: remoteConsentSeconds,
+		SessionID: rs.ID, Kind: rs.Kind, Operator: operator, Consent: rs.Consent, ConsentSeconds: remoteConsentSeconds, Unattended: unattended,
 		ServerKey: key.Public(), ProductName: b.ProductName, AccentColor: b.PrimaryColor,
 		Direct: rtc != nil, ICEServers: rtcServers(rtc),
 		Shell: req.Shell, Cols: min(max(req.Cols, 0), 1000), Rows: min(max(req.Rows, 0), 500),
@@ -233,6 +242,9 @@ func (s *Server) handleStartRemote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	details := map[string]any{"session": rs.ID, "deviceId": dev.ID, "kind": rs.Kind, "consent": rs.Consent}
+	if unattended {
+		details["unattended"] = true
+	}
 	if req.Shell != "" {
 		details["shell"] = req.Shell
 	}

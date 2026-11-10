@@ -9,8 +9,8 @@ import { KindIcon, StatusDot } from "../devices/util";
 
 // openRemote opens the viewer for a device in its own tab; the tab starts
 // the session.
-export function openRemote(deviceId: string) {
-  window.open(`/remote/connect/${deviceId}`, `fw-remote-${deviceId}`);
+export function openRemote(deviceId: string, unattended = false) {
+  window.open(`/remote/connect/${deviceId}${unattended ? "?unattended=1" : ""}`, `fw-remote-${deviceId}`);
 }
 
 export function canRemote(d: Pick<Device, "platform" | "online">) {
@@ -59,6 +59,27 @@ export function RemoteButton({ device, size = "md" }: { device: Device; size?: "
       onClick={() => openRemote(device.id)}
     >
       {t("remote.connect")}
+    </Button>
+  );
+}
+
+// UnattendedButton takes over the screen when the user does not answer the
+// consent prompt (away from the desk). The server refuses it unless the
+// device's group allows it.
+export function UnattendedButton({ device, size = "md", variant = "secondary" }: { device: Device; size?: "sm" | "md"; variant?: "primary" | "secondary" }) {
+  const { t } = useTranslation();
+  const { can } = useAuth();
+  if (!can("remote.control") || device.platform !== "windows") return null;
+  return (
+    <Button
+      size={size}
+      variant={variant}
+      icon={<MonitorPlay className="size-4" />}
+      disabled={!canRemote(device)}
+      title={!device.online ? t("devices.offlineHint") : t("remote.unattendedHint")}
+      onClick={() => openRemote(device.id, true)}
+    >
+      {t("remote.unattended")}
     </Button>
   );
 }

@@ -249,3 +249,47 @@ func TestTrayHubCloseAndLaunchApps(t *testing.T) {
 		t.Error("waited too long")
 	}
 }
+
+func TestTrayHubChat(t *testing.T) {
+	h, addr := startHub(t)
+	var got agentproto.SelfServiceRequest
+	h.SetSelfService(func(_ context.Context, req agentproto.SelfServiceRequest) agentproto.SelfServiceReply {
+		got = req
+		return agentproto.SelfServiceReply{}
+	})
+	if n := h.Chat(agentproto.ChatState{ID: 1, Open: true}); n != 0 {
+		t.Errorf("no tray: %d", n)
+	}
+	a := dialTray(t, addr)
+	// A tray that connects during an open chat gets it.
+	if m := a.next(); m.Type != "chat" || m.Chat == nil || m.Chat.ID != 1 || !m.Chat.Open {
+		t.Fatalf("late tray: %+v", m)
+	}
+	waitClients(t, h, 1)
+	st := agentproto.ChatState{ID: 1, Open: true, Lines: []agentproto.ChatLine{{ID: 5, From: agentproto.ChatFromTech, Name: "Piet", Text: "Hi"}}}
+	if n := h.Chat(st); n != 1 {
+		t.Errorf("trays: %d", n)
+	}
+	if m := a.next(); m.Type != "chat" || len(m.Chat.Lines) != 1 || m.Chat.Lines[0].Text != "Hi" {
+		t.Fatalf("chat: %+v", m)
+	}
+	// The user's answer goes to the server as a self-service request.
+	a.send(trayMsg{Type: "ss", ID: "9", Op: agentproto.SelfServiceOpChat, Text: "Hello"})
+	if m := a.next(); m.Type != "ss-reply" || m.ID != "9" {
+		t.Fatalf("reply: %+v", m)
+	}
+	if got.Op != agentproto.SelfServiceOpChat || got.Text != "Hello" {
+		t.Errorf("request: %+v", got)
+	}
+	// An ended chat is not sent to trays that connect later.
+	h.Chat(agentproto.ChatState{ID: 1, Open: false})
+	if m := a.next(); m.Type != "chat" || m.Chat.Open {
+		t.Fatalf("end: %+v", m)
+	}
+	b := dialTray(t, addr)
+	waitClients(t, h, 2)
+	_ = b.conn.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+	if b.r.Scan() {
+		t.Errorf("ended chat sent to a new tray: %s", b.r.Text())
+	}
+}
