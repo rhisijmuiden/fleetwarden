@@ -1782,6 +1782,7 @@
       "agent_stopped": "De agent is gestopt.",
       "closed": "De verbinding is gesloten.",
       "connection_lost": "De verbinding met de server is verbroken.",
+      "websocket_refused": "De browser kon geen WebSocket-verbinding met de server openen. Staat de server achter een reverse proxy? Voer dan de test uit op de pagina Reverse proxy (Administratie).",
       "device_offline": "Het apparaat is offline.",
       "unsupported": "Dit apparaat ondersteunt overnemen niet.",
       "busy": "Op dit apparaat lopen al het maximale aantal sessies.",

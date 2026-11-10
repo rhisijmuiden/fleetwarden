@@ -1782,6 +1782,7 @@
       "agent_stopped": "The agent stopped.",
       "closed": "The connection was closed.",
       "connection_lost": "The connection to the server was lost.",
+      "websocket_refused": "The browser could not open a WebSocket connection to the server. If the server is behind a reverse proxy, run the test on the Reverse proxy page (Administration).",
       "device_offline": "The device is offline.",
       "unsupported": "This device does not support remote control.",
       "busy": "The device already has the maximum number of sessions.",

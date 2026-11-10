@@ -360,7 +360,7 @@ func (s *Server) handleProbeWS(w http.ResponseWriter, r *http.Request) {
 	if !s.probeOK(w, r) {
 		return
 	}
-	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{CompressionMode: websocket.CompressionDisabled})
+	ws, err := s.acceptBrowserWS(w, r)
 	if err != nil {
 		return
 	}

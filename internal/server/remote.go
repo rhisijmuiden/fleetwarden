@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -466,8 +468,9 @@ func (s *Server) handleRemoteViewer(w http.ResponseWriter, r *http.Request) {
 		apiError(w, http.StatusConflict, "remote_viewer_connected")
 		return
 	}
-	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{CompressionMode: websocket.CompressionDisabled})
+	ws, err := s.acceptBrowserWS(w, r)
 	if err != nil {
+		s.log.Warn("remote viewer websocket refused", "session", rs.ID, "origin", r.Header.Get("Origin"), "host", r.Host, "err", err)
 		s.endRemote(rs, agentproto.RemoteStateFailed, "viewer_failed")
 		return
 	}
@@ -638,4 +641,43 @@ func (s *Server) handleRemoteAgent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+}
+
+// acceptBrowserWS upgrades a WebSocket opened by the web interface. The
+// browser's Origin must name this server. Behind a reverse proxy the Host
+// header the server sees is often the upstream address (Zoraxy, for one,
+// rewrites it), so the public host the browser used counts too: the one a
+// trusted proxy reports in X-Forwarded-Host and the configured external URL.
+func (s *Server) acceptBrowserWS(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
+	return websocket.Accept(w, r, &websocket.AcceptOptions{
+		CompressionMode: websocket.CompressionDisabled,
+		OriginPatterns:  s.browserOrigins(r),
+	})
+}
+
+// browserOrigins are the hosts (host[:port]) a browser Origin may name.
+func (s *Server) browserOrigins(r *http.Request) []string {
+	var out []string
+	add := func(h string) {
+		h = strings.ToLower(strings.TrimSpace(h))
+		// The patterns are globs: never let a header widen them.
+		if h == "" || strings.ContainsAny(h, "*?[]\\/ ") {
+			return
+		}
+		for _, o := range out {
+			if o == h {
+				return
+			}
+		}
+		out = append(out, h)
+	}
+	if h, _ := r.Context().Value(hostKey).(string); h != "" {
+		add(h)
+	}
+	if pub := s.publicURL(r.Context()); pub != "" {
+		if u, err := url.Parse(pub); err == nil {
+			add(u.Host)
+		}
+	}
+	return out
 }
