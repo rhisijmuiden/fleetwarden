@@ -88,6 +88,7 @@ type Server struct {
 	progress   progressState
 	restore    restorePrep
 	gateways   gatewayManager
+	dist       distState
 	drivers    driverRepo
 	vendors    vendorSync
 	vulns      vulnSync
@@ -209,6 +210,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.vulnRoutes(mux)
 	s.selfServiceRoutes(mux)
 	s.gatewayRoutes(mux)
+	s.distributionRoutes(mux)
 	s.proxyRoutes(mux)
 
 	// Signed in. allowPending lets a user with a forced password change reach these.

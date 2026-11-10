@@ -4,6 +4,18 @@ All notable changes to FleetWarden. Dutch version: [CHANGELOG.nl.md](CHANGELOG.n
 Versions follow [semantic versioning](https://semver.org/); test builds are
 published as `X.Y.Z-test.N` before a release.
 
+## Unreleased
+
+### Added
+- Distribution servers for branch offices (Admin > Distribution servers): a
+  cache that keeps uploaded installers, drivers and firmware and agent
+  packages, and serves them to the agents in its networks or device groups.
+  The management server still decides per download; agents pin its
+  certificate, check every file's SHA-256 and fall back to the management
+  server. Installed with a one-time token, optional bandwidth limit, update
+  from the web interface. New package `fleetwarden-distribution` and
+  `install-distribution.sh`; see docs/distribution.md.
+
 ## 1.0.0 (2026-11)
 
 The first production release. Everything below was built and tested on the

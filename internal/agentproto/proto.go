@@ -53,13 +53,14 @@ const (
 // Message types.
 const (
 	// server -> agent
-	TypeChallenge        = "challenge"         // first message, unsigned nonce
-	TypeWelcome          = "welcome"           // auth accepted, carries settings
-	TypeInventoryRequest = "inventory.request" // send a full inventory now
-	TypeUpdate           = "agent.update"      // install another agent version
-	TypeRemove           = "agent.remove"      // device was deleted: forget enrollment
-	TypeAgentConfig      = "agent.config"      // changed settings for this session
-	TypeEndpoints        = "agent.endpoints"   // addresses the agent may connect to
+	TypeChallenge        = "challenge"          // first message, unsigned nonce
+	TypeWelcome          = "welcome"            // auth accepted, carries settings
+	TypeInventoryRequest = "inventory.request"  // send a full inventory now
+	TypeUpdate           = "agent.update"       // install another agent version
+	TypeRemove           = "agent.remove"       // device was deleted: forget enrollment
+	TypeAgentConfig      = "agent.config"       // changed settings for this session
+	TypeEndpoints        = "agent.endpoints"    // addresses the agent may connect to
+	TypeDistribution     = "agent.distribution" // distribution servers to download from
 	// agent -> server
 	TypeAuth         = "auth"
 	TypeHeartbeat    = "heartbeat"
@@ -159,6 +160,22 @@ type AgentConfig struct {
 // means: only use the configured server address.
 type Endpoints struct {
 	URLs []string `json:"urls"`
+}
+
+// Distribution lists the distribution servers near the agent, best first.
+// The agent downloads software, drivers and agent updates from them and
+// falls back to the management server; it always checks the file's hash.
+type Distribution struct {
+	Servers []DistributionServer `json:"servers"`
+}
+
+// DistributionServer is one distribution server. Its certificate is
+// usually self-signed, so the agent pins its SHA-256.
+type DistributionServer struct {
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	URL        string `json:"url"`
+	CertSHA256 string `json:"certSha256"`
 }
 
 // Update asks the agent to install another agent version. The agent fetches

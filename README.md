@@ -85,6 +85,7 @@ Every page also exists in Dutch (`.nl.md`).
 - Alerts: [docs/alerts.md](docs/alerts.md)
 - Asset management (owner, location, warranty, software licences): [docs/assets.md](docs/assets.md)
 - Secure gateway in the DMZ for agents outside the network: [docs/gateway.md](docs/gateway.md)
+- Distribution servers in branch offices (cache for installers, drivers and agent updates): [docs/distribution.md](docs/distribution.md)
 - Load test and sizing: [docs/load-test.md](docs/load-test.md)
 - What changed: [CHANGELOG.md](CHANGELOG.md)
 
