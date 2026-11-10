@@ -190,6 +190,8 @@ export function RemoteViewer() {
         const sock = new WebSocket(`${proto}://${location.host}/api/v1/remote/sessions/${s.id}/ws`);
         sock.binaryType = "arraybuffer";
         ws.current = sock;
+        let opened = false;
+        sock.addEventListener("open", () => (opened = true));
         sock.onmessage = (ev) => {
           if (typeof ev.data === "string") {
             const m = JSON.parse(ev.data) as StatusMsg;
@@ -205,7 +207,8 @@ export function RemoteViewer() {
         sock.onclose = () => {
           closeDirect();
           setPhase((p) => (finished(p) ? p : "ended"));
-          setReason((r) => r || "connection_lost");
+          // Never opened: the server or a proxy in between refused the WebSocket.
+          setReason((r) => r || (opened ? "connection_lost" : "websocket_refused"));
         };
       })
       .catch((e) => {

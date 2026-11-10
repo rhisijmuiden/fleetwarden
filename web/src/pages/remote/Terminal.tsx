@@ -187,6 +187,8 @@ export function TerminalViewer() {
         const sock = new WebSocket(`${proto}://${location.host}/api/v1/remote/sessions/${s.id}/ws`);
         sock.binaryType = "arraybuffer";
         ws.current = sock;
+        let opened = false;
+        sock.addEventListener("open", () => (opened = true));
         sock.onopen = () => {
           const tx = term.current;
           if (tx) sock.send(resize(tx.cols, tx.rows));
@@ -226,7 +228,8 @@ export function TerminalViewer() {
         };
         sock.onclose = () => {
           setPhase((p) => (finished(p) ? p : "ended"));
-          setReason((r) => r || "connection_lost");
+          // Never opened: the server or a proxy in between refused the WebSocket.
+          setReason((r) => r || (opened ? "connection_lost" : "websocket_refused"));
         };
       })
       .catch((e) => {
