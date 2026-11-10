@@ -7,6 +7,15 @@ testversies verschijnen vóór een release als `X.Y.Z-test.N`.
 ## Nog niet uitgebracht
 
 ### Toegevoegd
+- Tickets vanuit de tray: het hulpformulier wordt een ticketformulier met een
+  verplichte omschrijving, urgentie en categorie. Een ticket gaat naar
+  FleetWarden, de eigen Outlook van de gebruiker (met het apparaatrapport als
+  bijlage), de mailserver of een servicedeskkoppeling, met een apparaatrapport
+  (hardware, IP, herstart nodig, wachtende updates, catalogussoftware,
+  beveiliging, waarschuwingen) en een link die het apparaat in FleetWarden
+  opent met overnemen, terminal of scan. Ticketnummer en status uit de
+  servicedesk, antwoorden als notitie, een voorbeeld in de instellingen, en
+  links die de aanmelding overleven. Zie docs/selfservice.nl.md.
 - Koppelingen (Administratie > Koppelingen): kant-en-klare koppelingen met
   TOPdesk, Freshservice, Jira Service Management, ServiceNow, Zendesk,
   HaloITSM, Zammad en GLPI (ticket met aanmelder, prioriteit, interne notities,

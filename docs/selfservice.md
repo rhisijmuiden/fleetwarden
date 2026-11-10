@@ -45,6 +45,40 @@ devices, set a text above the help form (for example opening hours or the
 service desk number), and enter up to 20 e-mail addresses that get a mail for
 each help request and each request that needs approval.
 
+## Tickets from the tray
+
+When help requests are on, the help form in the tray becomes a ticket form.
+Under **Self-service > Settings** you choose:
+
+- **Where a ticket goes**: FleetWarden only (Help requests and an e-mail to
+  the recipients), an e-mail in the user's own **Outlook** (opened ready to
+  send, with the device report as an HTML attachment; without classic Outlook
+  the default mail program opens and Explorer shows the report to attach), an
+  e-mail through FleetWarden's **mail server**, or a **service desk
+  integration** (see [integrations](integrations.md)). With an integration you
+  can fall back to e-mail when it fails after all attempts. Every ticket also
+  stays under Help requests, with the service desk's ticket number, link and
+  state (checked every 5 minutes; a ticket closed in the service desk closes
+  the help request). A reply you write under Help requests is added to the
+  service desk ticket as a private note.
+- **The form**: a required description with a minimum length, urgency (low,
+  normal, high; the integration's priority), a category from your list, how to
+  reach the user, and whether the user sees what is sent along.
+- **Device information**: logged-on user (with the e-mail address when
+  Windows knows it), time, IP addresses, OS/domain/group, model/serial/CPU/RAM,
+  free disk space, uptime, reboot pending, waiting updates, catalog and
+  third-party software (deployments and outdated programs, not built-in
+  Windows parts), security status and open alerts. The computer name is
+  always sent.
+- **Link to FleetWarden**: a link to the device page, plus quick actions
+  (remote control, terminal, scan). It needs the public URL under Settings >
+  General. The link holds no token: the technician signs in (SSO or local),
+  lands on the device with the help request at the top, and starts the action
+  with one click. Permissions and the group's consent rules apply as always.
+
+**Preview ticket** shows the ticket a real device would send with the
+settings in the form, before you save them.
+
 ## Permissions
 
 | Permission | Administrator | Technician |

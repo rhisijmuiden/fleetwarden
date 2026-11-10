@@ -1,5 +1,5 @@
-import { Suspense, lazy, useState } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router";
+import { Suspense, lazy, useEffect, useState } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./auth";
 import { Sidebar } from "./components/Sidebar";
@@ -98,6 +98,19 @@ export function App() {
   // Start with the narrow menu on phones so the page keeps its width.
   const [collapsed, setCollapsed] = useState(() => window.matchMedia("(max-width: 767px)").matches);
   const [infoOpen, setInfoOpen] = useState(false);
+  const navigate = useNavigate();
+  // A link that needs a sign-in (such as the device link in a ticket) opens
+  // after the sign-in, also after SSO, which always returns to "/".
+  useEffect(() => {
+    if (loading) return;
+    if (!me) {
+      if (location.pathname !== "/login" && location.pathname !== "/") setReturnTo(location.pathname + location.search);
+      return;
+    }
+    if (me.mustChangePassword) return;
+    const to = takeReturnTo();
+    if (to && to !== location.pathname + location.search) navigate(to, { replace: true });
+  }, [loading, me]);
 
   if (loading) return <Spinner />;
   if (!me) {
@@ -161,4 +174,23 @@ export function App() {
       <InfoDialog open={infoOpen} onClose={() => setInfoOpen(false)} />
     </div>
   );
+}
+
+const returnKey = "fw:returnTo";
+function setReturnTo(path: string) {
+  try {
+    sessionStorage.setItem(returnKey, path);
+  } catch {
+    // no storage: the user lands on the dashboard
+  }
+}
+function takeReturnTo(): string | null {
+  try {
+    const v = sessionStorage.getItem(returnKey);
+    sessionStorage.removeItem(returnKey);
+    // Only paths inside the app.
+    return v && v.startsWith("/") && !v.startsWith("//") ? v : null;
+  } catch {
+    return null;
+  }
 }

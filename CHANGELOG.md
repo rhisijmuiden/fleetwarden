@@ -7,6 +7,14 @@ published as `X.Y.Z-test.N` before a release.
 ## Unreleased
 
 ### Added
+- Tickets from the tray: the help form becomes a ticket form with a required
+  description, urgency and category. A ticket goes to FleetWarden, the user's
+  own Outlook (with the device report attached), the mail server or a service
+  desk integration, with a device report (hardware, IP, reboot pending,
+  waiting updates, catalog software, security, alerts) and a link that opens
+  the device in FleetWarden with remote control, terminal or scan. Ticket
+  number and state from the service desk, replies as notes, a preview in the
+  settings, and deep links that survive the sign-in. See docs/selfservice.md.
 - Integrations (Administration > Integrations): connectors for TOPdesk,
   Freshservice, Jira Service Management, ServiceNow, Zendesk, HaloITSM, Zammad
   and GLPI (ticket with requester lookup, priority mapping, private notes,

@@ -322,26 +322,96 @@ type HelpRequest struct {
 	CreatedAt  time.Time  `json:"createdAt"`
 	UpdatedAt  time.Time  `json:"updatedAt"`
 	ClosedAt   *time.Time `json:"closedAt"`
+
+	Urgency       string          `json:"urgency"`
+	Category      string          `json:"category"`
+	Email         string          `json:"email"`
+	Destination   string          `json:"destination"`
+	IntegrationID *int64          `json:"integrationId"`
+	TicketID      string          `json:"ticketId"`
+	TicketNumber  string          `json:"ticketNumber"`
+	TicketURL     string          `json:"ticketUrl"`
+	TicketState   string          `json:"ticketState"`
+	TicketError   string          `json:"ticketError"`
+	Report        json.RawMessage `json:"report,omitempty"`
 }
 
 const helpCols = `h.id, h.device_id::text, d.hostname, d.group_id, g.name, h.username, h.subject, h.message, h.contact, h.state, h.assigned_to,
-	h.reply, h.created_at, h.updated_at, h.closed_at`
+	h.reply, h.created_at, h.updated_at, h.closed_at, h.urgency, h.category, h.email, h.destination, h.integration_id, h.ticket_id,
+	h.ticket_number, h.ticket_url, h.ticket_state, h.ticket_error, h.report`
 
 const helpFrom = ` FROM help_requests h JOIN devices d ON d.id = h.device_id JOIN device_groups g ON g.id = d.group_id`
 
 func scanHelp(row pgx.Row) (HelpRequest, error) {
 	var h HelpRequest
 	err := row.Scan(&h.ID, &h.DeviceID, &h.Hostname, &h.GroupID, &h.GroupName, &h.Username, &h.Subject, &h.Message, &h.Contact, &h.State,
-		&h.AssignedTo, &h.Reply, &h.CreatedAt, &h.UpdatedAt, &h.ClosedAt)
+		&h.AssignedTo, &h.Reply, &h.CreatedAt, &h.UpdatedAt, &h.ClosedAt, &h.Urgency, &h.Category, &h.Email, &h.Destination, &h.IntegrationID,
+		&h.TicketID, &h.TicketNumber, &h.TicketURL, &h.TicketState, &h.TicketError, &h.Report)
 	return h, mapErr(err)
 }
 
 // CreateHelpRequest stores a help request and returns its ID.
 func (s *Store) CreateHelpRequest(ctx context.Context, h HelpRequest) (int64, error) {
 	var id int64
-	err := s.pool.QueryRow(ctx, `INSERT INTO help_requests (device_id, username, subject, message, contact) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-		h.DeviceID, h.Username, h.Subject, h.Message, h.Contact).Scan(&id)
+	dest := h.Destination
+	if dest == "" {
+		dest = "fleetwarden"
+	}
+	err := s.pool.QueryRow(ctx, `INSERT INTO help_requests (device_id, username, subject, message, contact, urgency, category, email, destination,
+		integration_id, report) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+		h.DeviceID, h.Username, h.Subject, h.Message, h.Contact, h.Urgency, h.Category, h.Email, dest, h.IntegrationID, nullJSON(h.Report)).Scan(&id)
 	return id, mapErr(err)
+}
+
+// SetHelpTicket records the ticket a help request became in a service desk,
+// or why creating it failed.
+func (s *Store) SetHelpTicket(ctx context.Context, id int64, ticketID, number, url, errMsg string) error {
+	_, err := s.pool.Exec(ctx, `UPDATE help_requests SET ticket_id = $2, ticket_number = $3, ticket_url = $4, ticket_error = $5,
+		updated_at = now() WHERE id = $1`, id, ticketID, number, url, errMsg)
+	return err
+}
+
+// SetHelpReport stores the device report of a help request.
+func (s *Store) SetHelpReport(ctx context.Context, id int64, report json.RawMessage) error {
+	_, err := s.pool.Exec(ctx, `UPDATE help_requests SET report = $2 WHERE id = $1`, id, nullJSON(report))
+	return err
+}
+
+// SetHelpTicketState records the state of the ticket in the service desk; a
+// closed ticket closes the help request.
+func (s *Store) SetHelpTicketState(ctx context.Context, id int64, state string, closed bool) error {
+	_, err := s.pool.Exec(ctx, `UPDATE help_requests SET synced_at = now(), ticket_state = $2,
+		updated_at = CASE WHEN ticket_state <> $2 OR ($3 AND state <> 'closed') THEN now() ELSE updated_at END,
+		state = CASE WHEN $3 THEN 'closed' ELSE state END,
+		closed_at = CASE WHEN $3 THEN COALESCE(closed_at, now()) ELSE closed_at END WHERE id = $1`, id, state, closed)
+	return err
+}
+
+// MarkHelpSynced records a status check that failed, so the next one waits.
+func (s *Store) MarkHelpSynced(ctx context.Context, id int64) error {
+	_, err := s.pool.Exec(ctx, "UPDATE help_requests SET synced_at = now() WHERE id = $1", id)
+	return err
+}
+
+// HelpToSync returns open help requests with a service desk ticket whose
+// state was not read since the cutoff, oldest check first.
+func (s *Store) HelpToSync(ctx context.Context, before time.Time, limit int) ([]HelpRequest, error) {
+	rows, err := s.pool.Query(ctx, "SELECT "+helpCols+helpFrom+`
+		WHERE h.state <> 'closed' AND h.ticket_id <> '' AND h.integration_id IS NOT NULL AND (h.synced_at IS NULL OR h.synced_at < $1)
+		ORDER BY h.synced_at NULLS FIRST LIMIT $2`, before, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []HelpRequest{}
+	for rows.Next() {
+		h, err := scanHelp(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, h)
+	}
+	return out, rows.Err()
 }
 
 // HelpQuery filters help requests.
@@ -421,4 +491,25 @@ func (s *Store) PurgeSelfService(ctx context.Context, olderThan time.Duration) e
 	}
 	_, err := s.pool.Exec(ctx, "DELETE FROM selfservice_requests WHERE state <> 'pending' AND created_at < $1", cut)
 	return err
+}
+
+// TicketDeviceState is what a ticket report needs besides the device row.
+type TicketDeviceState struct {
+	Volumes       []ReportVolume
+	RebootPending bool
+	PatchScanAt   *time.Time
+}
+
+// DeviceTicketState returns the latest volumes and the patch state of a
+// device.
+func (s *Store) DeviceTicketState(ctx context.Context, id string) (TicketDeviceState, error) {
+	var st TicketDeviceState
+	var vol []byte
+	err := s.pool.QueryRow(ctx, `SELECT COALESCE(volumes, hardware->'volumes', '[]'::jsonb), patch_reboot_pending, patch_scan_at
+		FROM devices WHERE id::text = $1`, id).Scan(&vol, &st.RebootPending, &st.PatchScanAt)
+	if err != nil {
+		return st, mapErr(err)
+	}
+	_ = json.Unmarshal(vol, &st.Volumes)
+	return st, nil
 }

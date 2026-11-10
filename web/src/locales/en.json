@@ -3896,7 +3896,7 @@
       "mailHint": "Who gets an e-mail for each help request and each install request that needs approval. Uses the mail server settings.",
       "recipients": "Recipients",
       "recipientsHint": "Up to 20 addresses, separated by commas. Leave empty for no e-mail.",
-      "language": "Language of the e-mails"
+      "language": "Language of e-mails and tickets"
     }
   },
   "distribution": {
@@ -4189,5 +4189,127 @@
       "variablesHint": "Click to add to the body.",
       "filters": "report.* holds the device information chosen under Self-service > Settings, as text, HTML or JSON."
     }
+  },
+  "tickets": {
+    "destTitle": "Where does a ticket go?",
+    "destHint": "Choose where a report from the tray ends up. Every report is also kept under Help requests.",
+    "dest": {
+      "fleetwarden": "FleetWarden only",
+      "outlook": "E-mail via local Outlook",
+      "mail": "E-mail via the mail server",
+      "integration": "Service desk integration"
+    },
+    "destText": {
+      "fleetwarden": "Appears under Self-service > Help requests, with an e-mail to the recipients below.",
+      "outlook": "Opens a new Outlook message on the PC, filled in and with the report attached. The user sends it from their own mailbox.",
+      "mail": "FleetWarden sends the e-mail with the report through the configured mail server.",
+      "integration": "The ticket is created directly through the API of the service desk, with the device report."
+    },
+    "address": "Service desk address",
+    "addressHint": {
+      "outlook": "The To address of the Outlook message.",
+      "mail": "FleetWarden mails the ticket to this address.",
+      "fallback": "Gets the ticket when the integration fails after all attempts. Empty: the recipients below."
+    },
+    "noIntegrations": "There is no service desk integration yet.",
+    "addIntegration": "Add an integration",
+    "disabled": "disabled",
+    "integrationOff": "This integration is disabled. Tickets are not sent until you enable it.",
+    "fallback": "Fall back to e-mail if the integration fails",
+    "fallbackHint": "After the last attempt the ticket goes by e-mail, so no report gets lost.",
+    "alwaysKept": "Tickets always stay visible under Help requests, with the ticket number of the service desk.",
+    "formTitle": "Form for the user",
+    "formHint": "What the user fills in in the tray.",
+    "requireMessage": "Description is required",
+    "requireMessageHint": "The user must describe the problem before sending.",
+    "minMessage": "Minimum number of characters",
+    "askUrgency": "Ask for urgency",
+    "askUrgencyHint": "Low, normal or high; becomes the priority in the integration.",
+    "askCategory": "Ask for a category",
+    "askCategoryHint": "The user picks one of the categories below.",
+    "categories": "Categories",
+    "categoriesHint": "Separated by commas, up to 20.",
+    "categoriesPlaceholder": "Hardware, Software, Printing, Network, Account, Other",
+    "askContact": "Ask how to reach the user",
+    "askContactHint": "For example a phone number or a room.",
+    "showSent": "Show the user what is sent along",
+    "showSentHint": "Transparency: a list of the device information under the form.",
+    "reportTitle": "Device information in the ticket",
+    "reportHint": "Collected at the moment of the report, so the service desk sees everything at a glance.",
+    "groups": {
+      "basics": "Basics",
+      "hardware": "Hardware",
+      "status": "Status"
+    },
+    "parts": {
+      "user": "Logged-on user",
+      "time": "Date and time",
+      "network": "IP addresses",
+      "os": "OS, domain and group",
+      "hardware": "Model, serial number, CPU, RAM",
+      "disk": "Free disk space",
+      "uptime": "Uptime / last boot",
+      "reboot": "Reboot pending",
+      "updates": "Pending Windows updates",
+      "software": "Catalog and third-party software",
+      "security": "Security status",
+      "alerts": "Open alerts"
+    },
+    "partHints": {
+      "user": "With the e-mail address when the tray knows it",
+      "network": "Internal and public",
+      "updates": "Count and KB numbers",
+      "software": "Version, up to date, failed deployments",
+      "security": "Encryption, antivirus, firewall"
+    },
+    "reportNote": "The computer name is always sent. Built-in Windows components are left out: only software from the catalog, deployments and outdated programs. The full report goes as an HTML attachment where the destination supports it.",
+    "linkTitle": "Link to FleetWarden",
+    "linkHint": "The ticket gets a link to the device. The technician signs in (SSO or local) and lands on the PC the report came from.",
+    "linkDevice": "Add a link to the device",
+    "linkDeviceHint": "Needs the public URL under Settings > General.",
+    "linkActions": "Quick actions in the ticket",
+    "actions": {
+      "remote": "Remote control",
+      "terminal": "Terminal",
+      "scan": "Run a scan"
+    },
+    "actionHints": {
+      "remote": "Asks consent as set per group",
+      "terminal": "Only for technicians with terminal rights",
+      "scan": "New inventory and update scan"
+    },
+    "linkSafe": "The link holds no password or token. FleetWarden checks the technician's sign-in and permissions; actions follow the consent rules of the device's group.",
+    "preview": "Preview ticket",
+    "previewTitle": "Ticket preview",
+    "previewHint": "The ticket a real device would send with the settings above (not yet saved).",
+    "previewDevice": "Device",
+    "previewAny": "First device",
+    "previewTo": {
+      "fleetwarden": "Shown under Help requests.",
+      "outlook": "Opens in Outlook, to {{target}}.",
+      "mail": "E-mailed to {{target}}.",
+      "integration": "Created in {{target}}."
+    },
+    "noPublicUrl": "There is no public URL under Settings > General, so the ticket has no links to the device.",
+    "urgencyLabel": "Urgency",
+    "urgency": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High"
+    },
+    "ticket": "Ticket",
+    "notSent": "Not sent",
+    "errorTitle": "The ticket could not be created",
+    "reportShown": "Device report",
+    "sentVia": {
+      "outlook": "Via Outlook of the user",
+      "mail": "E-mailed",
+      "integration": "Being created…"
+    },
+    "fromTicket": "Opened from help request #{{id}}",
+    "fromTicketUnknown": "Opened from a ticket",
+    "openHelp": "Help requests",
+    "offline": "The device is offline. Actions are possible again as soon as it connects.",
+    "scanStarted": "The scan was requested. The results appear in a few minutes."
   }
 }

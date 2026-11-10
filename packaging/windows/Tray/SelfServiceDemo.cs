@@ -36,9 +36,24 @@ namespace FleetWarden.Tray
                         Description = nl ? "Teksteditor met kleuren voor code." : "Text editor with syntax highlighting.", State = SelfServiceItem.Failed,
                         Message = nl ? "exitcode 1603" : "exit code 1603" },
                 },
+                Ticket = new TicketForm
+                {
+                    RequireMessage = true, MinMessage = 20, AskUrgency = true, AskCategory = true, AskContact = true,
+                    Categories = nl ? new[] { "Hardware", "Software", "Printen", "Netwerk", "Account", "Overig" } : new[] { "Hardware", "Software", "Printing", "Network", "Account", "Other" },
+                    Destination = TicketForm.Integration, DestinationName = "Freshservice",
+                    Sent = new[]
+                    {
+                        new InfoLine { Label = nl ? "Computernaam" : "Computer name", Value = "LT-0142" },
+                        new InfoLine { Label = nl ? "Gebruiker" : "User", Value = @"ACME\kdevries" },
+                        new InfoLine { Label = nl ? "IP-adressen" : "IP addresses", Value = "10.20.4.37" },
+                        new InfoLine { Label = nl ? "Besturingssysteem" : "Operating system", Value = "Windows 11 Pro 24H2 (26100.2314)" },
+                        new InfoLine { Label = nl ? "Herstart nodig" : "Reboot pending", Value = nl ? "Nee" : "No" },
+                        new InfoLine { Label = nl ? "Wachtende updates" : "Updates waiting", Value = "KB5046617" },
+                    },
+                },
                 HelpRequests = new[]
                 {
-                    new HelpTicket { Id = 42, Subject = nl ? "Printer op de tweede verdieping drukt niet af" : "Printer on the second floor does not print", State = "in_progress",
+                    new HelpTicket { Id = 42, Number = "#4821", ExtState = nl ? "In behandeling" : "In progress", Subject = nl ? "Printer op de tweede verdieping drukt niet af" : "Printer on the second floor does not print", State = "in_progress",
                         Reply = nl ? "We kijken ernaar. De printer krijgt vanmiddag een nieuwe driver." : "We are on it. The printer gets a new driver this afternoon.",
                         CreatedAt = Iso(TimeSpan.FromHours(3)), UpdatedAt = Iso(TimeSpan.FromHours(1)) },
                     new HelpTicket { Id = 37, Subject = nl ? "Outlook vraagt steeds om mijn wachtwoord" : "Outlook keeps asking for my password", State = "closed",

@@ -3896,7 +3896,7 @@
       "mailHint": "Wie een e-mail krijgt bij elke hulpvraag en elke installatieaanvraag die goedkeuring nodig heeft. Gebruikt de mailserverinstellingen.",
       "recipients": "Ontvangers",
       "recipientsHint": "Maximaal 20 adressen, gescheiden door komma's. Laat leeg voor geen e-mail.",
-      "language": "Taal van de e-mails"
+      "language": "Taal van e-mails en tickets"
     }
   },
   "distribution": {
@@ -4189,5 +4189,127 @@
       "variablesHint": "Klik om aan de body toe te voegen.",
       "filters": "report.* bevat de apparaatinformatie die je kiest onder Selfservice > Instellingen, als tekst, HTML of JSON."
     }
+  },
+  "tickets": {
+    "destTitle": "Waar gaat een melding heen?",
+    "destHint": "Kies waar een melding vanuit de tray terechtkomt. Elke melding blijft ook zichtbaar onder Hulpvragen.",
+    "dest": {
+      "fleetwarden": "Alleen FleetWarden",
+      "outlook": "E-mail via lokale Outlook",
+      "mail": "E-mail via de mailserver",
+      "integration": "Servicedeskkoppeling"
+    },
+    "destText": {
+      "fleetwarden": "Komt onder Selfservice > Hulpvragen, met een e-mail aan de ontvangers hieronder.",
+      "outlook": "Opent een nieuw Outlook-bericht op de pc, ingevuld en met het rapport als bijlage. De gebruiker verstuurt het vanuit de eigen mailbox.",
+      "mail": "FleetWarden verstuurt de e-mail met het rapport via de ingestelde mailserver.",
+      "integration": "Het ticket wordt direct via de API van de servicedesk aangemaakt, met het apparaatrapport."
+    },
+    "address": "Adres van de servicedesk",
+    "addressHint": {
+      "outlook": "Het Aan-adres van het Outlook-bericht.",
+      "mail": "FleetWarden mailt het ticket naar dit adres.",
+      "fallback": "Krijgt het ticket als de koppeling na alle pogingen faalt. Leeg: de ontvangers hieronder."
+    },
+    "noIntegrations": "Er is nog geen servicedeskkoppeling.",
+    "addIntegration": "Koppeling toevoegen",
+    "disabled": "uitgeschakeld",
+    "integrationOff": "Deze koppeling staat uit. Tickets worden pas verstuurd als je hem aanzet.",
+    "fallback": "Terugvallen op e-mail als de koppeling faalt",
+    "fallbackHint": "Na de laatste poging gaat het ticket per e-mail, zodat er geen melding verloren gaat.",
+    "alwaysKept": "Meldingen blijven altijd zichtbaar onder Hulpvragen, met het ticketnummer van de servicedesk.",
+    "formTitle": "Formulier voor de gebruiker",
+    "formHint": "Wat de gebruiker in de tray invult.",
+    "requireMessage": "Omschrijving verplicht",
+    "requireMessageHint": "De gebruiker moet het probleem omschrijven voor het versturen.",
+    "minMessage": "Minimaal aantal tekens",
+    "askUrgency": "Urgentie vragen",
+    "askUrgencyHint": "Laag, normaal of hoog; wordt de prioriteit in de koppeling.",
+    "askCategory": "Categorie vragen",
+    "askCategoryHint": "De gebruiker kiest een van de categorieën hieronder.",
+    "categories": "Categorieën",
+    "categoriesHint": "Gescheiden door komma's, maximaal 20.",
+    "categoriesPlaceholder": "Hardware, Software, Printen, Netwerk, Account, Overig",
+    "askContact": "Vragen hoe de gebruiker bereikbaar is",
+    "askContactHint": "Bijvoorbeeld een telefoonnummer of ruimte.",
+    "showSent": "Gebruiker laten zien wat er meegaat",
+    "showSentHint": "Transparantie: een lijst met de apparaatinformatie onder het formulier.",
+    "reportTitle": "Apparaatinformatie in het ticket",
+    "reportHint": "Verzameld op het moment van de melding, zodat de servicedesk alles in één oogopslag ziet.",
+    "groups": {
+      "basics": "Basis",
+      "hardware": "Hardware",
+      "status": "Status"
+    },
+    "parts": {
+      "user": "Aangemelde gebruiker",
+      "time": "Datum en tijd",
+      "network": "IP-adressen",
+      "os": "Besturingssysteem, domein en groep",
+      "hardware": "Model, serienummer, CPU, RAM",
+      "disk": "Vrije schijfruimte",
+      "uptime": "Uptime / laatste herstart",
+      "reboot": "Herstart nodig",
+      "updates": "Wachtende Windows-updates",
+      "software": "Catalogus- en third-party software",
+      "security": "Beveiligingsstatus",
+      "alerts": "Open waarschuwingen"
+    },
+    "partHints": {
+      "user": "Met het e-mailadres als de tray dat kent",
+      "network": "Intern en publiek",
+      "updates": "Aantal en KB-nummers",
+      "software": "Versie, actueel, mislukte uitrol",
+      "security": "Versleuteling, antivirus, firewall"
+    },
+    "reportNote": "De computernaam gaat altijd mee. Ingebouwde Windows-onderdelen worden weggelaten: alleen software uit de catalogus, uitrol en verouderde programma's. Het volledige rapport gaat als HTML-bijlage mee waar de bestemming dat ondersteunt.",
+    "linkTitle": "Link naar FleetWarden",
+    "linkHint": "Het ticket krijgt een link naar het apparaat. De medewerker meldt zich aan (SSO of lokaal) en komt uit op de pc waar de melding vandaan kwam.",
+    "linkDevice": "Link naar het apparaat toevoegen",
+    "linkDeviceHint": "Vereist de publieke URL onder Instellingen > Algemeen.",
+    "linkActions": "Snelkoppelingen in het ticket",
+    "actions": {
+      "remote": "Overnemen",
+      "terminal": "Terminal",
+      "scan": "Scan starten"
+    },
+    "actionHints": {
+      "remote": "Vraagt toestemming zoals per groep ingesteld",
+      "terminal": "Alleen voor medewerkers met terminalrechten",
+      "scan": "Nieuwe inventarisatie en updatescan"
+    },
+    "linkSafe": "De link bevat geen wachtwoord of token. FleetWarden controleert de aanmelding en rechten van de medewerker; acties volgen de toestemmingsregels van de groep van het apparaat.",
+    "preview": "Voorbeeld van het ticket",
+    "previewTitle": "Voorbeeld van het ticket",
+    "previewHint": "Het ticket dat een echt apparaat zou versturen met de instellingen hierboven (nog niet opgeslagen).",
+    "previewDevice": "Apparaat",
+    "previewAny": "Eerste apparaat",
+    "previewTo": {
+      "fleetwarden": "Zichtbaar onder Hulpvragen.",
+      "outlook": "Opent in Outlook, aan {{target}}.",
+      "mail": "Gemaild naar {{target}}.",
+      "integration": "Aangemaakt in {{target}}."
+    },
+    "noPublicUrl": "Er is geen publieke URL ingesteld onder Instellingen > Algemeen, dus het ticket krijgt geen links naar het apparaat.",
+    "urgencyLabel": "Urgentie",
+    "urgency": {
+      "low": "Laag",
+      "normal": "Normaal",
+      "high": "Hoog"
+    },
+    "ticket": "Ticket",
+    "notSent": "Niet verstuurd",
+    "errorTitle": "Het ticket kon niet worden aangemaakt",
+    "reportShown": "Apparaatrapport",
+    "sentVia": {
+      "outlook": "Via Outlook van de gebruiker",
+      "mail": "Gemaild",
+      "integration": "Wordt aangemaakt…"
+    },
+    "fromTicket": "Geopend vanuit hulpvraag #{{id}}",
+    "fromTicketUnknown": "Geopend vanuit een ticket",
+    "openHelp": "Hulpvragen",
+    "offline": "Het apparaat is offline. Acties kunnen weer zodra het verbinding maakt.",
+    "scanStarted": "De scan is aangevraagd. De resultaten verschijnen over een paar minuten."
   }
 }
