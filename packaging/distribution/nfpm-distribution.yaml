@@ -1,0 +1,41 @@
+# nfpm configuration for the fleetwarden-distribution Debian package (cache in a branch office).
+# Build with: packaging/distribution/build-debs.sh (copies each architecture's binary to dist/distribution-stage first).
+name: fleetwarden-distribution
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: FleetWarden <https://github.com/rhisijmuiden/fleetwarden>
+description: |
+  FleetWarden distribution server.
+  Keeps approved software, driver files and agent updates in a branch office
+  and serves them to the agents there, so each file crosses the slow link to
+  the management server once.
+vendor: FleetWarden
+homepage: https://github.com/rhisijmuiden/fleetwarden
+license: AGPL-3.0-only WITH Commons-Clause
+depends:
+  - adduser
+  - ca-certificates
+  - curl
+  - jq
+contents:
+  - src: dist/distribution-stage/fleetwarden-distribution
+    dst: /usr/bin/fleetwarden-distribution
+    file_info: { mode: 0755 }
+  - src: packaging/distribution/fleetwarden-distribution.service
+    dst: /lib/systemd/system/fleetwarden-distribution.service
+  - src: packaging/distribution/fleetwarden-distribution-update.service
+    dst: /lib/systemd/system/fleetwarden-distribution-update.service
+  - src: packaging/distribution/fleetwarden-distribution-update.path
+    dst: /lib/systemd/system/fleetwarden-distribution-update.path
+  - src: packaging/distribution/fleetwarden-distribution-update
+    dst: /usr/lib/fleetwarden-distribution/fleetwarden-distribution-update
+    file_info: { mode: 0755 }
+  - src: LICENSE
+    dst: /usr/share/doc/fleetwarden-distribution/copyright
+scripts:
+  postinstall: packaging/distribution/postinst.sh
+  preremove: packaging/distribution/prerm.sh
+  postremove: packaging/distribution/postrm.sh

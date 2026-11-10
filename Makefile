@@ -7,9 +7,9 @@ PKG      := github.com/rhisijmuiden/fleetwarden/internal/version
 LDFLAGS  := -s -w -X $(PKG).Version=$(VERSION) -X $(PKG).Commit=$(COMMIT) -X $(PKG).Channel=$(CHANNEL) -X $(PKG).BuildDate=$(DATE)
 GOBUILD  := CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)"
 
-.PHONY: all test web server agents gateways agent-debs gateway-debs deb loadtest clean
+.PHONY: all test web server agents gateways distributions agent-debs gateway-debs distribution-debs deb loadtest clean
 
-all: web server agents gateways
+all: web server agents gateways distributions
 
 test:
 	go vet ./...
@@ -38,6 +38,14 @@ gateways:
 
 gateway-debs: gateways
 	VERSION=$(VERSION) packaging/gateway/build-debs.sh
+
+# The distribution server for branch offices.
+distributions:
+	GOOS=linux GOARCH=amd64 $(GOBUILD) -o dist/linux-amd64/fleetwarden-distribution ./cmd/fleetwarden-distribution
+	GOOS=linux GOARCH=arm64 $(GOBUILD) -o dist/linux-arm64/fleetwarden-distribution ./cmd/fleetwarden-distribution
+
+distribution-debs: distributions
+	VERSION=$(VERSION) packaging/distribution/build-debs.sh
 
 # Agent packages for Debian/Proxmox; the server package bundles them (and the MSI, when built).
 agent-debs: agents

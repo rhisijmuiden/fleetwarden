@@ -105,6 +105,8 @@ type Agent struct {
 	installMu sync.Mutex
 	// invNow asks the running session for a full inventory.
 	invNow chan struct{}
+	// dist is the distribution servers the server named for this agent.
+	dist distState
 }
 
 func (a *Agent) runCtx() context.Context {
@@ -463,6 +465,11 @@ func (a *Agent) session(ctx context.Context, cfg Config, alternatives bool) erro
 				var ep agentproto.Endpoints
 				if e.Decode(&ep) == nil {
 					a.saveEndpoints(ep.URLs)
+				}
+			case agentproto.TypeDistribution:
+				var d agentproto.Distribution
+				if e.Decode(&d) == nil {
+					a.setDistribution(d.Servers)
 				}
 			case agentproto.TypePatchConfig:
 				a.handlePatchConfig(e)

@@ -1143,6 +1143,68 @@ export type GatewayCheck = {
 };
 export type GatewayOption = { id: number; name: string; publicUrl: string };
 
+export type DistributionState = "pending" | "online" | "offline" | "disabled";
+export type DistributionStatus = {
+  version: string;
+  hostname: string;
+  port: number;
+  addresses: string[];
+  certSha256: string;
+  startedAt: string;
+  manifest: string;
+  files: number;
+  bytes: number;
+  pendingFiles: number;
+  pendingBytes: number;
+  downloading?: string;
+  lastSyncAt?: string;
+  syncError?: string;
+  diskFree: number;
+  diskTotal: number;
+  servedFiles: number;
+  servedBytes: number;
+  misses: number;
+  refused: number;
+  updatable: boolean;
+  update?: { state: string; message: string; fromVersion: string; toVersion: string; updatedAt: string };
+  bandwidthKbps: number;
+  reportedAt: string;
+  recent?: { sha256: string; device: string; bytes: number; at: string }[];
+};
+export type DistributionServer = {
+  id: number;
+  name: string;
+  enabled: boolean;
+  url: string;
+  networks: string[];
+  groupIds: number[];
+  bandwidthKbps: number;
+  enrolled: boolean;
+  tokenExpiresAt: string | null;
+  certSha256: string;
+  hostname: string;
+  version: string;
+  updateVersion: string;
+  enrolledAt: string | null;
+  lastSeenAt: string | null;
+  createdBy: string;
+  createdAt: string;
+  state: DistributionState;
+  agents: number;
+  status: DistributionStatus | null;
+};
+export type DistributionList = {
+  servers: DistributionServer[];
+  manifestFiles: number;
+  manifestBytes: number;
+  manifest: string;
+  version: string;
+  channel: string;
+  serverUrl: string;
+  port: number;
+};
+export type DistributionToken = { server: DistributionServer; token: string; expires: string; command: string };
+
 export class ApiError extends Error {
   constructor(
     public status: number,

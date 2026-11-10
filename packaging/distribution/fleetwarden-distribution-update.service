@@ -1,0 +1,13 @@
+[Unit]
+Description=FleetWarden distribution server updater (installs the release the management server asked for)
+Documentation=https://github.com/rhisijmuiden/fleetwarden/blob/main/docs/distribution.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/fleetwarden-distribution/fleetwarden-distribution-update
+TimeoutStartSec=15min
+# Runs as root: it installs packages. It only accepts a version number from
+# the request file and downloads from the official GitHub releases.
+PrivateTmp=true

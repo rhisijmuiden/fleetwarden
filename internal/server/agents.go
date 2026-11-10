@@ -441,6 +441,7 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	s.hub.add(c)
 	defer s.hub.remove(c)
 	s.sendEndpoints(dev.ID, s.agentEndpoints(ctx))
+	go s.sendDistribution(ctx, dev.ID)
 	agentVersion := cleanText(a.AgentVersion, 50)
 	_ = s.st.TouchDevice(context.WithoutCancel(ctx), dev.ID, ip, agentVersion, dev.LoggedInUser, dev.LocalIPs, nil)
 	if dev.UpdateVersion != "" && dev.UpdateVersion == agentVersion && dev.UpdateState != "completed" {

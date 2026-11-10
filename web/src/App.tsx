@@ -25,6 +25,7 @@ import { Groups } from "./pages/devices/Groups";
 import { Assets } from "./pages/assets/Assets";
 import { AgentUpdates } from "./pages/admin/AgentUpdates";
 import { Gateways } from "./pages/admin/Gateways";
+import { Distribution } from "./pages/admin/Distribution";
 import { Patches } from "./pages/patches/Patches";
 import { Drivers } from "./pages/drivers/Drivers";
 import { Vulnerabilities } from "./pages/vulnerabilities/Vulnerabilities";
@@ -78,6 +79,7 @@ const adminPages: { path: string; perm: Permission; element: React.ReactNode }[]
   { path: "/admin/backup", perm: "backup.manage", element: <Backup /> },
   { path: "/admin/agent-updates", perm: "agents.manage", element: <AgentUpdates /> },
   { path: "/admin/gateways", perm: "settings.manage", element: <Gateways /> },
+  { path: "/admin/distribution", perm: "settings.manage", element: <Distribution /> },
   { path: "/admin/branding", perm: "settings.manage", element: <Branding /> },
   { path: "/admin/audit", perm: "audit.view", element: <Audit /> },
   { path: "/admin/settings", perm: "settings.manage", element: <Settings /> },

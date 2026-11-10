@@ -4,6 +4,18 @@ Alle belangrijke wijzigingen in FleetWarden. Engelse versie: [CHANGELOG.md](CHAN
 Versienummers volgen [semantic versioning](https://semver.org/lang/nl/);
 testversies verschijnen vóór een release als `X.Y.Z-test.N`.
 
+## Nog niet uitgebracht
+
+### Toegevoegd
+- Distributieservers voor vestigingen (Administratie > Distributieservers): een cache
+  die geüploade installatiebestanden, drivers en firmware en agentpakketten
+  bewaart en uitlevert aan de agents in zijn netwerken of apparaatgroepen. De
+  beheerserver beslist nog steeds per download; agents pinnen het certificaat,
+  controleren de SHA-256 van elk bestand en vallen terug op de beheerserver.
+  Installatie met een eenmalig token, optionele bandbreedtelimiet, bijwerken
+  vanuit de webinterface. Nieuw pakket `fleetwarden-distribution` en
+  `install-distribution.sh`; zie docs/distribution.nl.md.
+
 ## 1.0.0 (2026-11)
 
 De eerste productierelease. Alles hieronder is gebouwd en getest op het

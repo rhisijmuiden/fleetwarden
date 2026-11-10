@@ -1,0 +1,44 @@
+[Unit]
+Description=FleetWarden distribution server
+Documentation=https://github.com/rhisijmuiden/fleetwarden/blob/main/docs/distribution.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fleetwarden-distribution
+Group=fleetwarden-distribution
+EnvironmentFile=/etc/fleetwarden-distribution/distribution.env
+ExecStart=/usr/bin/fleetwarden-distribution
+Restart=always
+RestartSec=5s
+# Port 443 when FW_DIST_LISTEN asks for it.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+LimitNOFILE=65536
+
+# Hardening: it only downloads into its data directory and serves files.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+ReadWritePaths=/var/lib/fleetwarden-distribution
+StateDirectory=fleetwarden-distribution
+StateDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target

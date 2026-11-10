@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/rhisijmuiden/fleetwarden/internal/agentproto"
+	"github.com/rhisijmuiden/fleetwarden/internal/distproto"
 	"github.com/rhisijmuiden/fleetwarden/internal/version"
 )
 
@@ -145,21 +146,39 @@ func (a *Agent) download(ctx context.Context, name, sum string, size int64, dst 
 	return a.downloadSigned(ctx, agentproto.PathDownload+name, sum, size, dst)
 }
 
-// downloadSigned fetches a file from the server with a signed request and
-// checks its size and hash.
+// downloadSigned fetches a file with a signed request and checks its size
+// and hash: from a nearby distribution server when the server named one,
+// otherwise (or when that fails) from the server itself.
 func (a *Agent) downloadSigned(ctx context.Context, path, sum string, size int64, dst string) error {
 	a.mu.Lock()
 	cfg := a.cfg
 	a.mu.Unlock()
 	ctx, cancel := context.WithTimeout(ctx, downloadDeadline)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cfg.Server+path, nil)
+	if distproto.Served(path) {
+		for _, d := range a.distServers() {
+			err := a.fetchSigned(ctx, cfg, d.URL, distClient(d), path, sum, size, dst)
+			if err == nil {
+				a.Log.Info("downloaded from the distribution server", "server", d.Name, "path", path)
+				return nil
+			}
+			if ctx.Err() != nil {
+				return err
+			}
+			a.Log.Info("distribution server could not deliver; trying the next source", "server", d.Name, "path", path, "err", err)
+		}
+	}
+	return a.fetchSigned(ctx, cfg, cfg.Server, &http.Client{Transport: a.HTTP.Transport}, path, sum, size, dst)
+}
+
+// fetchSigned downloads path from base into dst.
+func (a *Agent) fetchSigned(ctx context.Context, cfg Config, base string, client *http.Client, path, sum string, size int64, dst string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(base, "/")+path, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set(agentproto.HeaderAuth, agentproto.SignRequest(cfg.Key(), cfg.DeviceID, http.MethodGet, path, time.Now()))
 	req.Header.Set("User-Agent", "fleetwarden-agent/"+version.Version)
-	client := &http.Client{Transport: a.HTTP.Transport}
 	res, err := client.Do(req)
 	if err != nil {
 		return err
