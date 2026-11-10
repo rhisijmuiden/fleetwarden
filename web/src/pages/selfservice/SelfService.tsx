@@ -10,6 +10,7 @@ import { PlatformBadge } from "../devices/util";
 import { timeAgo } from "../devices/util";
 import { JobStateBadge, SourceBadge } from "../software/util";
 import type { HelpRequest, HelpState, SelfServiceItem, SelfServiceRequest, SelfServiceSettings } from "./types";
+import { PreviewButton, ReportView, TicketSettings } from "./Tickets";
 
 type Tab = "requests" | "help" | "catalog" | "settings";
 
@@ -264,6 +265,10 @@ function HelpRequests() {
                       <span className="text-sm text-muted">#{h.id}</span>
                       <span className="font-medium">{h.subject}</span>
                       <Badge tone={helpTone[h.state]}>{t(`selfservice.helpStates.${h.state}`)}</Badge>
+                      {h.urgency === "high" && <Badge tone="danger">{t("tickets.urgency.high")}</Badge>}
+                      {h.category && <Badge>{h.category}</Badge>}
+                      {h.ticketNumber && <Badge tone="primary">{h.ticketNumber}</Badge>}
+                      {h.ticketError && <Badge tone="danger">{t("tickets.notSent")}</Badge>}
                     </div>
                     {h.message && <p className="line-clamp-2 text-sm text-muted">{h.message}</p>}
                     <p className="text-xs text-muted">
@@ -344,7 +349,34 @@ function HelpDialog({ help, canHandle, canRemote, onClose, onSaved }: { help: He
           <Badge tone={help.online ? "success" : "neutral"}>{help.online ? t("selfservice.online") : t("selfservice.offline")}</Badge>
         </dd>
         <dt className="text-muted">{t("selfservice.contact")}</dt>
-        <dd>{help.contact || "–"}</dd>
+        <dd>{[help.email, help.contact].filter(Boolean).join(" · ") || "–"}</dd>
+        {(help.urgency || help.category) && (
+          <>
+            <dt className="text-muted">{t("tickets.urgencyLabel")}</dt>
+            <dd>{[help.urgency && t(`tickets.urgency.${help.urgency}`), help.category].filter(Boolean).join(" · ")}</dd>
+          </>
+        )}
+        {help.destination && help.destination !== "fleetwarden" && (
+          <>
+            <dt className="text-muted">{t("tickets.ticket")}</dt>
+            <dd className="flex flex-wrap items-center gap-2">
+              {help.ticketNumber ? (
+                help.ticketUrl ? (
+                  <a href={help.ticketUrl} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+                    {help.ticketNumber}
+                  </a>
+                ) : (
+                  <span className="font-medium">{help.ticketNumber}</span>
+                )
+              ) : help.ticketError ? (
+                <Badge tone="danger">{t("tickets.notSent")}</Badge>
+              ) : (
+                <span className="text-muted">{t(`tickets.sentVia.${help.destination}`)}</span>
+              )}
+              {help.ticketState && <Badge>{help.ticketState}</Badge>}
+            </dd>
+          </>
+        )}
         <dt className="text-muted">{t("selfservice.sent")}</dt>
         <dd>{formatDate(help.createdAt, i18n.language)}</dd>
         {help.assignedTo && (
@@ -354,7 +386,16 @@ function HelpDialog({ help, canHandle, canRemote, onClose, onSaved }: { help: He
           </>
         )}
       </dl>
+      {help.ticketError && <Alert tone="danger" title={t("tickets.errorTitle")}>{help.ticketError}</Alert>}
       <div className="rounded-md bg-surface-muted px-4 py-3 text-sm whitespace-pre-wrap">{help.message || t("selfservice.noMessage")}</div>
+      {help.report && (
+        <details className="rounded-md border border-line px-4 py-3">
+          <summary className="cursor-pointer text-sm font-medium">{t("tickets.reportShown")}</summary>
+          <div className="mt-4">
+            <ReportView report={help.report} links={false} />
+          </div>
+        </details>
+      )}
       {canRemote && help.online && (
         <a href={`/remote/connect/${help.deviceId}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
           <MonitorPlay className="size-4" />
@@ -710,20 +751,9 @@ function SettingsTab() {
           <Switch checked={s.software} onChange={(v) => setS({ ...s, software: v })} label={t("selfservice.settings.software")} description={t("selfservice.settings.softwareHint")} />
           <Switch checked={s.updates} onChange={(v) => setS({ ...s, updates: v })} label={t("selfservice.settings.updates")} description={t("selfservice.settings.updatesHint")} />
           <Switch checked={s.help} onChange={(v) => setS({ ...s, help: v })} label={t("selfservice.settings.help")} description={t("selfservice.settings.helpHint")} />
-          <Field label={t("selfservice.settings.helpText")} hint={t("selfservice.settings.helpTextHint")}>
-            {(id) => (
-              <textarea
-                id={id}
-                value={s.helpText}
-                maxLength={500}
-                rows={2}
-                onChange={(e) => setS({ ...s, helpText: e.target.value })}
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              />
-            )}
-          </Field>
         </div>
       </Card>
+      {s.help && <TicketSettings s={s} setS={setS} />}
       <Card title={t("selfservice.settings.mailTitle")} description={t("selfservice.settings.mailHint")}>
         <div className="grid gap-4 sm:grid-cols-[1fr_200px]">
           <Field label={t("selfservice.settings.recipients")} hint={t("selfservice.settings.recipientsHint")}>
@@ -739,7 +769,8 @@ function SettingsTab() {
           </Field>
         </div>
       </Card>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {s.help && <PreviewButton settings={{ ...s, recipients: [] }} />}
         <Button loading={busy} onClick={save}>
           {t("common.save")}
         </Button>

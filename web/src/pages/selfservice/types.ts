@@ -67,6 +67,27 @@ export type HelpRequest = {
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
+  urgency: string;
+  category: string;
+  email: string;
+  destination: TicketDestination;
+  integrationId: number | null;
+  ticketId: string;
+  ticketNumber: string;
+  ticketUrl: string;
+  ticketState: string;
+  ticketError: string;
+  report?: TicketReport;
+};
+
+export type TicketDestination = "fleetwarden" | "outlook" | "mail" | "integration";
+
+export type ReportLine = { label: string; value: string; tone?: string };
+export type TicketReport = {
+  hostname: string;
+  summary: ReportLine[];
+  sections: { key: string; title: string; lines: ReportLine[] }[];
+  links: { action: string; label: string; url: string }[];
 };
 
 export type SelfServiceSettings = {
@@ -76,6 +97,20 @@ export type SelfServiceSettings = {
   helpText: string;
   recipients: string[];
   language: "en" | "nl";
+  destination: TicketDestination;
+  ticketIntegration: number;
+  ticketAddress: string;
+  fallbackMail: boolean;
+  requireMessage: boolean;
+  minMessage: number;
+  askUrgency: boolean;
+  askCategory: boolean;
+  categories: string[];
+  askContact: boolean;
+  showSent: boolean;
+  report: string[];
+  linkDevice: boolean;
+  linkActions: string[];
 };
 
 export type SelfServiceCounts = { pendingRequests: number; openHelp: number };

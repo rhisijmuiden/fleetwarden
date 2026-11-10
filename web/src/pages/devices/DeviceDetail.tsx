@@ -50,6 +50,7 @@ import { DeviceAssetCard } from "../assets/DeviceAsset";
 import { DeviceManageTab } from "../manage/Manage";
 import { DeviceSecurityTab } from "../security/DeviceSecurity";
 import { DeviceVulnsTab } from "../vulnerabilities/DeviceVulns";
+import { TicketBanner } from "../selfservice/Tickets";
 import {
   KindIcon,
   PlatformBadge,
@@ -212,6 +213,9 @@ export function DeviceDetail() {
       </div>
       {error && <Alert tone="danger">{error}</Alert>}
       {notice && <Alert tone="success">{notice}</Alert>}
+      {params.get("ticket") && (
+        <TicketBanner device={device} ticket={Number(params.get("ticket"))} action={params.get("action") ?? ""} onNotice={setNotice} />
+      )}
 
       <div
         className="flex gap-1 overflow-x-auto border-b border-line"

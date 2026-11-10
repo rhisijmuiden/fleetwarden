@@ -85,6 +85,46 @@ namespace FleetWarden.Tray
         [DataMember(Name = "subject")] public string Subject;
         [DataMember(Name = "message")] public string Message;
         [DataMember(Name = "contact", EmitDefaultValue = false)] public string Contact;
+        [DataMember(Name = "urgency", EmitDefaultValue = false)] public string Urgency;
+        [DataMember(Name = "category", EmitDefaultValue = false)] public string Category;
+        // The user's e-mail address (UPN) when Windows knows it: the requester in the service desk.
+        [DataMember(Name = "email", EmitDefaultValue = false)] public string Email;
+    }
+
+    // TicketForm is how the IT department set up the ticket form.
+    [DataContract]
+    public sealed class TicketForm
+    {
+        public const string FleetWarden = "fleetwarden", Outlook = "outlook", Mail = "mail", Integration = "integration";
+
+        [DataMember(Name = "requireMessage")] public bool RequireMessage;
+        [DataMember(Name = "minMessage")] public int MinMessage;
+        [DataMember(Name = "askUrgency")] public bool AskUrgency;
+        [DataMember(Name = "askCategory")] public bool AskCategory;
+        [DataMember(Name = "categories", EmitDefaultValue = false)] public string[] Categories;
+        [DataMember(Name = "askContact")] public bool AskContact;
+        [DataMember(Name = "sent", EmitDefaultValue = false)] public InfoLine[] Sent;
+        [DataMember(Name = "destination")] public string Destination;
+        [DataMember(Name = "destinationName", EmitDefaultValue = false)] public string DestinationName;
+    }
+
+    [DataContract]
+    public sealed class InfoLine
+    {
+        [DataMember(Name = "label")] public string Label;
+        [DataMember(Name = "value")] public string Value;
+    }
+
+    // OutlookDraft is a ticket the tray opens as a new message in Outlook.
+    [DataContract]
+    public sealed class OutlookDraft
+    {
+        [DataMember(Name = "to")] public string[] To;
+        [DataMember(Name = "subject")] public string Subject;
+        [DataMember(Name = "html")] public string Html;
+        [DataMember(Name = "text")] public string Text;
+        [DataMember(Name = "attachmentName", EmitDefaultValue = false)] public string AttachmentName;
+        [DataMember(Name = "attachment", EmitDefaultValue = false)] public string Attachment;
     }
 
     [DataContract]
@@ -93,6 +133,7 @@ namespace FleetWarden.Tray
         [DataMember(Name = "error", EmitDefaultValue = false)] public string Error;
         [DataMember(Name = "message", EmitDefaultValue = false)] public string Message;
         [DataMember(Name = "catalog", EmitDefaultValue = false)] public SelfServiceCatalog Catalog;
+        [DataMember(Name = "outlook", EmitDefaultValue = false)] public OutlookDraft Outlook;
     }
 
     [DataContract]
@@ -111,6 +152,7 @@ namespace FleetWarden.Tray
         [DataMember(Name = "help")] public bool Help;
         [DataMember(Name = "helpText", EmitDefaultValue = false)] public string HelpText;
         [DataMember(Name = "helpRequests")] public HelpTicket[] HelpRequests;
+        [DataMember(Name = "ticket", EmitDefaultValue = false)] public TicketForm Ticket;
     }
 
     [DataContract]
@@ -139,5 +181,8 @@ namespace FleetWarden.Tray
         [DataMember(Name = "reply", EmitDefaultValue = false)] public string Reply;
         [DataMember(Name = "createdAt")] public string CreatedAt;
         [DataMember(Name = "updatedAt")] public string UpdatedAt;
+        // The ticket number in the service desk and its state there.
+        [DataMember(Name = "number", EmitDefaultValue = false)] public string Number;
+        [DataMember(Name = "extState", EmitDefaultValue = false)] public string ExtState;
     }
 }

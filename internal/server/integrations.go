@@ -559,15 +559,29 @@ var integrationBackoff = []time.Duration{10 * time.Second, time.Minute}
 // runIntegration runs op in the background with retries, one at a time per
 // call and at most integrationWorkers at once.
 func (s *Server) runIntegration(i store.Integration, event string, op func(ctx context.Context, conn integrations.Connector) (integrations.Ref, error)) {
+	s.runIntegrationDone(i, event, op, nil)
+}
+
+// runIntegrationDone is runIntegration with a callback that receives the
+// outcome of the last attempt exactly once (also when the server stops).
+func (s *Server) runIntegrationDone(i store.Integration, event string, op func(ctx context.Context, conn integrations.Connector) (integrations.Ref, error), done func(integrations.Ref, error)) {
+	if done == nil {
+		done = func(integrations.Ref, error) {}
+	}
 	if s.bgCtx == nil {
+		done(integrations.Ref{}, errors.New("server is stopping"))
 		return
 	}
 	s.intOnce.Do(func() { s.intSem = make(chan struct{}, integrationWorkers) })
 	s.bgWG.Add(1)
 	go func() {
 		defer s.bgWG.Done()
-		cfg, err := s.integrationConfig(i)
-		if err != nil {
+		var ref integrations.Ref
+		var err error
+		defer func() { done(ref, err) }()
+		cfg, cerr := s.integrationConfig(i)
+		if cerr != nil {
+			err = cerr
 			s.log.Warn("integration secrets", "integration", i.Name, "err", err)
 			return
 		}
@@ -575,12 +589,16 @@ func (s *Server) runIntegration(i store.Integration, event string, op func(ctx c
 			select {
 			case s.intSem <- struct{}{}:
 			case <-s.bgCtx.Done():
+				if err == nil {
+					err = s.bgCtx.Err()
+				}
 				return
 			}
 			var l callLog
 			ctx, cancel := context.WithTimeout(s.bgCtx, 2*time.Minute)
-			conn, err := integrations.New(cfg, l.options())
-			var ref integrations.Ref
+			var conn integrations.Connector
+			ref = integrations.Ref{}
+			conn, err = integrations.New(cfg, l.options())
 			if err == nil {
 				ref, err = op(ctx, conn)
 			}

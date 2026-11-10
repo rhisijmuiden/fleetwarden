@@ -92,6 +92,29 @@ namespace FleetWarden.Tray
         public static string TicketState(string state) => state == "in_progress" ? T("In progress", "In behandeling")
             : state == "closed" ? T("Closed", "Gesloten") : T("Sent", "Verstuurd");
         public static string ReplyFromIT => T("Reply from IT", "Antwoord van IT");
+        public static string Urgency => T("How urgent is it?", "Hoe dringend is het?");
+        public static string UrgencyName(string u) => u == "low" ? T("Can wait", "Kan wachten") : u == "high" ? T("I cannot work", "Ik kan niet werken") : T("Normal", "Normaal");
+        public static string Category => T("What is it about?", "Waar gaat het over?");
+        public static string CategoryRequired => T("Choose what it is about.", "Kies waar het over gaat.");
+        public static string MessageRequired(int min) => T($"Describe the problem in at least {min} characters.", $"Beschrijf het probleem in minstens {min} tekens.");
+        public static string MessageMore(int n) => T($"{n} more characters needed", $"Nog {n} tekens nodig");
+        public static string MessageOk => T("Thank you, that helps.", "Dank je, dat helpt.");
+        public static string WhatIsSent => T("What is sent along with your request", "Wat er met je melding meegaat");
+        public static string TicketNumber(string n) => T("ticket ", "ticket ") + n;
+        public static string Destination(string dest, string name)
+        {
+            switch (dest)
+            {
+                case "integration": return string.IsNullOrWhiteSpace(name) ? T("Goes to the service desk.", "Gaat naar de servicedesk.") : T($"Goes to the service desk ({name}).", $"Gaat naar de servicedesk ({name}).");
+                case "outlook": return T("Opens as an e-mail in Outlook; you send it yourself.", "Opent als e-mail in Outlook; je verstuurt die zelf.");
+                case "mail": return T("Goes by e-mail to the service desk.", "Gaat per e-mail naar de servicedesk.");
+                default: return T("Goes to the IT department.", "Gaat naar de IT-afdeling.");
+            }
+        }
+        public static string MailToOpened => T("Your mail program opened with the e-mail. Attach the report that is selected in Explorer and send it.",
+                                               "Je mailprogramma is geopend met de e-mail. Voeg het rapport toe dat in Verkenner is geselecteerd en verstuur de e-mail.");
+        public static string OutlookFailed(string to, string file) => T($"No mail program could be opened. E-mail your problem to {to}" + (file != null ? $" and attach {file}." : "."),
+                                                                         $"Er kon geen mailprogramma worden geopend. Mail je probleem naar {to}" + (file != null ? $" en voeg {file} toe." : "."));
 
         // Status and errors
         public static string Loading => T("Loading…", "Laden…");

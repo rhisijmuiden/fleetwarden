@@ -15,6 +15,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -54,13 +55,35 @@ type selfServiceSettings struct {
 	// request that needs approval, in Language.
 	Recipients []string `json:"recipients"`
 	Language   string   `json:"language"`
-	// TicketIntegration is the integration that receives help requests as
-	// tickets (0 for none).
-	TicketIntegration int64 `json:"ticketIntegration"`
+	// Destination is where a help request goes as a ticket (agentproto
+	// Ticket*). TicketIntegration is the integration for "integration";
+	// TicketAddress the service desk mailbox for "mail" and "outlook".
+	Destination       string `json:"destination"`
+	TicketIntegration int64  `json:"ticketIntegration"`
+	TicketAddress     string `json:"ticketAddress"`
+	// FallbackMail e-mails TicketAddress (or the recipients) when the
+	// integration fails.
+	FallbackMail bool `json:"fallbackMail"`
+	// The form in the tray.
+	RequireMessage bool     `json:"requireMessage"`
+	MinMessage     int      `json:"minMessage"`
+	AskUrgency     bool     `json:"askUrgency"`
+	AskCategory    bool     `json:"askCategory"`
+	Categories     []string `json:"categories"`
+	AskContact     bool     `json:"askContact"`
+	ShowSent       bool     `json:"showSent"`
+	// Report lists the parts of the device report that go along.
+	Report []string `json:"report"`
+	// LinkDevice adds a link to the device page; LinkActions the quick
+	// actions next to it.
+	LinkDevice  bool     `json:"linkDevice"`
+	LinkActions []string `json:"linkActions"`
 }
 
 func defaultSelfService() selfServiceSettings {
-	return selfServiceSettings{Software: true, Updates: true, Help: true, Recipients: []string{}, Language: "en"}
+	return selfServiceSettings{Software: true, Updates: true, Help: true, Recipients: []string{}, Language: "en",
+		Destination: agentproto.TicketFleetWarden, AskContact: true, AskUrgency: true, ShowSent: true,
+		Categories: []string{}, Report: slices.Clone(reportParts), LinkDevice: true, LinkActions: []string{"remote", "scan"}}
 }
 
 func (s *Server) loadSelfService(ctx context.Context) selfServiceSettings {
@@ -68,6 +91,18 @@ func (s *Server) loadSelfService(ctx context.Context) selfServiceSettings {
 	_ = s.st.GetSetting(ctx, keySelfService, &v)
 	if v.Recipients == nil {
 		v.Recipients = []string{}
+	}
+	if v.Categories == nil {
+		v.Categories = []string{}
+	}
+	if v.Report == nil {
+		v.Report = []string{}
+	}
+	if v.LinkActions == nil {
+		v.LinkActions = []string{}
+	}
+	if v.Destination == "" {
+		v.Destination = agentproto.TicketFleetWarden
 	}
 	return v
 }
@@ -107,7 +142,7 @@ func (s *Server) selfService(ctx context.Context, deviceID string, req agentprot
 	default:
 		return agentproto.SelfServiceReply{Error: agentproto.SelfServiceErrInvalid}
 	}
-	cat, err := s.selfServiceCatalog(ctx, dev, set, user)
+	cat, err := s.selfServiceCatalog(ctx, dev, set, user, lang)
 	if err != nil {
 		s.log.Warn("self-service catalog", "device", deviceID, "err", err)
 		if out.Error == "" {
@@ -143,6 +178,10 @@ var ssTexts = map[string]map[string]string{
 		"mail.unknownUser": "A user",
 		"testTicket":       "FleetWarden test ticket",
 		"testTicketBody":   "This ticket was created by FleetWarden to test the integration. You can close it.",
+		"previewSubject":   "Outlook does not start",
+		"previewMessage":   "Since this morning Outlook closes right after it starts. I already restarted the computer.",
+		"ticketSent":       "Your ticket %s was created. The IT department will contact you.",
+		"outlookDraft":     "An e-mail was opened in Outlook. Check it and click Send.",
 	},
 	"nl": {
 		"requested":        "Je aanvraag voor %s is naar de IT-afdeling gestuurd. Je ziet hier wanneer die is goedgekeurd.",
@@ -159,6 +198,10 @@ var ssTexts = map[string]map[string]string{
 		"mail.unknownUser": "Een gebruiker",
 		"testTicket":       "FleetWarden testticket",
 		"testTicketBody":   "Dit ticket is door FleetWarden aangemaakt om de koppeling te testen. Je kunt het sluiten.",
+		"previewSubject":   "Outlook start niet",
+		"previewMessage":   "Sinds vanochtend sluit Outlook direct na het starten. Ik heb de computer al opnieuw opgestart.",
+		"ticketSent":       "Je ticket %s is aangemaakt. De IT-afdeling neemt contact met je op.",
+		"outlookDraft":     "Er is een e-mail geopend in Outlook. Controleer die en klik op Verzenden.",
 	},
 }
 
@@ -353,21 +396,33 @@ func (s *Server) selfServiceHelp(ctx context.Context, dev store.Device, set self
 	if h == nil {
 		return agentproto.SelfServiceReply{Error: agentproto.SelfServiceErrInvalid}
 	}
-	subject := cleanText(h.Subject, 200)
-	message := cleanOutput(h.Message, 4000)
-	contact := cleanText(h.Contact, 200)
-	if subject == "" {
+	subject, message, contact, urgency, category, email, ok := validTicket(set, h)
+	if !ok {
 		return agentproto.SelfServiceReply{Error: agentproto.SelfServiceErrInvalid}
 	}
 	if s.selfServiceLimited(ctx, dev.ID) {
 		return agentproto.SelfServiceReply{Error: agentproto.SelfServiceErrLimit}
 	}
-	id, err := s.st.CreateHelpRequest(ctx, store.HelpRequest{DeviceID: dev.ID, Username: user, Subject: subject, Message: message, Contact: contact})
+	req := store.HelpRequest{DeviceID: dev.ID, Username: user, Subject: subject, Message: message, Contact: contact,
+		Urgency: urgency, Category: category, Email: email, Destination: set.Destination}
+	if set.Destination == agentproto.TicketIntegration && set.TicketIntegration != 0 {
+		iid := set.TicketIntegration
+		req.IntegrationID = &iid
+	}
+	id, err := s.st.CreateHelpRequest(ctx, req)
 	if err != nil {
 		return agentproto.SelfServiceReply{Error: agentproto.SelfServiceErrInternal}
 	}
+	in := ticketInput{User: user, Email: email, Subject: subject, Message: message, Contact: contact, Urgency: urgency,
+		Category: category, At: s.now()}
+	rep := s.buildTicketReport(ctx, dev, set, in, id, set.Language)
+	if b, err := json.Marshal(rep); err == nil {
+		if err := s.st.SetHelpReport(ctx, id, b); err != nil {
+			s.log.Warn("help report", "err", err)
+		}
+	}
 	_ = s.st.Audit(ctx, store.AuditEntry{Actor: selfServiceActor(user, dev.Hostname), Action: "selfservice.help", Target: subject, Success: true,
-		Details: map[string]any{"request": id, "device": dev.Hostname}})
+		Details: map[string]any{"request": id, "device": dev.Hostname, "destination": set.Destination}})
 	ml := set.Language
 	s.mailSelfService(ctx, set, "help_request", map[string]string{"user": userOrUnknown(user, ml), "device": dev.Hostname, "subject": subject},
 		[]mail.Fact{
@@ -377,6 +432,10 @@ func (s *Server) selfServiceHelp(ctx context.Context, dev store.Device, set self
 			{Label: ssText(ml, "mail.user"), Value: userOrUnknown(user, ml)},
 			{Label: ssText(ml, "mail.device"), Value: dev.Hostname + " (" + dev.GroupName + ")"},
 		})
+	draft := s.sendTicket(ctx, set, dev, id, in, rep)
+	if draft != nil {
+		return agentproto.SelfServiceReply{Message: selfServiceText(lang, "outlookDraft"), Outlook: draft}
+	}
 	return agentproto.SelfServiceReply{Message: selfServiceText(lang, "helpSent", id)}
 }
 
@@ -434,7 +493,7 @@ func itemState(e store.CatalogEntry) (string, string) {
 }
 
 // selfServiceCatalog builds what the tray window shows for a device and user.
-func (s *Server) selfServiceCatalog(ctx context.Context, dev store.Device, set selfServiceSettings, user string) (agentproto.SelfServiceCatalog, error) {
+func (s *Server) selfServiceCatalog(ctx context.Context, dev store.Device, set selfServiceSettings, user, lang string) (agentproto.SelfServiceCatalog, error) {
 	b := s.loadBranding(ctx)
 	cat := agentproto.SelfServiceCatalog{ProductName: b.ProductName, AccentColor: b.PrimaryColor, Software: set.Software,
 		Items: []agentproto.SelfServiceItem{}, Help: set.Help, HelpText: set.HelpText, HelpRequests: []agentproto.HelpTicket{}}
@@ -474,6 +533,9 @@ func (s *Server) selfServiceCatalog(ctx context.Context, dev store.Device, set s
 			}
 		}
 	}
+	if set.Help {
+		cat.Ticket = s.ticketForm(ctx, dev, set, user, lang)
+	}
 	if set.Help && user != "" {
 		list, err := s.st.ListHelpRequests(ctx, store.HelpQuery{Scope: store.Scope{All: true}, DeviceID: dev.ID, Username: user, Limit: 10})
 		if err != nil {
@@ -481,7 +543,7 @@ func (s *Server) selfServiceCatalog(ctx context.Context, dev store.Device, set s
 		}
 		for _, h := range list {
 			cat.HelpRequests = append(cat.HelpRequests, agentproto.HelpTicket{ID: h.ID, Subject: h.Subject, State: h.State, Reply: h.Reply,
-				CreatedAt: h.CreatedAt, UpdatedAt: h.UpdatedAt})
+				CreatedAt: h.CreatedAt, UpdatedAt: h.UpdatedAt, Number: h.TicketNumber, ExtState: h.TicketState})
 		}
 	}
 	return cat, nil
@@ -505,6 +567,7 @@ func (s *Server) selfServiceRoutes(mux *http.ServeMux) {
 	mux.Handle("PUT /api/v1/selfservice/help/{id}", handle(s.handleUpdateHelpRequest))
 	mux.Handle("GET /api/v1/selfservice/settings", view(s.handleGetSelfServiceSettings))
 	mux.Handle("PUT /api/v1/selfservice/settings", manage(s.handlePutSelfServiceSettings))
+	mux.Handle("POST /api/v1/selfservice/ticket-preview", manage(s.handleTicketPreview))
 }
 
 func (s *Server) handleSelfServiceCount(w http.ResponseWriter, r *http.Request) {
@@ -842,6 +905,9 @@ func (s *Server) handleUpdateHelpRequest(w http.ResponseWriter, r *http.Request)
 		s.internalError(w, r, err)
 		return
 	}
+	if reply != "" && reply != h.Reply {
+		s.ticketNote(r.Context(), h, reply)
+	}
 	s.audit(r, "selfservice.help_update", h.Subject, true, map[string]any{"request": id, "state": req.State, "assignedTo": assigned,
 		"device": h.Hostname})
 	out, err := s.st.HelpRequestByID(r.Context(), id)
@@ -883,11 +949,15 @@ func (s *Server) handlePutSelfServiceSettings(w http.ResponseWriter, r *http.Req
 		return
 	}
 	req.Recipients = rcpt
+	if code := s.normalizeTickets(r.Context(), &req); code != "" {
+		apiError(w, http.StatusBadRequest, code)
+		return
+	}
 	if err := s.st.PutSetting(r.Context(), keySelfService, req); err != nil {
 		s.internalError(w, r, err)
 		return
 	}
 	s.audit(r, "selfservice.settings", "", true, map[string]any{"software": req.Software, "updates": req.Updates, "help": req.Help,
-		"recipients": req.Recipients})
+		"recipients": req.Recipients, "destination": req.Destination, "integration": req.TicketIntegration})
 	writeJSON(w, http.StatusOK, req)
 }

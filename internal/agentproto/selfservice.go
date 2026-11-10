@@ -48,6 +48,54 @@ type HelpRequest struct {
 	Message string `json:"message"`
 	// Contact is how the IT department can reach the user (phone, e-mail).
 	Contact string `json:"contact,omitempty"`
+	// Urgency (low, normal, high) and Category when the form asks for them.
+	Urgency  string `json:"urgency,omitempty"`
+	Category string `json:"category,omitempty"`
+	// Email is the user's e-mail address or UPN as the tray knows it; the
+	// service desk looks the requester up with it.
+	Email string `json:"email,omitempty"`
+}
+
+// Ticket destinations.
+const (
+	TicketFleetWarden = "fleetwarden" // only in the web interface (and e-mail to the recipients)
+	TicketOutlook     = "outlook"     // the tray opens a new message in the user's Outlook
+	TicketMail        = "mail"        // the server e-mails the service desk
+	TicketIntegration = "integration" // the server creates a ticket through an integration
+)
+
+// TicketForm tells the tray how the help form looks and what goes along.
+type TicketForm struct {
+	RequireMessage bool     `json:"requireMessage"`
+	MinMessage     int      `json:"minMessage"`
+	AskUrgency     bool     `json:"askUrgency"`
+	AskCategory    bool     `json:"askCategory"`
+	Categories     []string `json:"categories"`
+	AskContact     bool     `json:"askContact"`
+	// Sent lists the device information that goes along, when the user may
+	// see it.
+	Sent []InfoLine `json:"sent,omitempty"`
+	// Destination is a Ticket* value; DestinationName names the service
+	// desk ("Freshservice") or the e-mail address.
+	Destination     string `json:"destination"`
+	DestinationName string `json:"destinationName,omitempty"`
+}
+
+// InfoLine is one line of device information.
+type InfoLine struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+}
+
+// OutlookDraft is a message the tray opens in the user's Outlook.
+type OutlookDraft struct {
+	To      []string `json:"to"`
+	Subject string   `json:"subject"`
+	HTML    string   `json:"html"`
+	Text    string   `json:"text"`
+	// Attachment is the full device report as an HTML file.
+	AttachmentName string `json:"attachmentName,omitempty"`
+	Attachment     string `json:"attachment,omitempty"`
 }
 
 // Self-service error codes in SelfServiceReply.Error.
@@ -73,6 +121,9 @@ type SelfServiceReply struct {
 	Message string `json:"message,omitempty"`
 	// Catalog is the state after the request (every operation returns it).
 	Catalog *SelfServiceCatalog `json:"catalog,omitempty"`
+	// Outlook is set after a help request when the ticket goes through the
+	// user's own Outlook.
+	Outlook *OutlookDraft `json:"outlook,omitempty"`
 }
 
 // SelfServiceCatalog is what the tray's self-service window shows.
@@ -95,6 +146,8 @@ type SelfServiceCatalog struct {
 	Help         bool         `json:"help"`
 	HelpText     string       `json:"helpText,omitempty"` // shown above the form (opening hours, phone)
 	HelpRequests []HelpTicket `json:"helpRequests"`
+	// Ticket describes the help form (nil from servers before tickets).
+	Ticket *TicketForm `json:"ticket,omitempty"`
 }
 
 // Catalog item states for the user.
@@ -132,10 +185,14 @@ const (
 
 // HelpTicket is one of the user's help requests.
 type HelpTicket struct {
-	ID        int64     `json:"id"`
-	Subject   string    `json:"subject"`
-	State     string    `json:"state"`
-	Reply     string    `json:"reply,omitempty"` // the IT department's note
+	ID      int64  `json:"id"`
+	Subject string `json:"subject"`
+	State   string `json:"state"`
+	Reply   string `json:"reply,omitempty"` // the IT department's note
+	// Number is the ticket number in the service desk, and ExtState its
+	// state there.
+	Number    string    `json:"number,omitempty"`
+	ExtState  string    `json:"extState,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

@@ -170,6 +170,14 @@ namespace FleetWarden.Tray
         ContentControl helpNotice;
         Border helpForm;
         TextBlock helpHeader;
+        // The ticket form as the IT department set it up.
+        readonly StackPanel urgencyRow = new StackPanel(), categoryRow = new StackPanel(), contactRow = new StackPanel();
+        readonly WrapPanel urgencyChoices = new WrapPanel(), categoryChoices = new WrapPanel();
+        readonly TextBlock counter = new TextBlock { FontSize = 12, Margin = new Thickness(0, 4, 0, 0) };
+        readonly TextBlock destination = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        readonly Expander sentInfo = new Expander { Margin = new Thickness(0, 14, 0, 0) };
+        string urgency = "normal", ticketCategory;
+        SelfServiceReply lastReply;
         bool busy, loaded;
 
         public SelfServiceWindow(Func<TrayMessage, Task<SelfServiceReply>> onRequest, string accent, Tab start = Tab.Software)
@@ -212,6 +220,8 @@ namespace FleetWarden.Tray
             message.TextWrapping = TextWrapping.Wrap;
             message.MinHeight = 110;
             message.VerticalContentAlignment = VerticalAlignment.Top;
+            message.MaxLength = 4000;
+            message.TextChanged += (s, e) => UpdateCounter();
             contact = Box("");
             helpPage = new StackPanel();
             BuildHelpForm();
@@ -333,6 +343,7 @@ namespace FleetWarden.Tray
             catch (Exception) { r = new SelfServiceReply { Error = "offline" }; }
             finally { if (!quiet) busy = false; }
             if (r == null) r = new SelfServiceReply { Error = "offline" };
+            lastReply = r;
             if (r.Catalog != null) Apply(r.Catalog);
             else if (!loaded) Render();
             if (!string.IsNullOrEmpty(r.Error) && (!quiet || catalog == null)) ShowStatus(string.IsNullOrEmpty(r.Message) ? SsText.Error(r.Error) : r.Message, error: true);
@@ -554,28 +565,67 @@ namespace FleetWarden.Tray
             sp.Children.Add(Watermarked(subject, SsText.SubjectHint));
             sp.Children.Add(Label(SsText.Message, 12));
             sp.Children.Add(message);
-            sp.Children.Add(Label(SsText.Contact, 12));
-            sp.Children.Add(contact);
+            counter.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+            sp.Children.Add(counter);
+            urgencyRow.Children.Add(Label(SsText.Urgency, 12));
+            urgencyRow.Children.Add(urgencyChoices);
+            sp.Children.Add(urgencyRow);
+            categoryRow.Children.Add(Label(SsText.Category, 12));
+            categoryRow.Children.Add(categoryChoices);
+            sp.Children.Add(categoryRow);
+            contactRow.Children.Add(Label(SsText.Contact, 12));
+            contactRow.Children.Add(contact);
+            sp.Children.Add(contactRow);
             var send = Btn(SsText.Send, "Btn");
-            send.HorizontalAlignment = HorizontalAlignment.Left;
-            send.Margin = new Thickness(0, 16, 0, 0);
             send.Click += async (s, e) =>
             {
+                var form = catalog?.Ticket;
                 if (string.IsNullOrWhiteSpace(subject.Text))
                 {
                     ShowStatus(SsText.SubjectRequired, error: true);
                     subject.Focus();
                     return;
                 }
-                var help = new HelpRequest { Subject = subject.Text.Trim(), Message = message.Text, Contact = contact.Text.Trim() };
-                var ok = await Send(new TrayMessage { Op = "help", Help = help });
-                if (ok)
+                if (form != null && form.RequireMessage && MessageLength() < Math.Max(1, form.MinMessage))
                 {
-                    subject.Text = "";
-                    message.Text = "";
+                    ShowStatus(SsText.MessageRequired(Math.Max(1, form.MinMessage)), error: true);
+                    message.Focus();
+                    return;
+                }
+                if (form != null && form.AskCategory && (form.Categories?.Length ?? 0) > 0 && ticketCategory == null)
+                {
+                    ShowStatus(SsText.CategoryRequired, error: true);
+                    return;
+                }
+                var help = new HelpRequest
+                {
+                    Subject = subject.Text.Trim(), Message = message.Text, Contact = contact.Text.Trim(), Email = OutlookMail.UserPrincipalName(),
+                    Urgency = form != null && form.AskUrgency ? urgency : null, Category = form != null && form.AskCategory ? ticketCategory : null,
+                };
+                var ok = await Send(new TrayMessage { Op = "help", Help = help });
+                if (!ok) return;
+                subject.Text = "";
+                message.Text = "";
+                urgency = "normal";
+                ticketCategory = null;
+                RenderTicketForm();
+                var draft = lastReply?.Outlook;
+                if (draft != null)
+                {
+                    var r = OutlookMail.Open(draft, out var file);
+                    if (r == OutlookMail.Result.MailTo) ShowStatus(SsText.MailToOpened, error: false);
+                    else if (r == OutlookMail.Result.Failed) ShowStatus(SsText.OutlookFailed(string.Join(", ", draft.To ?? new string[0]), file), error: true);
                 }
             };
-            sp.Children.Add(send);
+            var row = new DockPanel { Margin = new Thickness(0, 16, 0, 0), LastChildFill = true };
+            DockPanel.SetDock(send, Dock.Left);
+            destination.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+            row.Children.Add(send);
+            row.Children.Add(destination);
+            sp.Children.Add(row);
+            sentInfo.SetResourceReference(Control.ForegroundProperty, "Fg");
+            sentInfo.Header = new TextBlock { Text = SsText.WhatIsSent, FontSize = 12, FontWeight = FontWeights.SemiBold };
+            sp.Children.Add(sentInfo);
             helpForm.Child = sp;
             helpHeader = new TextBlock { Text = SsText.YourRequests, FontSize = 15, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 12, 0, 10) };
             helpPage.Children.Add(helpNotice);
@@ -583,6 +633,72 @@ namespace FleetWarden.Tray
             helpPage.Children.Add(helpHeader);
             helpPage.Children.Add(helpList);
         }
+
+        int MessageLength() => (message.Text ?? "").Trim().Length;
+
+        void UpdateCounter()
+        {
+            var form = catalog?.Ticket;
+            if (form == null || !form.RequireMessage)
+            {
+                counter.Visibility = Visibility.Collapsed;
+                return;
+            }
+            var min = Math.Max(1, form.MinMessage);
+            var n = MessageLength();
+            counter.Visibility = Visibility.Visible;
+            counter.Text = n >= min ? SsText.MessageOk : SsText.MessageMore(min - n);
+            counter.SetResourceReference(TextBlock.ForegroundProperty, n >= min ? "Muted" : "Warning");
+        }
+
+        // RenderTicketForm shows the parts of the form the IT department asks
+        // for; a refresh keeps the user's choices.
+        void RenderTicketForm()
+        {
+            var form = catalog?.Ticket;
+            UpdateCounter();
+            urgencyRow.Visibility = form != null && form.AskUrgency ? Visibility.Visible : Visibility.Collapsed;
+            urgencyChoices.Children.Clear();
+            foreach (var u in new[] { "low", "normal", "high" })
+            {
+                var b = Choice(SsText.UrgencyName(u), urgency == u);
+                b.Click += (s, e) => { urgency = u; RenderTicketForm(); };
+                urgencyChoices.Children.Add(b);
+            }
+            var cats = form?.Categories ?? new string[0];
+            categoryRow.Visibility = form != null && form.AskCategory && cats.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (ticketCategory != null && !cats.Contains(ticketCategory)) ticketCategory = null;
+            categoryChoices.Children.Clear();
+            foreach (var c in cats)
+            {
+                var b = Choice(c, ticketCategory == c);
+                b.Click += (s, e) => { ticketCategory = c; RenderTicketForm(); };
+                categoryChoices.Children.Add(b);
+            }
+            contactRow.Visibility = form == null || form.AskContact ? Visibility.Visible : Visibility.Collapsed;
+            destination.Text = form == null ? "" : SsText.Destination(form.Destination, form.DestinationName);
+            var sent = form?.Sent ?? new InfoLine[0];
+            sentInfo.Visibility = sent.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            var g = new Grid { Margin = new Thickness(0, 8, 0, 0) };
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) });
+            g.ColumnDefinitions.Add(new ColumnDefinition());
+            for (var i = 0; i < sent.Length; i++)
+            {
+                g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                var k = Muted(sent[i].Label, 12, new Thickness(0, 2, 12, 2));
+                var v = new TextBlock { Text = sent[i].Value, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 2) };
+                Grid.SetRow(k, i);
+                Grid.SetRow(v, i);
+                Grid.SetColumn(v, 1);
+                g.Children.Add(k);
+                g.Children.Add(v);
+            }
+            sentInfo.Content = g;
+        }
+
+        Button Choice(string label, bool selected) =>
+            new Button { Content = label, Style = (Style)root.FindResource(selected ? "Btn" : "Secondary"), Height = 30, Margin = new Thickness(0, 0, 8, 8),
+                FontWeight = FontWeights.Normal, Padding = new Thickness(12, 0, 12, 0) };
 
         void RenderHelp()
         {
@@ -601,6 +717,7 @@ namespace FleetWarden.Tray
                 return;
             }
             if (!string.IsNullOrWhiteSpace(catalog.HelpText)) helpNotice.Content = Notice(catalog.HelpText.Trim());
+            RenderTicketForm();
             var list = catalog.HelpRequests ?? new HelpTicket[0];
             if (list.Length == 0) helpList.Children.Add(Muted(SsText.NoRequests));
             foreach (var h in list)
@@ -613,7 +730,10 @@ namespace FleetWarden.Tray
                 top.Children.Add(pill);
                 top.Children.Add(new TextBlock { Text = $"#{h.Id}  {h.Subject}", FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
                 cs.Children.Add(top);
-                cs.Children.Add(Muted(SsText.When(h.CreatedAt), 12, new Thickness(0, 2, 0, 0)));
+                var when = SsText.When(h.CreatedAt);
+                if (!string.IsNullOrWhiteSpace(h.Number)) when += " · " + SsText.TicketNumber(h.Number);
+                if (!string.IsNullOrWhiteSpace(h.ExtState)) when += " · " + h.ExtState;
+                cs.Children.Add(Muted(when, 12, new Thickness(0, 2, 0, 0)));
                 if (!string.IsNullOrWhiteSpace(h.Reply))
                 {
                     var quote = new Border { BorderThickness = new Thickness(3, 0, 0, 0), Padding = new Thickness(10, 4, 0, 4), Margin = new Thickness(0, 10, 0, 0) };
