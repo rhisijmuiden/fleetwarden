@@ -1790,6 +1790,7 @@
       "closed": "The connection was closed.",
       "connection_lost": "The connection to the server was lost.",
       "websocket_refused": "The browser could not open a WebSocket connection to the server. If the server is behind a reverse proxy, run the test on the Reverse proxy page (Administration).",
+      "websocket_proxy_dropped": "The server accepted the connection, but a proxy between your browser and the server did not pass it on. Check the WebSocket settings of your reverse proxy (in Zoraxy: the rule's WebSocket and origin check options) and run the test on the Reverse proxy page (Administration).",
       "device_offline": "The device is offline.",
       "unsupported": "This device does not support remote control.",
       "busy": "The device already has the maximum number of sessions.",

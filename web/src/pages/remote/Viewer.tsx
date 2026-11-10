@@ -216,7 +216,10 @@ export function RemoteViewer() {
           setReason((r) => r || "websocket_refused");
           get<RemoteSession>(`/remote/sessions/${s.id}`)
             .then((rec) => {
-              if (rec.reason && finished(rec.state)) setReason(rec.reason);
+              if (!rec.reason || !finished(rec.state)) return;
+              // The server took the socket but the browser never got it: a
+              // proxy in between accepted it upstream and then dropped it.
+              setReason(rec.reason === "viewer_closed" ? "websocket_proxy_dropped" : rec.reason);
             })
             .catch(() => {});
         };
