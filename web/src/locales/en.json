@@ -1783,6 +1783,7 @@
       "viewer_closed": "The viewer was closed.",
       "viewer_timeout": "The viewer did not open in time.",
       "viewer_failed": "The viewer could not connect.",
+      "viewer_origin": "The server refused the connection because the address in your browser is not one it knows. On the Reverse proxy page (Administration), set the external base URL to the address you use in the browser, or add your proxy as a trusted proxy.",
       "agent_timeout": "The agent did not connect in time.",
       "agent_closed": "The connection to the agent was lost.",
       "agent_stopped": "The agent stopped.",

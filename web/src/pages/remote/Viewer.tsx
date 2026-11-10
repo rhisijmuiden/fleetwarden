@@ -207,8 +207,18 @@ export function RemoteViewer() {
         sock.onclose = () => {
           closeDirect();
           setPhase((p) => (finished(p) ? p : "ended"));
-          // Never opened: the server or a proxy in between refused the WebSocket.
-          setReason((r) => r || (opened ? "connection_lost" : "websocket_refused"));
+          if (opened) {
+            setReason((r) => r || "connection_lost");
+            return;
+          }
+          // Never opened: the server or a proxy in between refused the
+          // WebSocket. The server records why when it was the one refusing.
+          setReason((r) => r || "websocket_refused");
+          get<RemoteSession>(`/remote/sessions/${s.id}`)
+            .then((rec) => {
+              if (rec.reason && finished(rec.state)) setReason(rec.reason);
+            })
+            .catch(() => {});
         };
       })
       .catch((e) => {

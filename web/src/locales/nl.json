@@ -1783,6 +1783,7 @@
       "viewer_closed": "De viewer is gesloten.",
       "viewer_timeout": "De viewer werd niet op tijd geopend.",
       "viewer_failed": "De viewer kon geen verbinding maken.",
+      "viewer_origin": "De server weigerde de verbinding omdat het adres in je browser niet bij de server bekend is. Zet op de pagina Reverse proxy (Administratie) de externe basis-URL op het adres dat je in de browser gebruikt, of voeg je proxy toe als vertrouwde proxy.",
       "agent_timeout": "De agent maakte niet op tijd verbinding.",
       "agent_closed": "De verbinding met de agent is verbroken.",
       "agent_stopped": "De agent is gestopt.",

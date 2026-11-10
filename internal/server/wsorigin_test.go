@@ -62,4 +62,11 @@ func TestBrowserWebSocketOriginBehindProxy(t *testing.T) {
 	if dial("https://evil.example", "") == nil {
 		t.Fatal("foreign origin accepted with a public URL")
 	}
+	// A public URL written with its default port still matches the browser.
+	if err := e.st.PutSetting(context.Background(), keyGeneral, generalSettings{PublicURL: "https://fleet.example.com:443"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := dial(pub, ""); err != nil {
+		t.Fatalf("public URL with :443: %v", err)
+	}
 }
