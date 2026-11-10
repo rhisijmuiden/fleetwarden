@@ -79,6 +79,22 @@ Under **Self-service > Settings** you choose:
 **Preview ticket** shows the ticket a real device would send with the
 settings in the form, before you save them.
 
+## Chat with the user
+
+On a Windows device, **Chat** (device page, or **Chat with the user** in a
+help request) opens a chat panel at the bottom right. The first message starts
+the chat: it opens as a window at the bottom right of the signed-on user's
+screen, in the tray app. The user can only answer an open chat, never start
+one. The panel shows whether a tray shows the chat. With fast user switching
+every signed-on user sees it.
+
+**End chat** closes it for both sides; a chat without messages for an hour
+ends by itself. A chat opened from a help request (or from the ticket link
+action *Chat*) is linked to it: when it ends, the transcript is added to the
+service desk ticket as a private note. Starting and ending a chat is in the
+audit log. Limits: 2,000 characters per message and 1,000 messages per chat.
+It needs `selfservice.handle`.
+
 ## Permissions
 
 | Permission | Administrator | Technician |

@@ -7,6 +7,12 @@ testversies verschijnen vóór een release als `X.Y.Z-test.N`.
 ## Nog niet uitgebracht
 
 ### Toegevoegd
+- Chatten met de aangemelde gebruiker: een chatpaneel op de apparaatpagina en
+  in hulpvragen, een chatvenster in de tray, afleverstatus, automatisch einde
+  na een uur, en het verslag als notitie bij het gekoppelde servicedeskticket.
+  Onbeheerd overnemen per apparaatgroep: overnemen verbindt als niemand de
+  toestemmingsvraag beantwoordt. Beide zijn ticketlink-acties. Zie
+  docs/selfservice.nl.md en docs/remote.nl.md.
 - Tickets vanuit de tray: het hulpformulier wordt een ticketformulier met een
   verplichte omschrijving, urgentie en categorie. Een ticket gaat naar
   FleetWarden, de eigen Outlook van de gebruiker (met het apparaatrapport als

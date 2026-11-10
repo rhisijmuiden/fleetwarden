@@ -399,7 +399,11 @@
     "distribution_not_updatable": "This distribution server cannot update itself; run the installer on it again.",
     "invalid_integration": "The integration is not valid",
     "integration_in_use": "The integration is still in use",
-    "too_many_integrations": "There are too many integrations (at most 100)"
+    "too_many_integrations": "There are too many integrations (at most 100)",
+    "unattended_not_allowed": "The group of this device does not allow unattended takeover.",
+    "chat_ended": "This chat has already ended.",
+    "chat_full": "This chat is full. End it and start a new one.",
+    "invalid_message": "Type a message first."
   },
   "login": {
     "title": "Sign in",
@@ -1190,7 +1194,9 @@
     "scans": "Scan intervals",
     "overrideInventory": "Own software inventory interval",
     "overridePatchScan": "Own update scan interval",
-    "scanDefault": "Default under Settings: {{value}}."
+    "scanDefault": "Default under Settings: {{value}}.",
+    "unattended": "Allow unattended takeover",
+    "unattendedHint": "When nobody answers the consent prompt (user away, or nobody signed on), a technician may still connect. The user sees a banner while the session runs."
   },
   "agentUpdates": {
     "title": "Agent updates",
@@ -1886,7 +1892,9 @@
       "directHint": "The screen comes straight from the device (WebRTC), not through the server.",
       "relay": "Via server",
       "relayHint": "The screen goes through the server. A direct connection is tried automatically when the device is reachable from this browser."
-    }
+    },
+    "unattended": "Unattended takeover",
+    "unattendedHint": "Connects even when nobody answers the consent prompt, if the group of the device allows it."
   },
   "reports": {
     "title": "Reports",
@@ -4271,12 +4279,16 @@
     "actions": {
       "remote": "Remote control",
       "terminal": "Terminal",
-      "scan": "Run a scan"
+      "scan": "Run a scan",
+      "chat": "Chat",
+      "unattended": "Unattended takeover"
     },
     "actionHints": {
       "remote": "Asks consent as set per group",
       "terminal": "Only for technicians with terminal rights",
-      "scan": "New inventory and update scan"
+      "scan": "New inventory and update scan",
+      "chat": "Opens a chat in the tray; the transcript is added to the ticket",
+      "unattended": "Only for groups that allow it"
     },
     "linkSafe": "The link holds no password or token. FleetWarden checks the technician's sign-in and permissions; actions follow the consent rules of the device's group.",
     "preview": "Preview ticket",
@@ -4311,5 +4323,29 @@
     "openHelp": "Help requests",
     "offline": "The device is offline. Actions are possible again as soon as it connects.",
     "scanStarted": "The scan was requested. The results appear in a few minutes."
+  },
+  "chat": {
+    "open": "Chat",
+    "hint": "Chat with the user signed on to this device. The message appears in the tray.",
+    "withUser": "Chat with the user",
+    "title": "Chat · {{host}}",
+    "online": "Online",
+    "offline": "Offline",
+    "linked": "help request #{{id}}",
+    "empty": "Send a message to start a chat. It opens on the screen of the signed-on user.",
+    "emptyOffline": "The device is offline. A chat can start once it is back online.",
+    "previous": "Previous chat",
+    "ended": "The chat has ended.",
+    "endedIdle": "The chat ended after an hour without messages.",
+    "delivered": "Shown in the tray of the user.",
+    "trayGone": "The tray is no longer open; the user sees it at the next sign-in.",
+    "notDelivered": "Nobody is signed on, or the tray app is not running.",
+    "seen": "Delivered",
+    "waiting": "Waiting",
+    "end": "End chat",
+    "placeholder": "Type a message",
+    "startPlaceholder": "Type a message to start the chat",
+    "offlinePlaceholder": "The device is offline",
+    "send": "Send"
   }
 }

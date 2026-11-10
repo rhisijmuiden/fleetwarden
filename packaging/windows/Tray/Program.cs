@@ -45,6 +45,7 @@ namespace FleetWarden.Tray
 
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             if (demo == "selfservice") return SelfServiceDemo.Run(app, ssPage, screenshot);
+            if (demo == "chat") return ChatDemo(app, screenshot);
             if (demo != null) return Demo(app, demo, screenshot);
 
             using (var single = new Mutex(true, @"Local\FleetWarden.Tray" + (pipe == null ? "" : "." + pipe), out var first))
@@ -95,6 +96,48 @@ namespace FleetWarden.Tray
             return code;
         }
 
+        // ChatDemo shows the chat window with example messages.
+        static int ChatDemo(Application app, string screenshot)
+        {
+            var nl = Strings.Dutch;
+            var now = DateTime.UtcNow;
+            string Iso(int minutes) => now.AddMinutes(-minutes).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            var c = new ChatState
+            {
+                Id = 1, Operator = "Reinder", Open = true, ProductName = "FleetWarden",
+                Lines = new[]
+                {
+                    new ChatLine { Id = 1, From = "tech", Name = "Reinder", At = Iso(6), Text = nl ? "Hoi Jan, ik zag je melding over Outlook. Crasht hij direct bij het opstarten?" : "Hi Jan, I saw your request about Outlook. Does it crash right when it starts?" },
+                    new ChatLine { Id = 2, From = "user", Name = "jan", At = Iso(5), Text = nl ? "Ja, het venster komt even en dan is hij weg." : "Yes, the window shows for a second and then it is gone." },
+                    new ChatLine { Id = 3, From = "tech", Name = "Reinder", At = Iso(4), Text = nl ? "Duidelijk. Ik ga Office herstellen, dat duurt een paar minuten. Sla je werk in Word en Excel even op." : "Clear. I will repair Office, that takes a few minutes. Please save your work in Word and Excel." },
+                    new ChatLine { Id = 4, From = "user", Name = "jan", At = Iso(3), Text = nl ? "Is opgeslagen, ga je gang!" : "Saved, go ahead!" },
+                },
+            };
+            ChatWindow w = null;
+            w = new ChatWindow(text =>
+            {
+                var l = new System.Collections.Generic.List<ChatLine>(c.Lines) { new ChatLine { Id = c.Lines.Length + 1, From = "user", Name = "jan", At = Iso(0), Text = text } };
+                c.Lines = l.ToArray();
+                return Task.FromResult(new SelfServiceReply { Catalog = new SelfServiceCatalog { Chat = c } });
+            });
+            w.Apply(c);
+            w.IsVisibleChanged += (s, e) => { if (!w.IsVisible) app.Shutdown(); };
+            w.Closed += (s, e) => app.Shutdown();
+            var code = 0;
+            if (screenshot != null)
+            {
+                w.ContentRendered += (s, e) => app.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+                {
+                    try { Save(w, screenshot); }
+                    catch (Exception ex) { Console.Error.WriteLine(ex); code = 1; }
+                    w.CloseQuietly();
+                }));
+            }
+            w.Show();
+            app.Run();
+            return code;
+        }
+
         static void Save(Window w, string path)
         {
             const double scale = 2;
@@ -116,12 +159,13 @@ namespace FleetWarden.Tray
         readonly string pipeName;
         readonly bool anyServer;
         readonly Forms.NotifyIcon icon;
-        readonly Forms.ToolStripMenuItem status, show, selfService;
+        readonly Forms.ToolStripMenuItem status, show, selfService, chatItem;
         readonly object writeLock = new object();
         readonly AppCloser closer = new AppCloser();
         StreamWriter writer;
         PromptWindow window;
         SelfServiceWindow ssWindow;
+        ChatWindow chat;
         int ssSeq;
         readonly System.Collections.Generic.Dictionary<string, TaskCompletionSource<SelfServiceReply>> ssPending =
             new System.Collections.Generic.Dictionary<string, TaskCompletionSource<SelfServiceReply>>();
@@ -139,8 +183,11 @@ namespace FleetWarden.Tray
             show.Click += (s, e) => window?.Flash();
             selfService = new Forms.ToolStripMenuItem(SsText.MenuOpen) { Font = new Font(Forms.Control.DefaultFont, System.Drawing.FontStyle.Bold) };
             selfService.Click += (s, e) => OpenSelfService();
+            chatItem = new Forms.ToolStripMenuItem(SsText.MenuChat) { Visible = false };
+            chatItem.Click += (s, e) => chat?.Bring();
             var menu = new Forms.ContextMenuStrip();
             menu.Items.Add(selfService);
+            menu.Items.Add(chatItem);
             menu.Items.Add(new Forms.ToolStripSeparator());
             menu.Items.Add(status);
             menu.Items.Add(show);
@@ -190,6 +237,9 @@ namespace FleetWarden.Tray
                     window = null;
                     foreach (var b in banners.Values) b.CloseQuietly();
                     banners.Clear();
+                    chat?.CloseQuietly();
+                    chat = null;
+                    chatItem.Visible = false;
                     UpdateStatus();
                 }));
                 Thread.Sleep(TimeSpan.FromSeconds(5));
@@ -245,6 +295,9 @@ namespace FleetWarden.Tray
                         ssPending.Remove(m.Id);
                     }
                     tcs.TrySetResult(m.Reply ?? new SelfServiceReply { Error = "internal" });
+                    break;
+                case "chat" when m.Chat != null:
+                    ui.BeginInvoke(new Action(() => ShowChat(m.Chat)));
                     break;
                 case "launch-apps":
                     Task.Run(() => closer.Launch(m.Id));
@@ -304,6 +357,26 @@ namespace FleetWarden.Tray
             banners[id] = b;
             b.Show();
             UpdateStatus();
+        }
+
+        // ShowChat shows a chat with the IT department, or updates it. A new
+        // message of the technician brings the window back; an ended chat
+        // stays visible until the user closes it.
+        void ShowChat(ChatState c)
+        {
+            if (chat == null)
+            {
+                if (!c.Open) return; // ended before this tray saw it
+                chat = new ChatWindow(text => SelfServiceRequest(new TrayMessage { Type = "ss", Op = "chat", Text = text }));
+                try { chat.Icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(icon.Icon.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions()); }
+                catch (Exception) { }
+            }
+            else if (chat.State != null && chat.State.Id != c.Id && !c.Open)
+            {
+                return; // an old chat ended; keep the one on screen
+            }
+            if (chat.Apply(c)) chat.Bring();
+            chatItem.Visible = c.Open;
         }
 
         // OpenSelfService shows the self-service window (one per tray).

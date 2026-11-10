@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   ClipboardCopy,
@@ -53,6 +53,8 @@ export const finished = (p: Phase) => p === "ended" || p === "denied" || p === "
 // mouse and keyboard input.
 export function RemoteViewer() {
   const { deviceId = "" } = useParams();
+  const [search] = useSearchParams();
+  const unattended = search.get("unattended") === "1";
   const { t } = useTranslation();
   const errorText = useErrorText();
   const { branding } = useBranding();
@@ -178,7 +180,7 @@ export function RemoteViewer() {
     setInfo(null);
     closeDirect();
     rtcAsked.current = false;
-    post<RemoteSession & { rtc?: { iceServers: string[] } }>(`/devices/${deviceId}/remote`, { kind: "desktop" })
+    post<RemoteSession & { rtc?: { iceServers: string[] } }>(`/devices/${deviceId}/remote`, { kind: "desktop", unattended })
       .then((s) => {
         if (closed) return;
         rtc.current = s.rtc ?? null;
@@ -214,7 +216,7 @@ export function RemoteViewer() {
       closed = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceId, attempt]);
+  }, [deviceId, attempt, unattended]);
 
   // Close the socket when the tab goes away.
   useEffect(

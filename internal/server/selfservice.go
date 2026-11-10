@@ -83,7 +83,7 @@ type selfServiceSettings struct {
 func defaultSelfService() selfServiceSettings {
 	return selfServiceSettings{Software: true, Updates: true, Help: true, Recipients: []string{}, Language: "en",
 		Destination: agentproto.TicketFleetWarden, AskContact: true, AskUrgency: true, ShowSent: true,
-		Categories: []string{}, Report: slices.Clone(reportParts), LinkDevice: true, LinkActions: []string{"remote", "scan"}}
+		Categories: []string{}, Report: slices.Clone(reportParts), LinkDevice: true, LinkActions: []string{"chat", "remote", "scan"}}
 }
 
 func (s *Server) loadSelfService(ctx context.Context) selfServiceSettings {
@@ -139,6 +139,8 @@ func (s *Server) selfService(ctx context.Context, deviceID string, req agentprot
 		out = s.selfServiceUpdates(ctx, dev, set, user, lang)
 	case agentproto.SelfServiceOpHelp:
 		out = s.selfServiceHelp(ctx, dev, set, user, lang, req.Help)
+	case agentproto.SelfServiceOpChat:
+		out = s.selfServiceChat(ctx, dev, user, lang, req.Text)
 	default:
 		return agentproto.SelfServiceReply{Error: agentproto.SelfServiceErrInvalid}
 	}
@@ -176,6 +178,8 @@ var ssTexts = map[string]map[string]string{
 		"mail.user":        "User",
 		"mail.device":      "Device",
 		"mail.unknownUser": "A user",
+		"chatTranscript":   "Chat with %s in FleetWarden:",
+		"chatEnded":        "The chat has ended.",
 		"testTicket":       "FleetWarden test ticket",
 		"testTicketBody":   "This ticket was created by FleetWarden to test the integration. You can close it.",
 		"previewSubject":   "Outlook does not start",
@@ -196,6 +200,8 @@ var ssTexts = map[string]map[string]string{
 		"mail.user":        "Gebruiker",
 		"mail.device":      "Apparaat",
 		"mail.unknownUser": "Een gebruiker",
+		"chatTranscript":   "Chat met %s in FleetWarden:",
+		"chatEnded":        "De chat is beëindigd.",
 		"testTicket":       "FleetWarden testticket",
 		"testTicketBody":   "Dit ticket is door FleetWarden aangemaakt om de koppeling te testen. Je kunt het sluiten.",
 		"previewSubject":   "Outlook start niet",
@@ -536,6 +542,7 @@ func (s *Server) selfServiceCatalog(ctx context.Context, dev store.Device, set s
 	if set.Help {
 		cat.Ticket = s.ticketForm(ctx, dev, set, user, lang)
 	}
+	cat.Chat = s.openChatState(ctx, dev.ID)
 	if set.Help && user != "" {
 		list, err := s.st.ListHelpRequests(ctx, store.HelpQuery{Scope: store.Scope{All: true}, DeviceID: dev.ID, Username: user, Limit: 10})
 		if err != nil {

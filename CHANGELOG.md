@@ -7,6 +7,12 @@ published as `X.Y.Z-test.N` before a release.
 ## Unreleased
 
 ### Added
+- Chat with the signed-on user: a chat panel on the device page and in help
+  requests, a chat window in the tray, delivery state, automatic end after an
+  hour, and the transcript as a note on the linked service desk ticket.
+  Unattended takeover per device group: remote control connects when nobody
+  answers the consent prompt. Both are ticket link actions. See
+  docs/selfservice.md and docs/remote.md.
 - Tickets from the tray: the help form becomes a ticket form with a required
   description, urgency and category. A ticket goes to FleetWarden, the user's
   own Outlook (with the device report attached), the mail server or a service

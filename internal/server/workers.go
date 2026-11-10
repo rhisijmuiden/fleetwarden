@@ -71,6 +71,7 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			s.vulnTick(ctx)
 			s.distributionTick(ctx)
 			s.ticketSyncTick(ctx)
+			s.chatTick(ctx)
 			s.pruneTransfers()
 		case <-houseTick.C:
 			s.checkRepository(ctx)

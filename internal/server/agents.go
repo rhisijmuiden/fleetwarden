@@ -572,6 +572,8 @@ func (s *Server) handleAgentMessage(ctx context.Context, c *agentConn, ip string
 		return s.handleManageResultMsg(c, e)
 	case agentproto.TypeSelfServiceRequest:
 		return s.handleSelfServiceMsg(ctx, c, e)
+	case agentproto.TypeChatStatus:
+		return s.handleChatStatusMsg(ctx, c, e)
 	default:
 		return fmt.Errorf("unknown message type %q", e.Type)
 	}

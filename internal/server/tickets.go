@@ -31,7 +31,7 @@ import (
 var reportParts = []string{"user", "time", "network", "os", "hardware", "disk", "uptime", "reboot", "updates", "software", "security", "alerts"}
 
 // linkActions are the quick actions a ticket can link to.
-var linkActions = []string{"remote", "terminal", "scan"}
+var linkActions = []string{"chat", "remote", "unattended", "terminal", "scan"}
 
 const (
 	maxCategories    = 30
@@ -156,7 +156,7 @@ var reportTexts = map[string]map[string]string{
 		"noUpdates": "None", "lastScan": "Last update scan", "never": "Never", "programs": "Programs installed", "upToDate": "up to date",
 		"available": "%s available", "failed": "failed", "installing": "busy", "encryption": "Disk encryption", "antivirus": "Antivirus",
 		"firewall": "Firewall", "threats": "Active threats", "noAlerts": "None", "noSoftware": "No catalog deployments or outdated programs",
-		"link.device": "Open in FleetWarden", "link.remote": "Remote control", "link.terminal": "Terminal", "link.scan": "Run a scan",
+		"link.device": "Open in FleetWarden", "link.remote": "Remote control", "link.terminal": "Terminal", "link.scan": "Run a scan", "link.chat": "Chat", "link.unattended": "Unattended takeover",
 		"days": "%d days %d h", "hours": "%d h", "summary.reboot": "Reboot pending", "summary.updates": "Updates waiting",
 		"summary.software": "Software problems", "summary.security": "Security",
 		"enc.encrypted": "Encrypted", "enc.partial": "Partly encrypted", "enc.encrypting": "Encrypting", "enc.suspended": "Suspended", "enc.none": "Not encrypted",
@@ -172,7 +172,7 @@ var reportTexts = map[string]map[string]string{
 		"noUpdates": "Geen", "lastScan": "Laatste updatescan", "never": "Nooit", "programs": "Geïnstalleerde programma's", "upToDate": "actueel",
 		"available": "%s beschikbaar", "failed": "mislukt", "installing": "bezig", "encryption": "Schijfversleuteling", "antivirus": "Antivirus",
 		"firewall": "Firewall", "threats": "Actieve dreigingen", "noAlerts": "Geen", "noSoftware": "Geen uitrol uit de catalogus of verouderde programma's",
-		"link.device": "Openen in FleetWarden", "link.remote": "Overnemen", "link.terminal": "Terminal", "link.scan": "Scan starten",
+		"link.device": "Openen in FleetWarden", "link.remote": "Overnemen", "link.terminal": "Terminal", "link.scan": "Scan starten", "link.chat": "Chatten", "link.unattended": "Overnemen zonder gebruiker",
 		"days": "%d dagen %d uur", "hours": "%d uur", "summary.reboot": "Herstart nodig", "summary.updates": "Wachtende updates",
 		"summary.software": "Softwareproblemen", "summary.security": "Beveiliging",
 		"enc.encrypted": "Versleuteld", "enc.partial": "Deels versleuteld", "enc.encrypting": "Bezig met versleutelen", "enc.suspended": "Onderbroken", "enc.none": "Niet versleuteld",

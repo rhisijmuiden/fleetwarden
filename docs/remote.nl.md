@@ -82,6 +82,17 @@ Als niemand is aangemeld, start een sessie direct (er is niemand om het te
 vragen). Is er wel iemand aangemeld maar start de pop-up-app niet, dan wordt
 een sessie met *vragen* geweigerd (`consent_unavailable`).
 
+### Onbeheerd overnemen
+
+Voor een gebruiker die niet achter de computer zit, kan een groep **Onbeheerd
+overnemen toestaan** (alleen bij *Vraag de gebruiker* of *Automatisch*). Een
+technicus gebruikt dan **Onbeheerd overnemen** (ook een ticketlink-actie): de
+gebruiker krijgt nog steeds de melding, maar als niemand binnen 30 seconden
+antwoordt, of de melding-app niet kan starten, verbindt de sessie toch en
+staat de balk in beeld. **Weigeren** weigert nog steeds. Zonder de
+groepsinstelling weigert de server het (`unattended_not_allowed`); het
+auditlogboek markeert deze sessies als onbeheerd.
+
 ## Sessielogboek
 
 Elke sessie wordt vastgelegd met het apparaat, de beheerder, het IP-adres, de

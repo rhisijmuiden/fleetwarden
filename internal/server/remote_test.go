@@ -57,16 +57,20 @@ func (f *fakeDesktop) SecureAttention() error {
 
 // fakeConsent answers remote prompts.
 type fakeConsent struct {
-	mu      sync.Mutex
-	allow   bool
-	asked   []agent.Prompt
-	banners map[string]func()
+	mu       sync.Mutex
+	allow    bool
+	noAnswer bool // nobody answers (the user is away)
+	asked    []agent.Prompt
+	banners  map[string]func()
 }
 
 func (f *fakeConsent) Ask(_ context.Context, p agent.Prompt) (agent.Answer, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.asked = append(f.asked, p)
+	if f.noAnswer {
+		return agent.Answer{}, nil
+	}
 	return agent.Answer{Answered: true, Allow: f.allow}, nil
 }
 

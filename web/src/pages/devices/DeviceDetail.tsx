@@ -51,6 +51,7 @@ import { DeviceManageTab } from "../manage/Manage";
 import { DeviceSecurityTab } from "../security/DeviceSecurity";
 import { DeviceVulnsTab } from "../vulnerabilities/DeviceVulns";
 import { TicketBanner } from "../selfservice/Tickets";
+import { ChatButton, ChatPanel } from "./Chat";
 import {
   KindIcon,
   PlatformBadge,
@@ -97,6 +98,10 @@ export function DeviceDetail() {
       : "overview",
   );
   const [moving, setMoving] = useState(false);
+  // The chat panel, linked to the help request when opened from a ticket.
+  const [chat, setChat] = useState<{ helpRequestId?: number } | null>(() =>
+    params.get("action") === "chat" ? { helpRequestId: Number(params.get("ticket")) || undefined } : null,
+  );
   const [deleting, setDeleting] = useState(false);
   const manage = can("devices.manage");
 
@@ -154,7 +159,7 @@ export function DeviceDetail() {
             </div>
           </div>
         </div>
-        {(manage || can("remote.control") || can("power.control")) && (
+        {(manage || can("remote.control") || can("power.control") || can("selfservice.handle")) && (
           <div className="flex flex-wrap gap-2">
             {can("remote.control") && device.platform !== "linux" && (
               <RemoteButton device={device} />
@@ -164,6 +169,9 @@ export function DeviceDetail() {
                 device={device}
                 variant={device.platform === "linux" ? "primary" : "secondary"}
               />
+            )}
+            {device.platform === "windows" && (
+              <ChatButton onOpen={() => setChat((c) => c ?? {})} />
             )}
             {can("power.control") && (
               <PowerButtons
@@ -214,8 +222,10 @@ export function DeviceDetail() {
       {error && <Alert tone="danger">{error}</Alert>}
       {notice && <Alert tone="success">{notice}</Alert>}
       {params.get("ticket") && (
-        <TicketBanner device={device} ticket={Number(params.get("ticket"))} action={params.get("action") ?? ""} onNotice={setNotice} />
+        <TicketBanner device={device} ticket={Number(params.get("ticket"))} action={params.get("action") ?? ""} onNotice={setNotice}
+          onChat={() => setChat({ helpRequestId: Number(params.get("ticket")) || undefined })} />
       )}
+      {chat && <ChatPanel device={device} helpRequestId={chat.helpRequestId} onClose={() => setChat(null)} />}
 
       <div
         className="flex gap-1 overflow-x-auto border-b border-line"

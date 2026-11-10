@@ -396,6 +396,15 @@ function HelpDialog({ help, canHandle, canRemote, onClose, onSaved }: { help: He
           </div>
         </details>
       )}
+      {canHandle && (help.online || help.state !== "closed") && (
+        <Link
+          to={`/devices/${help.deviceId}?ticket=${help.id}&action=chat`}
+          className="mr-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+        >
+          <MessageSquare className="size-4" />
+          {t("chat.withUser")}
+        </Link>
+      )}
       {canRemote && help.online && (
         <a href={`/remote/connect/${help.deviceId}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
           <MonitorPlay className="size-4" />

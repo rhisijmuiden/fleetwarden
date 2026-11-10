@@ -116,6 +116,16 @@ namespace FleetWarden.Tray
         public static string OutlookFailed(string to, string file) => T($"No mail program could be opened. E-mail your problem to {to}" + (file != null ? $" and attach {file}." : "."),
                                                                          $"Er kon geen mailprogramma worden geopend. Mail je probleem naar {to}" + (file != null ? $" en voeg {file} toe." : "."));
 
+        // Chat
+        public static string ChatTitle => T("Chat with IT", "Chat met IT");
+        public static string ChatWith(string op, string product) => string.IsNullOrWhiteSpace(op) ? product
+            : T($"{op} · {product}", $"{op} · {product}");
+        public static string ChatSend => T("Send", "Versturen");
+        public static string ChatPlaceholder => T("Type a message", "Typ een bericht");
+        public static string ChatEnded => T("The IT department ended this chat.", "De IT-afdeling heeft deze chat beëindigd.");
+        public static string ChatYou => T("You", "Jij");
+        public static string MenuChat => T("Open chat with IT", "Chat met IT openen");
+
         // Status and errors
         public static string Loading => T("Loading…", "Laden…");
         public static string Error(string code)

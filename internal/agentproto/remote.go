@@ -54,10 +54,14 @@ type RemoteStart struct {
 	Operator  string `json:"operator"` // shown to the user
 	Consent   string `json:"consent"`
 	// ConsentSeconds is how long the user has to answer an "ask" prompt.
-	ConsentSeconds int    `json:"consentSeconds"`
-	ServerKey      []byte `json:"serverKey"` // X25519 public key
-	ProductName    string `json:"productName,omitempty"`
-	AccentColor    string `json:"accentColor,omitempty"`
+	ConsentSeconds int `json:"consentSeconds"`
+	// Unattended connects after an "ask" prompt nobody answered (or when no
+	// tray app runs), with the banner on screen. The group must allow it
+	// and the technician must choose it; a user who denies still wins.
+	Unattended  bool   `json:"unattended,omitempty"`
+	ServerKey   []byte `json:"serverKey"` // X25519 public key
+	ProductName string `json:"productName,omitempty"`
+	AccentColor string `json:"accentColor,omitempty"`
 	// Direct allows the direct path (WebRTC) for a desktop session, with
 	// these STUN servers ("stun:host:port"); none means local networks only.
 	Direct     bool     `json:"direct,omitempty"`
