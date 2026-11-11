@@ -84,7 +84,7 @@ func TestProxySettingsAndEndToEndTest(t *testing.T) {
 	}
 	want := map[string]string{
 		"listen": "pass", "public_url": "warn", "dns": "pass", "tls": "skip", "reach": "pass", "peer_trusted": "pass",
-		"forwarded_proto": "pass", "forwarded_host": "pass", "forwarded_for": "pass", "agent_hello": "pass", "websocket": "pass", "http_redirect": "skip",
+		"forwarded_proto": "pass", "forwarded_host": "pass", "forwarded_for": "pass", "client_ip": "pass", "agent_hello": "pass", "websocket": "pass", "http_redirect": "skip",
 	}
 	for _, c := range res.Checks {
 		if want[c.ID] != c.Status {

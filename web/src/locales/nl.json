@@ -1796,6 +1796,7 @@
       "busy": "Op dit apparaat lopen al het maximale aantal sessies.",
       "connect_failed": "De agent kon de server niet bereiken voor de sessie. Controleer of de reverse proxy WebSockets doorgeeft.",
       "connect_unauthorized": "De server accepteerde het ondertekende verzoek van de agent voor de sessie niet. Meestal staat de klok van het apparaat verkeerd: werk de agent bij of zet de klok goed.",
+      "connect_rate_limited": "De server heeft het adres waarvandaan de agent verbindt tijdelijk geblokkeerd na te veel mislukte agentverzoeken. Zit er een proxy zoals Cloudflare voor? Voeg dan de adressen daarvan toe aan Vertrouwde proxy's op de pagina Reverse proxy (Administratie).",
       "helper_failed": "Het scherm van deze computer kon niet worden opgenomen.",
       "bad_message": "Een bericht kwam niet door de integriteitscontrole; de sessie is gestopt.",
       "bad_key": "De sessiesleutels kwamen niet overeen.",
@@ -2294,6 +2295,11 @@
         "title": "X-Forwarded-For",
         "pass": "Clientadres doorgestuurd ({{detail}}).",
         "fail": "Wordt niet meegestuurd. Auditlog en rate limits zien dan de proxy in plaats van de echte gebruiker."
+      },
+      "client_ip": {
+        "title": "Echt clientadres",
+        "pass": "De server ziet clients met hun eigen adres ({{detail}}).",
+        "warn": "De server ziet {{detail}} als client: er zit nog een proxy vóór de jouwe (Cloudflare, een load balancer) die niet vertrouwd wordt. Alle agents en gebruikers daarachter delen dan één adres, en een paar mislukte verzoeken blokkeren ze allemaal. Voeg de adressen van die proxy toe aan Vertrouwde proxy's (Cloudflare publiceert ze op cloudflare.com/ips)."
       },
       "agent_hello": {
         "title": "Agent-endpoint",
