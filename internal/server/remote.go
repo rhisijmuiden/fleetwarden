@@ -571,6 +571,7 @@ func (s *Server) handleRemoteViewer(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleRemoteAgent(w http.ResponseWriter, r *http.Request) {
 	ip := ClientIP(r)
 	if s.agentFails.Blocked(ip) {
+		s.log.Warn("remote session: agent address blocked after too many failed agent requests", "session", r.PathValue("sid"), "ip", ip)
 		apiError(w, http.StatusTooManyRequests, "rate_limited")
 		return
 	}

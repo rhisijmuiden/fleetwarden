@@ -1796,6 +1796,7 @@
       "busy": "The device already has the maximum number of sessions.",
       "connect_failed": "The agent could not reach the server for the session. Check that the reverse proxy passes WebSockets.",
       "connect_unauthorized": "The server did not accept the agent's signed request for the session. This usually means the device's clock is wrong: update the agent, or set the clock right.",
+      "connect_rate_limited": "The server temporarily blocked the address the agent connects from, after too many failed agent requests from it. If a proxy such as Cloudflare is in front, add its addresses to Trusted proxies on the Reverse proxy page (Administration).",
       "helper_failed": "The screen of this computer could not be captured.",
       "bad_message": "A message failed its integrity check; the session was stopped.",
       "bad_key": "The session keys did not match.",
@@ -2294,6 +2295,11 @@
         "title": "X-Forwarded-For",
         "pass": "Client address forwarded ({{detail}}).",
         "fail": "Not sent. The audit log and rate limits then see the proxy instead of the real user."
+      },
+      "client_ip": {
+        "title": "Real client address",
+        "pass": "The server sees clients by their own address ({{detail}}).",
+        "warn": "The server sees {{detail}} as the client: another proxy in front of yours (Cloudflare, a load balancer) is not trusted. All agents and users behind it then share one address, and a few failed requests block them all. Add that proxy's addresses to Trusted proxies (Cloudflare publishes them at cloudflare.com/ips)."
       },
       "agent_hello": {
         "title": "Agent endpoint",

@@ -224,6 +224,9 @@ func (a *Agent) connectRemote(ctx context.Context, st agentproto.RemoteStart, se
 		if strings.Contains(err.Error(), "got 401") {
 			return nil, nil, failed("connect_unauthorized") // signature refused
 		}
+		if strings.Contains(err.Error(), "got 429") {
+			return nil, nil, failed("connect_rate_limited") // the address is blocked
+		}
 		return nil, nil, failed("connect_failed")
 	}
 	ws.SetReadLimit(remoteReadLimit)

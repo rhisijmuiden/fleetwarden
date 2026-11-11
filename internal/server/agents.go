@@ -403,6 +403,7 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	}
 	dev, err := s.st.DeviceByID(ctx, a.DeviceID)
 	if errors.Is(err, store.ErrNotFound) {
+		s.log.Info("unknown device tried to connect", "device", a.DeviceID, "version", a.AgentVersion, "ip", ip)
 		s.agentFails.Fail(ip)
 		ws.Close(4404, "unknown device") //nolint:errcheck
 		return

@@ -432,7 +432,7 @@ func (s *Server) runProxyChecks(ctx context.Context, pub, nonce string) []proxyC
 			add(id, "skip", "")
 		}
 	}
-	all := []string{"dns", "tls", "reach", "peer_trusted", "forwarded_proto", "forwarded_host", "forwarded_for", "agent_hello", "websocket", "http_redirect"}
+	all := []string{"dns", "tls", "reach", "peer_trusted", "forwarded_proto", "forwarded_host", "forwarded_for", "client_ip", "agent_hello", "websocket", "http_redirect"}
 
 	add("listen", "pass", s.cfg.Listen)
 	if pub == "" {
@@ -516,6 +516,14 @@ func (s *Server) runProxyChecks(ctx context.Context, pub, nonce string) []proxyC
 		add("forwarded_for", "pass", v.ForwardedFor)
 	} else {
 		add("forwarded_for", "fail", "")
+	}
+	// With another proxy in front (Cloudflare, a load balancer) that is not
+	// trusted, every client seems to come from that proxy: rate limits then
+	// hit all agents and users behind it at once.
+	if first := firstHeaderValue(v.ForwardedFor); first != "" && v.ClientIP != first {
+		add("client_ip", "warn", v.ClientIP)
+	} else {
+		add("client_ip", "pass", v.ClientIP)
 	}
 
 	// The agent endpoint answers with this server's key.
