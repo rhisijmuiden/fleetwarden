@@ -2219,6 +2219,7 @@
       "s2c": "Leave \"Proxy Target require TLS Connection\" off: FleetWarden speaks plain HTTP behind the proxy.",
       "s3": "Advance Settings of the rule (also under HTTP Proxy > Edit)",
       "s3a": "Leave \"Disable WebSocket\" off: agents and remote control need WebSockets.",
+      "s3b": "Turn on \"Enable WebSocket custom headers\" (only needed for agents older than this version, which send their signature in a header that Zoraxy otherwise drops on WebSocket connections).",
       "wsTimeout": "WebSocket Timeout (seconds)",
       "s3c": "Turn \"Refresh timeout on activity\" on, so the timeout is an idle timeout and not a maximum duration of 5 minutes.",
       "s3d": "Leave \"Block Common Exploits\" off for this rule: it can block agent traffic and installer uploads.",

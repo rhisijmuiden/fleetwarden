@@ -375,7 +375,7 @@ function ZoraxySteps({ domain, upstream, tlsMode }: { domain: string; upstream: 
     },
     {
       title: t("proxy.zoraxy.s3"),
-      items: [t("proxy.zoraxy.s3a"), <ValueRow key="w" label={t("proxy.zoraxy.wsTimeout")} value="3600" />, t("proxy.zoraxy.s3c"), t("proxy.zoraxy.s3d")],
+      items: [t("proxy.zoraxy.s3a"), t("proxy.zoraxy.s3b"), <ValueRow key="w" label={t("proxy.zoraxy.wsTimeout")} value="3600" />, t("proxy.zoraxy.s3c"), t("proxy.zoraxy.s3d")],
     },
     {
       title: t(tlsMode === "acme" ? "proxy.zoraxy.s4acme" : "proxy.zoraxy.s4own"),

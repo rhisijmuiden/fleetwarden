@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
 	"runtime"
 	"strings"
 	"sync"
@@ -634,4 +637,66 @@ func TestRemoteAgentWithWrongClock(t *testing.T) {
 	v := admin.openViewer(rs.ID)
 	v.waitState("active")
 	v.waitBinary(remote.MsgInfo)
+}
+
+// Zoraxy (by default) passes only a few fixed headers on WebSocket upgrades
+// and drops the agent's signature header. The session socket must still
+// open: the signature also travels in the query string.
+func TestRemoteAgentBehindProxyDroppingHeaders(t *testing.T) {
+	e := newEnv(t)
+	admin, _ := e.signedInAdmin()
+	_, info := e.createToken(admin, 1)
+	backend, _ := url.Parse(e.ts.URL)
+	dropped := false
+	var mu sync.Mutex
+	rp := &httputil.ReverseProxy{Rewrite: func(pr *httputil.ProxyRequest) {
+		pr.SetURL(backend)
+		if strings.EqualFold(pr.In.Header.Get("Upgrade"), "websocket") && pr.Out.Header.Get(agentproto.HeaderAuth) != "" {
+			pr.Out.Header.Del(agentproto.HeaderAuth)
+			mu.Lock()
+			dropped = true
+			mu.Unlock()
+		}
+	}}
+	front := httptest.NewServer(rp)
+	t.Cleanup(front.Close)
+
+	a := newTestAgent(t, e, info.Token, "PLAYOUT-02", false)
+	cfg, err := agent.LoadConfig(a.ConfigPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Server = front.URL
+	if err := agent.SaveConfig(a.ConfigPath, cfg); err != nil {
+		t.Fatal(err)
+	}
+	a.Remote, a.Notify = &fakeDesktop{p: remote.NewFakePlatform()}, &fakeConsent{allow: true}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	go a.Run(ctx)
+
+	var list deviceList
+	for range 100 {
+		if admin.do("GET", "/api/v1/devices?status=online", nil, &list); list.Total == 1 {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if list.Total != 1 {
+		t.Fatal("agent did not come online")
+	}
+	id := list.Items[0].ID
+	setPlatform(t, id, "windows")
+	var rs store.RemoteSession
+	if code := admin.do("POST", "/api/v1/devices/"+id+"/remote", map[string]string{"kind": "desktop"}, &rs); code != 201 {
+		t.Fatalf("start: %d %+v", code, rs)
+	}
+	v := admin.openViewer(rs.ID)
+	v.waitState("active")
+	v.waitBinary(remote.MsgInfo)
+	mu.Lock()
+	defer mu.Unlock()
+	if !dropped {
+		t.Error("the proxy never saw the signature header on a WebSocket upgrade")
+	}
 }

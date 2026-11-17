@@ -347,6 +347,12 @@ type Software struct {
 // HeaderAuth carries "deviceID:unixTime:base64(signature)".
 const HeaderAuth = "X-FleetWarden-Agent"
 
+// QueryAuth carries the same value in the query string of a WebSocket
+// request. Some reverse proxies (Zoraxy by default) pass only a few fixed
+// headers on WebSocket upgrades and drop HeaderAuth; the query survives.
+// The signature covers the path, not the query.
+const QueryAuth = "auth"
+
 func requestSigningBytes(method, path string, ts int64, deviceID string) []byte {
 	return []byte("fleetwarden-agent-req-v1\x00" + method + "\x00" + path + "\x00" + strconv.FormatInt(ts, 10) + "\x00" + deviceID)
 }

@@ -12,6 +12,7 @@ import (
 	"image/png"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -251,11 +252,14 @@ func (a *Agent) dialRemote(ctx context.Context, sessionID string, key *agentprot
 	path := agentproto.PathRemote + sessionID + "/" + agentproto.EncodeRemoteKey(key.Public())
 	dctx, cancel := context.WithTimeout(ctx, remoteDialTimeout)
 	defer cancel()
-	ws, res, err := websocket.Dial(dctx, wsURL(cfg.Server)+path, &websocket.DialOptions{
+	auth := agentproto.SignRequest(cfg.Key(), cfg.DeviceID, http.MethodGet, path, a.serverNow())
+	// The signature goes in the query too: proxies may drop custom headers
+	// on WebSocket upgrades.
+	ws, res, err := websocket.Dial(dctx, wsURL(cfg.Server)+path+"?"+agentproto.QueryAuth+"="+url.QueryEscape(auth), &websocket.DialOptions{
 		HTTPClient: a.HTTP,
 		HTTPHeader: http.Header{
 			"User-Agent":          {"fleetwarden-agent/" + version.Version},
-			agentproto.HeaderAuth: {agentproto.SignRequest(cfg.Key(), cfg.DeviceID, http.MethodGet, path, a.serverNow())},
+			agentproto.HeaderAuth: {auth},
 		},
 		CompressionMode: websocket.CompressionDisabled,
 	})
