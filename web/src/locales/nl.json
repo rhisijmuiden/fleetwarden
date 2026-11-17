@@ -2219,6 +2219,7 @@
       "s2c": "Laat \"Proxy Target require TLS Connection\" uit: FleetWarden praat gewoon HTTP achter de proxy.",
       "s3": "Advance Settings van de regel (ook via HTTP Proxy > Edit)",
       "s3a": "Laat \"Disable WebSocket\" uit: agents en overname op afstand hebben WebSockets nodig.",
+      "s3b": "Zet \"Enable WebSocket custom headers\" aan (alleen nodig voor agents ouder dan deze versie: die sturen hun handtekening in een header die Zoraxy anders weggooit bij WebSocket-verbindingen).",
       "wsTimeout": "WebSocket Timeout (seconden)",
       "s3c": "Zet \"Refresh timeout on activity\" aan, zodat de timeout een idle-timeout is en geen maximale duur van 5 minuten.",
       "s3d": "Laat \"Block Common Exploits\" uit voor deze regel: dat kan agentverkeer en installer-uploads blokkeren.",

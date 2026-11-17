@@ -577,8 +577,16 @@ func (s *Server) handleRemoteAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	rs := s.remote.get(r.PathValue("sid"))
 	peer, kerr := agentproto.DecodeRemoteKey(r.PathValue("key"))
-	devID, ts, sig, err := agentproto.ParseRequestAuth(r.Header.Get(agentproto.HeaderAuth))
+	authValue := r.Header.Get(agentproto.HeaderAuth)
+	if authValue == "" {
+		// Some proxies drop custom headers on WebSocket upgrades.
+		authValue = r.URL.Query().Get(agentproto.QueryAuth)
+	}
+	devID, ts, sig, err := agentproto.ParseRequestAuth(authValue)
 	if rs == nil || kerr != nil || err != nil || devID != rs.DeviceID {
+		if rs != nil {
+			s.log.Warn("remote session: agent socket refused", "session", rs.ID, "ip", ip, "signed", authValue != "", "keyOK", kerr == nil, "err", err)
+		}
 		apiError(w, http.StatusNotFound, "not_found")
 		return
 	}
