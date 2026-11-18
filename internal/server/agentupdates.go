@@ -1,10 +1,12 @@
 package server
 
 // Agent updates: the server downloads agent releases from GitHub (or an admin
-// uploads them) and rolls a version out ring by ring. Each device group has an
-// update ring (0 = pilot ... 3 = last), an agent channel and an update window.
-// A ring advances after the soak time; too many failed devices pause the
-// rollout. Agents install the package themselves and roll back on failure.
+// uploads them). By default (mode "approve") an administrator picks one of the
+// latest versions and approves it; every agent then updates itself, in its
+// group's update window. In mode "rings" a version is rolled out ring by ring
+// instead: each device group has an update ring (0 = pilot ... 3 = last), a
+// ring advances after the soak time. In both modes too many failed devices
+// pause the rollout, and agents roll back on failure.
 
 import (
 	"bufio"
@@ -41,6 +43,10 @@ const (
 	updateMaxAttempts   = 2
 	updateTimeout       = 45 * time.Minute // no progress: the attempt failed
 	agentReleaseCheck   = time.Hour
+	approveCandidates   = 5 // versions offered for approval
+
+	agentModeApprove = "approve" // approve one version, every agent updates
+	agentModeRings   = "rings"   // roll out ring by ring
 )
 
 var agentVersionRE = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-z]+\.[0-9]+)?$`)
@@ -52,17 +58,18 @@ func validAgentVersion(v string) bool { return agentVersionRE.MatchString(v) }
 func comparableVersion(v string) bool { return v != "0.0.0-dev" && semver.IsValid("v"+v) }
 
 type agentUpdateSettings struct {
+	Mode         string    `json:"mode"`         // agentModeApprove or agentModeRings
 	AutoDownload bool      `json:"autoDownload"` // fetch new agent releases from GitHub
-	AutoRollout  bool      `json:"autoRollout"`  // start a rollout for each new release
+	AutoRollout  bool      `json:"autoRollout"`  // rings mode: start a rollout for each new release
 	SoakHours    int       `json:"soakHours"`    // per ring
-	MaxFailures  int       `json:"maxFailures"`  // per ring, before the rollout pauses
+	MaxFailures  int       `json:"maxFailures"`  // per ring (all devices when approved), before the rollout pauses
 	KeepReleases int       `json:"keepReleases"` // downloaded releases kept on disk
 	LastCheck    time.Time `json:"lastCheck"`
 	LastError    string    `json:"lastError"`
 }
 
 func defaultAgentUpdateSettings() agentUpdateSettings {
-	return agentUpdateSettings{AutoDownload: true, AutoRollout: true, SoakHours: 24, MaxFailures: 2, KeepReleases: 5}
+	return agentUpdateSettings{Mode: agentModeApprove, AutoDownload: true, AutoRollout: true, SoakHours: 24, MaxFailures: 2, KeepReleases: 5}
 }
 
 func (s *Server) loadAgentUpdateSettings(ctx context.Context) agentUpdateSettings {
@@ -72,7 +79,7 @@ func (s *Server) loadAgentUpdateSettings(ctx context.Context) agentUpdateSetting
 }
 
 func (v *agentUpdateSettings) valid() bool {
-	return v.SoakHours >= 0 && v.SoakHours <= 720 && v.MaxFailures >= 0 && v.MaxFailures <= 1000 && v.KeepReleases >= 1 && v.KeepReleases <= 50
+	return (v.Mode == agentModeApprove || v.Mode == agentModeRings) && v.SoakHours >= 0 && v.SoakHours <= 720 && v.MaxFailures >= 0 && v.MaxFailures <= 1000 && v.KeepReleases >= 1 && v.KeepReleases <= 50
 }
 
 func channelOfVersion(v string) string {
@@ -205,6 +212,9 @@ func advance(r *store.Rollout, rings []ringStats, now time.Time) bool {
 	if r.Status != store.RolloutActive {
 		return false
 	}
+	if r.AllGroups {
+		return advanceAll(r, rings)
+	}
 	changed := false
 	for {
 		cur := rings[r.Ring]
@@ -225,6 +235,27 @@ func advance(r *store.Rollout, rings []ringStats, now time.Time) bool {
 		r.Ring++
 		r.RingStartedAt, r.Message = now, ""
 	}
+}
+
+// advanceAll handles an approved version that goes to every group at once: it
+// pauses when too many devices failed and completes once no device is left
+// to update. Devices that come online later still receive the version.
+func advanceAll(r *store.Rollout, rings []ringStats) bool {
+	var failed, open int
+	for _, x := range rings {
+		failed += x.Failed
+		open += x.Pending + x.InProgress
+	}
+	switch {
+	case failed > r.MaxFailures:
+		r.Status = store.RolloutPaused
+		r.Message = fmt.Sprintf("paused: %d devices failed to update", failed)
+	case open == 0:
+		r.Status, r.Message = store.RolloutCompleted, ""
+	default:
+		return false
+	}
+	return true
 }
 
 // ---- worker ----
@@ -417,6 +448,21 @@ func (s *Server) handleAgentFile(w http.ResponseWriter, r *http.Request) {
 
 type releaseFetcher struct {
 	mu sync.Mutex // one fetch at a time
+
+	kmu   sync.Mutex
+	known []updates.AgentRelease // from the last successful GitHub check, newest first
+}
+
+func (f *releaseFetcher) setKnown(rels []updates.AgentRelease) {
+	f.kmu.Lock()
+	f.known = rels
+	f.kmu.Unlock()
+}
+
+func (f *releaseFetcher) knownReleases() []updates.AgentRelease {
+	f.kmu.Lock()
+	defer f.kmu.Unlock()
+	return f.known
 }
 
 // fetchAgentReleases downloads the newest agent release of every channel in
@@ -444,6 +490,7 @@ func (s *Server) fetchAgentReleasesLocked(ctx context.Context, force bool, set a
 	if err != nil {
 		return err
 	}
+	s.fetcher.setKnown(rels)
 	groups, err := s.groupInfos(ctx)
 	if err != nil {
 		return err
@@ -471,7 +518,7 @@ func (s *Server) fetchAgentReleasesLocked(ctx context.Context, force bool, set a
 			errs = append(errs, fmt.Errorf("%s: %w", rel.Version, err))
 			continue
 		}
-		if set.AutoRollout {
+		if set.Mode == agentModeRings && set.AutoRollout {
 			if err := s.autoRollout(ctx, rel.Version, set); err != nil {
 				errs = append(errs, err)
 			}
@@ -699,6 +746,7 @@ func (s *Server) agentUpdateRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/v1/agent/releases", adm(s.handleUploadAgentPackage))
 	mux.Handle("DELETE /api/v1/agent/releases/{version}", adm(s.handleDeleteAgentRelease))
 	mux.Handle("POST /api/v1/agent/rollouts", adm(s.handleCreateRollout))
+	mux.Handle("POST /api/v1/agent/approve", adm(s.handleApproveAgentVersion))
 	mux.Handle("POST /api/v1/agent/rollouts/{id}/{action}", adm(s.handleRolloutAction))
 }
 
@@ -728,13 +776,25 @@ type deviceProblem struct {
 	At       *time.Time `json:"at"`
 }
 
+// candidateView is one of the latest versions offered for approval.
+type candidateView struct {
+	Version     string    `json:"version"`
+	Prerelease  bool      `json:"prerelease"`
+	PublishedAt time.Time `json:"publishedAt"`
+	Downloaded  bool      `json:"downloaded"` // packages are on the server
+	Devices     int       `json:"devices"`    // devices running it
+	Approved    bool      `json:"approved"`   // the version its channel follows now
+	Status      string    `json:"status"`     // status of that rollout, when approved
+}
+
 type agentUpdatesView struct {
-	Settings agentUpdateSettings `json:"settings"`
-	Channel  string              `json:"channel"` // the server's channel (groups without their own)
-	Releases []releaseView       `json:"releases"`
-	Rollouts []rolloutView       `json:"rollouts"`
-	Problems []deviceProblem     `json:"problems"`
-	Versions map[string]int      `json:"versions"` // devices per agent version
+	Settings   agentUpdateSettings `json:"settings"`
+	Channel    string              `json:"channel"` // the server's channel (groups without their own)
+	Candidates []candidateView     `json:"candidates"`
+	Releases   []releaseView       `json:"releases"`
+	Rollouts   []rolloutView       `json:"rollouts"`
+	Problems   []deviceProblem     `json:"problems"`
+	Versions   map[string]int      `json:"versions"` // devices per agent version
 }
 
 func (s *Server) handleGetAgentUpdates(w http.ResponseWriter, r *http.Request) {
@@ -748,7 +808,7 @@ func (s *Server) handleGetAgentUpdates(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) agentUpdatesView(ctx context.Context) (agentUpdatesView, error) {
 	v := agentUpdatesView{Settings: s.loadAgentUpdateSettings(ctx), Channel: s.loadUpdateSettings(ctx).Channel,
-		Releases: []releaseView{}, Rollouts: []rolloutView{}, Problems: []deviceProblem{}, Versions: map[string]int{}}
+		Candidates: []candidateView{}, Releases: []releaseView{}, Rollouts: []rolloutView{}, Problems: []deviceProblem{}, Versions: map[string]int{}}
 	groups, err := s.groupInfos(ctx)
 	if err != nil {
 		return v, err
@@ -805,7 +865,74 @@ func (s *Server) agentUpdatesView(ctx context.Context) (agentUpdatesView, error)
 	sort.Slice(v.Problems, func(i, j int) bool {
 		return strings.ToLower(v.Problems[i].Hostname) < strings.ToLower(v.Problems[j].Hostname)
 	})
+	v.Candidates = s.approveCandidates(groups, v.Channel, rollouts, v.Versions)
 	return v, nil
+}
+
+// approveCandidates lists the latest versions for the channels in use, from
+// GitHub and from the server's own packages, newest first.
+func (s *Server) approveCandidates(groups map[int64]groupInfo, serverChannel string, rollouts []store.Rollout, versions map[string]int) []candidateView {
+	channels := map[string]bool{serverChannel: true}
+	for _, g := range groups {
+		channels[g.channel] = true
+	}
+	allowed := func(v string) bool {
+		for ch := range channels {
+			if channelAllows(ch, v) {
+				return true
+			}
+		}
+		return false
+	}
+	byVersion := map[string]*candidateView{}
+	for _, p := range s.agentPackages() {
+		if !allowed(p.Version) {
+			continue
+		}
+		c := byVersion[p.Version]
+		if c == nil {
+			c = &candidateView{Version: p.Version, Prerelease: p.prerelease(), PublishedAt: p.Added}
+			byVersion[p.Version] = c
+		}
+		if p.SHA256 != "" {
+			c.Downloaded = true
+		}
+	}
+	for _, r := range s.fetcher.knownReleases() {
+		if !allowed(r.Version) {
+			continue
+		}
+		if c := byVersion[r.Version]; c != nil {
+			c.PublishedAt = r.PublishedAt
+			continue
+		}
+		byVersion[r.Version] = &candidateView{Version: r.Version, Prerelease: r.Prerelease, PublishedAt: r.PublishedAt}
+	}
+	// The version each channel follows now: its newest running or completed rollout.
+	approved := map[string]store.Rollout{}
+	for _, ro := range rollouts { // newest first
+		switch ro.Status {
+		case store.RolloutActive, store.RolloutPaused, store.RolloutCompleted:
+		default:
+			continue
+		}
+		if _, ok := approved[ro.Channel]; !ok {
+			approved[ro.Channel] = ro
+		}
+	}
+	out := make([]candidateView, 0, len(byVersion))
+	for _, c := range byVersion {
+		c.Devices = versions[c.Version]
+		if ro, ok := approved[channelOfVersion(c.Version)]; ok && ro.Version == c.Version {
+			c.Approved, c.Status = true, ro.Status
+		}
+		out = append(out, *c)
+	}
+	sort.Slice(out, func(i, j int) bool { return updates.Compare(out[i].Version, out[j].Version) > 0 })
+	if len(out) > approveCandidates {
+		out = out[:approveCandidates]
+	}
+	return out
 }
 
 func (s *Server) handlePutAgentUpdateSettings(w http.ResponseWriter, r *http.Request) {
@@ -813,17 +940,20 @@ func (s *Server) handlePutAgentUpdateSettings(w http.ResponseWriter, r *http.Req
 	if !decode(w, r, &req) {
 		return
 	}
+	cur := s.loadAgentUpdateSettings(r.Context())
+	if req.Mode == "" { // clients from before the approve mode
+		req.Mode = cur.Mode
+	}
 	if !req.valid() {
 		apiError(w, http.StatusBadRequest, "invalid_settings")
 		return
 	}
-	cur := s.loadAgentUpdateSettings(r.Context())
 	req.LastCheck, req.LastError = cur.LastCheck, cur.LastError
 	if err := s.st.PutSetting(r.Context(), keyAgentUpdates, req); err != nil {
 		s.internalError(w, r, err)
 		return
 	}
-	s.audit(r, "agent.update_settings", "", true, map[string]any{"autoDownload": req.AutoDownload, "autoRollout": req.AutoRollout,
+	s.audit(r, "agent.update_settings", "", true, map[string]any{"mode": req.Mode, "autoDownload": req.AutoDownload, "autoRollout": req.AutoRollout,
 		"soakHours": req.SoakHours, "maxFailures": req.MaxFailures})
 	s.handleGetAgentUpdates(w, r)
 }
@@ -1019,7 +1149,7 @@ func (s *Server) handleRolloutAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		ro.Status, ro.Message = store.RolloutActive, ""
-	case action == "advance" && ro.Status == store.RolloutActive:
+	case action == "advance" && ro.Status == store.RolloutActive && !ro.AllGroups:
 		if ro.Ring == 3 {
 			ro.Status = store.RolloutCompleted
 		} else {
@@ -1044,4 +1174,79 @@ func (s *Server) handleRolloutAction(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, "agent.rollout_"+action, ro.Version, true, map[string]any{"rollout": ro.ID, "ring": ro.Ring})
 	s.handleGetAgentUpdates(w, r)
+}
+
+// handleApproveAgentVersion approves one version: it is downloaded from
+// GitHub when needed, and every group of its channel then updates to it at
+// once (each in its own update window). Agents are never downgraded.
+func (s *Server) handleApproveAgentVersion(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Version string `json:"version"`
+	}
+	if !decode(w, r, &req) {
+		return
+	}
+	if !validAgentVersion(req.Version) {
+		apiError(w, http.StatusBadRequest, "unknown_version")
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Minute)
+	defer cancel()
+	if err := s.ensureAgentRelease(ctx, req.Version); err != nil {
+		if errors.Is(err, errUnknownVersion) {
+			apiError(w, http.StatusBadRequest, "unknown_version")
+			return
+		}
+		s.log.Warn("agent release download", "version", req.Version, "err", err)
+		apiError(w, http.StatusBadGateway, "download_failed")
+		return
+	}
+	set := s.loadAgentUpdateSettings(r.Context())
+	ro := store.Rollout{Version: req.Version, Channel: channelOfVersion(req.Version), Ring: 3, SoakHours: 0,
+		MaxFailures: set.MaxFailures, AllGroups: true}
+	if u, ok := currentUser(r); ok {
+		ro.CreatedBy = u.Username
+	}
+	created, err := s.st.CreateRollout(r.Context(), ro)
+	if err != nil {
+		s.internalError(w, r, err)
+		return
+	}
+	s.audit(r, "agent.version_approve", req.Version, true, map[string]any{"rollout": created.ID})
+	s.handleGetAgentUpdates(w, r)
+}
+
+var errUnknownVersion = errors.New("unknown agent version")
+
+// ensureAgentRelease makes sure the packages of v are on the server.
+func (s *Server) ensureAgentRelease(ctx context.Context, v string) error {
+	for _, p := range s.agentPackages() {
+		if p.Version == v && p.SHA256 != "" {
+			return nil
+		}
+	}
+	rels := s.fetcher.knownReleases()
+	var rel *updates.AgentRelease
+	for i := range rels {
+		if rels[i].Version == v {
+			rel = &rels[i]
+		}
+	}
+	if rel == nil {
+		fresh, err := s.updates.AgentReleases(ctx, false)
+		if err != nil {
+			return err
+		}
+		for i := range fresh {
+			if fresh[i].Version == v {
+				rel = &fresh[i]
+			}
+		}
+	}
+	if rel == nil {
+		return errUnknownVersion
+	}
+	s.fetcher.mu.Lock() // not while the hourly check downloads
+	defer s.fetcher.mu.Unlock()
+	return s.downloadAgentRelease(ctx, *rel)
 }

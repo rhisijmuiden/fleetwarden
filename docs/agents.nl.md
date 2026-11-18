@@ -105,7 +105,19 @@ start de server zelf, dus een nieuw updatescaninterval geldt meteen.
   testbuilds), downloadt de agentpakketten en controleert ze tegen de
   `SHA256SUMS` van de release. **Nu op GitHub kijken** doet dat meteen. Je kunt
   ook een `.msi` of `.deb` met de oorspronkelijke bestandsnaam **uploaden**.
-- Een **uitrol** stuurt een versie ring voor ring naar de groepen: eerst ring 0
+- **Een versie goedkeuren (standaard).** De pagina toont de 5 nieuwste
+  agentversies voor de kanalen die in gebruik zijn. Kies er één en klik op
+  **… goedkeuren en alle agents bijwerken**: elke agent met een oudere versie
+  werkt bij naar die versie, binnen het updatevenster van zijn groep; offline
+  apparaten volgen zodra ze weer online zijn. Een versie die nog niet is
+  gedownload, wordt eerst van GitHub gehaald. Keur je later een andere versie
+  goed, dan vervangt die de vorige goedkeuring. Mislukken meer apparaten dan
+  **Pauzeren na mislukte** toestaat, dan pauzeert de update. Update-ringen
+  van groepen worden in deze modus niet gebruikt, en nieuwe releases starten
+  nooit vanzelf.
+- **Ring voor ring (optioneel).** Onder **Instellingen > Hoe nieuwe versies de
+  agents bereiken** kun je naar ringen overschakelen. Een **uitrol** stuurt een
+  versie dan ring voor ring naar de groepen: eerst ring 0
   (pilot), dan ring 1, 2 en 3. Een ring loopt de wachttijd (standaard 24 uur)
   voordat de volgende begint; ringen zonder apparaten worden overgeslagen. Mislukken
   er in een ring meer apparaten dan toegestaan (standaard 2), dan pauzeert de

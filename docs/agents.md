@@ -105,7 +105,18 @@ rolls them out:
   test builds), downloads the agent packages and checks them against the
   release's `SHA256SUMS`. **Check GitHub now** does the same at once. You can
   also **upload** an `.msi` or `.deb` with its original file name.
-- A **rollout** sends a version to the groups ring by ring: ring 0 (pilot)
+- **Approve a version (default).** The page lists the 5 latest agent versions
+  for the channels in use. Pick one and click **Approve … and update all
+  agents**: every agent with an older version updates to it, each in its
+  group's update window; offline devices follow when they come back online.
+  A version that is not downloaded yet is fetched from GitHub first. Approving
+  another version later replaces the earlier approval. When more devices fail
+  than **Pause after failures** allows, the update pauses. Update rings of
+  groups are not used in this mode, and new releases never start by
+  themselves.
+- **Ring by ring (optional).** Under **Settings > How new versions reach the
+  agents** you can switch to rings. A **rollout** then sends a version to the
+  groups ring by ring: ring 0 (pilot)
   first, then rings 1, 2 and 3. A ring runs for the soak time (24 hours by
   default) before the next one starts; rings without devices are skipped. When
   more devices in a ring fail than allowed (2 by default), the rollout pauses.

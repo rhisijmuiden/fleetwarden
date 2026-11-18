@@ -7,6 +7,10 @@ published as `X.Y.Z-test.N` before a release.
 ## Unreleased
 
 ### Added
+- Agent updates by approval: Agent updates lists the 5 latest agent versions;
+  approve one and every agent with an older version updates to it, without
+  rollout rings. This is now the default; rolling out ring by ring stays
+  available as a setting. See docs/agents.md.
 - Chat with the signed-on user: a chat panel on the device page and in help
   requests, a chat window in the tray, delivery state, automatic end after an
   hour, and the transcript as a note on the linked service desk ticket.
