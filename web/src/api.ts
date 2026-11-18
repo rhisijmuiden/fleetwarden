@@ -349,6 +349,7 @@ export type Rollout = {
   soakHours: number;
   maxFailures: number;
   automatic: boolean;
+  allGroups: boolean;
   message: string;
   createdBy: string;
   createdAt: string;
@@ -356,7 +357,10 @@ export type Rollout = {
   soakEndsAt: string | null;
 };
 
+export type AgentUpdateMode = "approve" | "rings";
+
 export type AgentUpdateSettings = {
+  mode: AgentUpdateMode;
   autoDownload: boolean;
   autoRollout: boolean;
   soakHours: number;
@@ -366,9 +370,20 @@ export type AgentUpdateSettings = {
   lastError: string;
 };
 
+export type AgentCandidate = {
+  version: string;
+  prerelease: boolean;
+  publishedAt: string;
+  downloaded: boolean;
+  devices: number;
+  approved: boolean;
+  status: RolloutStatus | "";
+};
+
 export type AgentUpdates = {
   settings: AgentUpdateSettings;
   channel: Channel;
+  candidates: AgentCandidate[];
   releases: AgentRelease[];
   rollouts: Rollout[];
   problems: {

@@ -7,6 +7,10 @@ testversies verschijnen vóór een release als `X.Y.Z-test.N`.
 ## Nog niet uitgebracht
 
 ### Toegevoegd
+- Agent-updates met goedkeuring: Agent-updates toont de 5 nieuwste
+  agentversies; keur er één goed en elke agent met een oudere versie werkt
+  bij naar die versie, zonder uitrolringen. Dit is nu de standaard; ring voor
+  ring uitrollen blijft beschikbaar als instelling. Zie docs/agents.nl.md.
 - Chatten met de aangemelde gebruiker: een chatpaneel op de apparaatpagina en
   in hulpvragen, een chatvenster in de tray, afleverstatus, automatisch einde
   na een uur, en het verslag als notitie bij het gekoppelde servicedeskticket.

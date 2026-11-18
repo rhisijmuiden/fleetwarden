@@ -14,7 +14,8 @@ const (
 	RolloutSuperseded = "superseded"
 )
 
-// Rollout sends one agent version to the device groups ring by ring.
+// Rollout sends one agent version to the device groups ring by ring, or to
+// every group at once when AllGroups is set (an approved version).
 type Rollout struct {
 	ID            int64     `json:"id"`
 	Version       string    `json:"version"`
@@ -25,6 +26,7 @@ type Rollout struct {
 	SoakHours     int       `json:"soakHours"`
 	MaxFailures   int       `json:"maxFailures"`
 	Automatic     bool      `json:"automatic"`
+	AllGroups     bool      `json:"allGroups"`
 	Message       string    `json:"message"`
 	CreatedBy     string    `json:"createdBy"`
 	CreatedAt     time.Time `json:"createdAt"`
@@ -34,13 +36,13 @@ type Rollout struct {
 // Open reports whether the rollout still sends updates or may resume.
 func (r Rollout) Open() bool { return r.Status == RolloutActive || r.Status == RolloutPaused }
 
-const rolloutCols = `id, version, channel, status, ring, ring_started_at, soak_hours, max_failures, automatic, message,
+const rolloutCols = `id, version, channel, status, ring, ring_started_at, soak_hours, max_failures, automatic, all_groups, message,
 	created_by, created_at, updated_at`
 
 func scanRollout(row interface{ Scan(...any) error }) (Rollout, error) {
 	var r Rollout
 	err := row.Scan(&r.ID, &r.Version, &r.Channel, &r.Status, &r.Ring, &r.RingStartedAt, &r.SoakHours, &r.MaxFailures,
-		&r.Automatic, &r.Message, &r.CreatedBy, &r.CreatedAt, &r.UpdatedAt)
+		&r.Automatic, &r.AllGroups, &r.Message, &r.CreatedBy, &r.CreatedAt, &r.UpdatedAt)
 	return r, mapErr(err)
 }
 
@@ -55,8 +57,9 @@ func (s *Store) CreateRollout(ctx context.Context, r Rollout) (Rollout, error) {
 		WHERE channel = $1 AND status IN ('active', 'paused')`, r.Channel, r.Version); err != nil {
 		return r, err
 	}
-	out, err := scanRollout(tx.QueryRow(ctx, `INSERT INTO agent_rollouts (version, channel, soak_hours, max_failures, automatic, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6) RETURNING `+rolloutCols, r.Version, r.Channel, r.SoakHours, r.MaxFailures, r.Automatic, r.CreatedBy))
+	out, err := scanRollout(tx.QueryRow(ctx, `INSERT INTO agent_rollouts (version, channel, ring, soak_hours, max_failures, automatic, all_groups, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING `+rolloutCols, r.Version, r.Channel, r.Ring, r.SoakHours, r.MaxFailures, r.Automatic,
+		r.AllGroups, r.CreatedBy))
 	if err != nil {
 		return out, err
 	}

@@ -403,7 +403,8 @@
     "unattended_not_allowed": "The group of this device does not allow unattended takeover.",
     "chat_ended": "This chat has already ended.",
     "chat_full": "This chat is full. End it and start a new one.",
-    "invalid_message": "Type a message first."
+    "invalid_message": "Type a message first.",
+    "download_failed": "The agent version could not be downloaded from GitHub. Try again later."
   },
   "login": {
     "title": "Sign in",
@@ -1200,7 +1201,7 @@
   },
   "agentUpdates": {
     "title": "Agent updates",
-    "subtitle": "New agent versions come from GitHub or an upload and reach the device groups ring by ring.",
+    "subtitle": "Approve a new agent version once and every agent updates itself. Versions come from GitHub or an upload.",
     "upload": "Upload package",
     "uploaded": "{{name}} was added.",
     "checkNow": "Check GitHub now",
@@ -1272,7 +1273,38 @@
       "advance": "Next ring now",
       "retry": "Retry failed",
       "cancel": "Cancel"
-    }
+    },
+    "approved": "Version {{version}} is approved. Agents with an older version now update.",
+    "approveTitle": "Choose the agent version",
+    "approveHint": "The latest versions are listed below. Pick the one your agents should run and approve it: every agent with an older version then updates itself, in its group's update window.",
+    "noCandidates": "No agent versions found yet. Check GitHub or upload a package.",
+    "currentApproved": "Agents now follow version {{version}}.",
+    "newest": "Newest",
+    "approvedBadge": "Approved",
+    "notDownloaded": "Downloaded on approval",
+    "onDevices_one": "on {{count}} device",
+    "onDevices_other": "on {{count}} devices",
+    "approveButton": "Approve {{version}} and update all agents",
+    "noDowngrade": "Agents never go back to an older version.",
+    "approveConfirmTitle": "Approve {{version}}?",
+    "approveConfirmText": "Every agent with a version older than {{version}} updates itself to it, in its group's update window. Offline devices update as soon as they are back online. If too many devices fail, the update pauses.",
+    "approveConfirm": "Approve and update",
+    "progress": "Update progress",
+    "progressHint": "How many agents already run the approved version.",
+    "approvedBy": "approved by {{user}} · {{date}}",
+    "waiting_one": "{{count}} waiting",
+    "waiting_other": "{{count}} waiting",
+    "waitingHint": "Waiting devices are offline or outside their group's update window; they update later by themselves.",
+    "mode": "How new versions reach the agents",
+    "modes": {
+      "approve": "Approve a version, all agents update (recommended)",
+      "rings": "Roll out ring by ring (pilot first)"
+    },
+    "modeHint": {
+      "approve": "You pick one of the latest versions and approve it. Update rings of groups are not used.",
+      "rings": "A rollout starts with ring 0 (pilot); the next ring follows after the soak time."
+    },
+    "maxFailuresAllHint": "Failed devices before the update pauses."
   },
   "patches": {
     "title": "Patch management",

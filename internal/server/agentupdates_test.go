@@ -98,6 +98,33 @@ func TestTargetRolloutAndAdvance(t *testing.T) {
 	}
 }
 
+func TestAdvanceAllGroups(t *testing.T) {
+	r := store.Rollout{Status: store.RolloutActive, AllGroups: true, Ring: 3, MaxFailures: 1}
+	rings := []ringStats{{Ring: 0, Devices: 2, Updated: 1, Pending: 1}, {Ring: 1}, {Ring: 2, Devices: 1, Failed: 1}, {Ring: 3}}
+	if advance(&r, rings, time.Now()) {
+		t.Fatalf("one device still pending: %+v", r)
+	}
+	rings[0].Pending, rings[0].InProgress = 0, 1
+	if advance(&r, rings, time.Now()) {
+		t.Fatalf("one device still updating: %+v", r)
+	}
+	rings[0].InProgress, rings[0].Updated = 0, 2
+	if !advance(&r, rings, time.Now()) || r.Status != store.RolloutCompleted {
+		t.Fatalf("nothing left to update: %+v", r)
+	}
+	r.Status = store.RolloutActive
+	rings[1] = ringStats{Ring: 1, Devices: 1, Failed: 1}
+	if !advance(&r, rings, time.Now()) || r.Status != store.RolloutPaused {
+		t.Fatalf("failures over all groups must pause: %+v", r)
+	}
+	// Every group follows an approved version, whatever its ring.
+	g := groupInfo{DeviceGroup: store.DeviceGroup{ID: 1, UpdateRing: 3}, channel: "production"}
+	ro := store.Rollout{ID: 1, Version: "0.5.0", Channel: "production", Status: store.RolloutActive, Ring: 3, AllGroups: true}
+	if targetRollout([]store.Rollout{ro}, g) == nil {
+		t.Error("ring 3 group must follow the approved version")
+	}
+}
+
 func TestAgentUpdateRollout(t *testing.T) {
 	oldVersion := version.Version
 	version.Version = "0.1.0"
@@ -277,6 +304,58 @@ func TestFetchAgentReleasesFromGitHub(t *testing.T) {
 	}
 	if _, ok := e.srv.agentPackages().version("linux-amd64.deb", "0.4.0"); !ok {
 		t.Fatal("release was not downloaded")
+	}
+	// Approve mode (the default) downloads the newest version but waits for
+	// an administrator to approve one.
+	if rs, _ := e.st.ListRollouts(ctx, 10); len(rs) != 0 {
+		t.Fatalf("approve mode started a rollout by itself: %+v", rs)
+	}
+	admin, _ := e.signedInAdmin()
+	var view agentUpdatesView
+	admin.do("GET", "/api/v1/agent/updates", nil, &view)
+	if view.Settings.Mode != agentModeApprove || len(view.Candidates) != 2 || view.Candidates[0].Version != "0.4.0" ||
+		!view.Candidates[0].Downloaded || view.Candidates[1].Version != "0.3.0" || view.Candidates[1].Downloaded || view.Candidates[0].Approved {
+		t.Fatalf("candidates: %+v", view.Candidates)
+	}
+	// 0.3.0 has no SHA256SUMS on GitHub, so it cannot be approved.
+	if code := admin.do("POST", "/api/v1/agent/approve", map[string]any{"version": "0.3.0"}, nil); code != http.StatusBadGateway {
+		t.Errorf("approve without checksums: %d", code)
+	}
+	if code := admin.do("POST", "/api/v1/agent/approve", map[string]any{"version": "9.9.9"}, nil); code != 400 {
+		t.Errorf("approve unknown version: %d", code)
+	}
+	if code := admin.do("POST", "/api/v1/agent/approve", map[string]any{"version": "0.4.0"}, &view); code != 200 {
+		t.Fatalf("approve: %d", code)
+	}
+	if len(view.Rollouts) != 1 || !view.Rollouts[0].AllGroups || view.Rollouts[0].Ring != 3 || !view.Candidates[0].Approved {
+		t.Fatalf("after approve: %+v %+v", view.Rollouts, view.Candidates)
+	}
+	// Approving a version that is not downloaded yet fetches it first.
+	os.RemoveAll(e.srv.releaseDir("0.4.0"))
+	if code := admin.do("POST", "/api/v1/agent/approve", map[string]any{"version": "0.4.0"}, &view); code != 200 {
+		t.Fatalf("approve again: %d", code)
+	}
+	if _, ok := e.srv.agentPackages().version("linux-amd64.deb", "0.4.0"); !ok {
+		t.Fatal("approve did not download the release")
+	}
+	if rs, _ := e.st.ListRollouts(ctx, 10); len(rs) != 2 || rs[1].Status != store.RolloutSuperseded {
+		t.Fatalf("the earlier approval must be replaced: %+v", rs)
+	}
+	// A fresh server for rings mode.
+	e = newEnv(t)
+	e.srv.updates = c
+	admin, _ = e.signedInAdmin()
+
+	// Rings mode starts a rollout for each new release.
+	if code := admin.do("PUT", "/api/v1/agent/updates/settings", map[string]any{"mode": "rings", "autoDownload": true, "autoRollout": true,
+		"soakHours": 24, "maxFailures": 2, "keepReleases": 5}, nil); code != 200 {
+		t.Fatalf("rings mode: %d", code)
+	}
+	if code := admin.do("PUT", "/api/v1/agent/updates/settings", map[string]any{"mode": "fast", "keepReleases": 5}, nil); code != 400 {
+		t.Errorf("unknown mode: %d", code)
+	}
+	if err := e.srv.fetchAgentReleases(ctx, true); err != nil {
+		t.Fatal(err)
 	}
 	rs, _ := e.st.ListRollouts(ctx, 10)
 	if len(rs) != 1 || rs[0].Version != "0.4.0" || !rs[0].Automatic || rs[0].Status != store.RolloutActive {

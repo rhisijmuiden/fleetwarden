@@ -403,7 +403,8 @@
     "unattended_not_allowed": "De groep van dit apparaat staat onbeheerd overnemen niet toe.",
     "chat_ended": "Deze chat is al beëindigd.",
     "chat_full": "Deze chat is vol. Beëindig hem en start een nieuwe.",
-    "invalid_message": "Typ eerst een bericht."
+    "invalid_message": "Typ eerst een bericht.",
+    "download_failed": "De agentversie kon niet van GitHub worden gedownload. Probeer het later opnieuw."
   },
   "login": {
     "title": "Inloggen",
@@ -1200,7 +1201,7 @@
   },
   "agentUpdates": {
     "title": "Agent-updates",
-    "subtitle": "Nieuwe agentversies komen van GitHub of een upload en gaan ring voor ring naar de apparaatgroepen.",
+    "subtitle": "Keur een nieuwe agentversie één keer goed en alle agents werken zichzelf bij. Versies komen van GitHub of een upload.",
     "upload": "Pakket uploaden",
     "uploaded": "{{name}} is toegevoegd.",
     "checkNow": "Nu op GitHub kijken",
@@ -1272,7 +1273,38 @@
       "advance": "Nu volgende ring",
       "retry": "Mislukte opnieuw",
       "cancel": "Annuleren"
-    }
+    },
+    "approved": "Versie {{version}} is goedgekeurd. Agents met een oudere versie werken nu bij.",
+    "approveTitle": "Kies de agentversie",
+    "approveHint": "Hieronder staan de nieuwste versies. Kies de versie die je agents moeten draaien en keur die goed: elke agent met een oudere versie werkt zichzelf dan bij, binnen het updatevenster van zijn groep.",
+    "noCandidates": "Nog geen agentversies gevonden. Controleer GitHub of upload een pakket.",
+    "currentApproved": "Agents volgen nu versie {{version}}.",
+    "newest": "Nieuwste",
+    "approvedBadge": "Goedgekeurd",
+    "notDownloaded": "Wordt gedownload bij goedkeuren",
+    "onDevices_one": "op {{count}} apparaat",
+    "onDevices_other": "op {{count}} apparaten",
+    "approveButton": "{{version}} goedkeuren en alle agents bijwerken",
+    "noDowngrade": "Agents gaan nooit terug naar een oudere versie.",
+    "approveConfirmTitle": "{{version}} goedkeuren?",
+    "approveConfirmText": "Elke agent met een oudere versie dan {{version}} werkt zichzelf bij naar deze versie, binnen het updatevenster van zijn groep. Offline apparaten werken bij zodra ze weer online zijn. Mislukken er te veel apparaten, dan pauzeert de update.",
+    "approveConfirm": "Goedkeuren en bijwerken",
+    "progress": "Voortgang van de update",
+    "progressHint": "Hoeveel agents de goedgekeurde versie al draaien.",
+    "approvedBy": "goedgekeurd door {{user}} · {{date}}",
+    "waiting_one": "{{count}} wachtend",
+    "waiting_other": "{{count}} wachtend",
+    "waitingHint": "Wachtende apparaten zijn offline of buiten het updatevenster van hun groep; ze werken later vanzelf bij.",
+    "mode": "Hoe nieuwe versies de agents bereiken",
+    "modes": {
+      "approve": "Versie goedkeuren, alle agents werken bij (aanbevolen)",
+      "rings": "Ring voor ring uitrollen (pilot eerst)"
+    },
+    "modeHint": {
+      "approve": "Je kiest een van de nieuwste versies en keurt die goed. Update-ringen van groepen worden niet gebruikt.",
+      "rings": "Een uitrol begint bij ring 0 (pilot); de volgende ring volgt na de wachttijd."
+    },
+    "maxFailuresAllHint": "Mislukte apparaten voordat de update pauzeert."
   },
   "patches": {
     "title": "Patchbeheer",

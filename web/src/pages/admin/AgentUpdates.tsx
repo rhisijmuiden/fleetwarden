@@ -1,13 +1,26 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
-import { CloudDownload, FastForward, Pause, Play, RotateCcw, Rocket, Trash2, Upload, XCircle } from "lucide-react";
-import { api, del, get, post, put, type AgentRelease, type AgentUpdateSettings, type AgentUpdates as Data, type Rollout } from "../../api";
-import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Spinner, Switch, formatDate, useErrorText } from "../../components/ui";
+import { CheckCircle2, CloudDownload, FastForward, Pause, Play, RotateCcw, Rocket, Trash2, Upload, XCircle } from "lucide-react";
+import {
+  api,
+  del,
+  get,
+  post,
+  put,
+  type AgentCandidate,
+  type AgentRelease,
+  type AgentUpdateSettings,
+  type AgentUpdates as Data,
+  type Rollout,
+} from "../../api";
+import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Switch, formatDate, useErrorText } from "../../components/ui";
 
 const statusTone = { active: "primary", paused: "warning", completed: "success", cancelled: "neutral", superseded: "neutral" } as const;
 
-// Agent updates: releases from GitHub or uploads, and their rollouts ring by ring.
+// Agent updates: releases from GitHub or uploads. By default an administrator
+// approves one of the latest versions and every agent updates to it; the
+// rings mode rolls a version out ring by ring instead.
 export function AgentUpdates() {
   const { t, i18n } = useTranslation();
   const errorText = useErrorText();
@@ -59,7 +72,11 @@ export function AgentUpdates() {
 
   const action = (r: Rollout, a: string) => run(`${r.id}-${a}`, () => post<Data>(`/agent/rollouts/${r.id}/${a}`));
 
+  const approve = (v: string) =>
+    run(`approve-${v}`, () => post<Data>("/agent/approve", { version: v }), t("agentUpdates.approved", { version: v }));
+
   const lang = i18n.language;
+  const approveMode = data?.settings.mode !== "rings";
   const open = data?.rollouts.filter((r) => r.status === "active" || r.status === "paused") ?? [];
   const history = data?.rollouts.filter((r) => r.status !== "active" && r.status !== "paused").slice(0, 8) ?? [];
 
@@ -95,7 +112,12 @@ export function AgentUpdates() {
         <Spinner />
       ) : (
         <>
-          <Card title={t("agentUpdates.rollouts")} description={t("agentUpdates.rolloutsHint")}>
+          {approveMode && <ApproveCard candidates={data.candidates} busy={busy} lang={lang} onApprove={approve} />}
+
+          <Card
+            title={approveMode ? t("agentUpdates.progress") : t("agentUpdates.rollouts")}
+            description={approveMode ? t("agentUpdates.progressHint") : t("agentUpdates.rolloutsHint")}
+          >
             {open.length === 0 ? (
               <p className="text-sm text-muted">{t("agentUpdates.noOpenRollout")}</p>
             ) : (
@@ -183,9 +205,11 @@ export function AgentUpdates() {
                         <td className="px-3 py-3">{rel.devices}</td>
                         <td className="px-5 py-3">
                           <div className="flex justify-end gap-1">
-                            <Button size="sm" variant="secondary" icon={<Rocket className="size-4" />} onClick={() => setStarting(rel)}>
-                              {t("agentUpdates.startRollout")}
-                            </Button>
+                            {!approveMode && (
+                              <Button size="sm" variant="secondary" icon={<Rocket className="size-4" />} onClick={() => setStarting(rel)}>
+                                {t("agentUpdates.startRollout")}
+                              </Button>
+                            )}
                             {rel.deletable && (
                               <Button size="sm" variant="ghost" aria-label={t("common.delete")} icon={<Trash2 className="size-4" />} onClick={() => setDeleting(rel)} />
                             )}
@@ -250,6 +274,42 @@ function RolloutPanel({ r, busy, onAction, lang }: { r: Rollout; busy: string | 
     </Button>
   );
   const failed = r.rings.reduce((n, x) => n + x.failed, 0);
+  if (r.allGroups) {
+    const sum = (k: "devices" | "updated" | "inProgress" | "failed" | "pending") => r.rings.reduce((n, x) => n + x[k], 0);
+    const total = sum("devices");
+    const updated = sum("updated");
+    const inProgress = sum("inProgress");
+    const pending = sum("pending");
+    const pct = total ? Math.round((updated / total) * 100) : 0;
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-lg font-semibold">{r.version}</span>
+          <Badge tone={statusTone[r.status]}>{t(`agentUpdates.status.${r.status}`)}</Badge>
+          <span className="text-xs text-muted">{t("agentUpdates.approvedBy", { user: r.createdBy || "—", date: formatDate(r.createdAt, lang) })}</span>
+          <div className="ml-auto flex flex-wrap gap-1">
+            {r.status === "active" && btn("pause", <Pause className="size-4" />)}
+            {r.status === "paused" && btn("resume", <Play className="size-4" />)}
+            {failed > 0 && btn("retry", <RotateCcw className="size-4" />)}
+            {btn("cancel", <XCircle className="size-4" />, "ghost")}
+          </div>
+        </div>
+        {r.message && <Alert tone={r.status === "paused" ? "warning" : "info"}>{r.message}</Alert>}
+        <div>
+          <div className="h-3 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+            <div className="h-full bg-success transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+            <span className="font-medium text-fg">{t("agentUpdates.updatedOf", { updated, total })}</span>
+            {inProgress > 0 && <span>{t("agentUpdates.inProgress", { count: inProgress })}</span>}
+            {pending > 0 && <span>{t("agentUpdates.waiting", { count: pending })}</span>}
+            {failed > 0 && <span className="text-danger">{t("agentUpdates.failed", { count: failed })}</span>}
+          </div>
+          {pending > 0 && <p className="mt-1 text-xs text-muted">{t("agentUpdates.waitingHint")}</p>}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -381,13 +441,25 @@ function SettingsCard({ settings, lang, onSaved }: { settings: AgentUpdateSettin
     <Card title={t("agentUpdates.settings")}>
       <form onSubmit={save} className="max-w-2xl space-y-4">
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+        <Field label={t("agentUpdates.mode")} hint={t(`agentUpdates.modeHint.${s.mode}`)}>
+          {(id) => (
+            <Select id={id} value={s.mode} onChange={(e) => setS({ ...s, mode: e.target.value as AgentUpdateSettings["mode"] })}>
+              <option value="approve">{t("agentUpdates.modes.approve")}</option>
+              <option value="rings">{t("agentUpdates.modes.rings")}</option>
+            </Select>
+          )}
+        </Field>
         <Switch checked={s.autoDownload} onChange={(v) => setS({ ...s, autoDownload: v })} label={t("agentUpdates.autoDownload")} description={t("agentUpdates.autoDownloadHint")} />
-        <Switch checked={s.autoRollout} onChange={(v) => setS({ ...s, autoRollout: v })} label={t("agentUpdates.autoRollout")} description={t("agentUpdates.autoRolloutHint")} />
+        {s.mode === "rings" && (
+          <Switch checked={s.autoRollout} onChange={(v) => setS({ ...s, autoRollout: v })} label={t("agentUpdates.autoRollout")} description={t("agentUpdates.autoRolloutHint")} />
+        )}
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label={t("agentUpdates.soakHours")} hint={t("agentUpdates.soakHint")}>
-            {(id) => <Input id={id} type="number" min={0} max={720} value={s.soakHours} onChange={(e) => setS({ ...s, soakHours: Number(e.target.value) })} />}
-          </Field>
-          <Field label={t("agentUpdates.maxFailures")} hint={t("agentUpdates.maxFailuresHint")}>
+          {s.mode === "rings" && (
+            <Field label={t("agentUpdates.soakHours")} hint={t("agentUpdates.soakHint")}>
+              {(id) => <Input id={id} type="number" min={0} max={720} value={s.soakHours} onChange={(e) => setS({ ...s, soakHours: Number(e.target.value) })} />}
+            </Field>
+          )}
+          <Field label={t("agentUpdates.maxFailures")} hint={s.mode === "rings" ? t("agentUpdates.maxFailuresHint") : t("agentUpdates.maxFailuresAllHint")}>
             {(id) => <Input id={id} type="number" min={0} value={s.maxFailures} onChange={(e) => setS({ ...s, maxFailures: Number(e.target.value) })} />}
           </Field>
           <Field label={t("agentUpdates.keepReleases")} hint={t("agentUpdates.keepReleasesHint")}>
@@ -402,6 +474,99 @@ function SettingsCard({ settings, lang, onSaved }: { settings: AgentUpdateSettin
           {t("common.save")}
         </Button>
       </form>
+    </Card>
+  );
+}
+
+// ApproveCard lists the latest versions; the administrator picks one and
+// approves it, after which every agent with an older version updates.
+function ApproveCard({ candidates, busy, lang, onApprove }: { candidates: AgentCandidate[]; busy: string | null; lang: string; onApprove: (v: string) => void }) {
+  const { t } = useTranslation();
+  const [picked, setPicked] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState(false);
+  const approved = candidates.find((c) => c.approved);
+  // Preselect the newest version that is not approved yet.
+  useEffect(() => {
+    if (picked && candidates.some((c) => c.version === picked)) return;
+    setPicked((candidates.find((c) => !c.approved) ?? candidates[0])?.version ?? null);
+  }, [candidates]);
+  const sel = candidates.find((c) => c.version === picked);
+  const newest = candidates[0]?.version;
+  return (
+    <Card title={t("agentUpdates.approveTitle")} description={t("agentUpdates.approveHint")}>
+      {candidates.length === 0 ? (
+        <p className="text-sm text-muted">{t("agentUpdates.noCandidates")}</p>
+      ) : (
+        <div className="space-y-4">
+          {approved && (
+            <p className="text-sm">
+              {t("agentUpdates.currentApproved", { version: approved.version })}
+            </p>
+          )}
+          <ul className="divide-y divide-line rounded-lg border border-line" role="radiogroup" aria-label={t("agentUpdates.approveTitle")}>
+            {candidates.map((c) => {
+              const checked = picked === c.version;
+              return (
+                <li key={c.version}>
+                  <label className={`flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 ${checked ? "bg-primary/5" : "hover:bg-surface-muted"}`}>
+                    <input
+                      type="radio"
+                      name="agent-version"
+                      className="size-4 accent-primary"
+                      checked={checked}
+                      onChange={() => setPicked(c.version)}
+                    />
+                    <span className="font-medium">{c.version}</span>
+                    <Badge tone={c.prerelease ? "warning" : "success"}>{t(`info.channels.${c.prerelease ? "test" : "production"}`)}</Badge>
+                    {c.version === newest && <Badge tone="primary">{t("agentUpdates.newest")}</Badge>}
+                    {c.approved && (
+                      <Badge tone="success">
+                        <span className="inline-flex items-center gap-1">
+                          <CheckCircle2 className="size-3" />
+                          {t("agentUpdates.approvedBadge")}
+                        </span>
+                      </Badge>
+                    )}
+                    {!c.downloaded && <Badge>{t("agentUpdates.notDownloaded")}</Badge>}
+                    <span className="ml-auto text-xs text-muted">
+                      {c.publishedAt && !c.publishedAt.startsWith("0001") ? formatDate(c.publishedAt, lang) : ""}
+                      {c.devices > 0 && ` · ${t("agentUpdates.onDevices", { count: c.devices })}`}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button icon={<CheckCircle2 className="size-4" />} disabled={!sel || sel.approved} loading={!!sel && busy === `approve-${sel.version}`} onClick={() => setConfirm(true)}>
+              {t("agentUpdates.approveButton", { version: sel?.version ?? "" })}
+            </Button>
+            <span className="text-xs text-muted">{t("agentUpdates.noDowngrade")}</span>
+          </div>
+        </div>
+      )}
+      <Modal
+        open={confirm && !!sel}
+        onClose={() => setConfirm(false)}
+        title={t("agentUpdates.approveConfirmTitle", { version: sel?.version })}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setConfirm(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                setConfirm(false);
+                if (sel) onApprove(sel.version);
+              }}
+            >
+              {t("agentUpdates.approveConfirm")}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm">{t("agentUpdates.approveConfirmText", { version: sel?.version })}</p>
+      </Modal>
     </Card>
   );
 }
