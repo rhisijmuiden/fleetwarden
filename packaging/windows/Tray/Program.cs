@@ -478,8 +478,8 @@ namespace FleetWarden.Tray
                 using (var outer = Shield(32, 4, 8, 13, 30, 45.5f, 18.2f, 60, 56))
                 using (var inner = Shield(32, 10.5f, 14, 17.3f, 30, 42, 21.6f, 53.9f, 50))
                 using (var accentBrush = new SolidBrush(System.Drawing.Color.FromArgb(c.R, c.G, c.B)))
-                using (var innerBrush = new SolidBrush(System.Drawing.Color.FromArgb(0x0E, 0x15, 0x25)))
-                using (var dots = new SolidBrush(System.Drawing.Color.FromArgb(0x9D, 0xB2, 0xFF)))
+                using (var innerBrush = new SolidBrush(System.Drawing.Color.FromArgb(0x2A, 0x14, 0x30)))
+                using (var dots = new SolidBrush(System.Drawing.Color.FromArgb(0xE9, 0x2E, 0x7F)))
                 {
                     g.FillPath(accentBrush, outer);
                     g.FillPath(innerBrush, inner);
@@ -493,7 +493,7 @@ namespace FleetWarden.Tray
             }
         }
 
-        // Shield is the logo's shield outline (branding/logo.svg).
+        // Shield is the logo's shield outline (branding/fleetwarden/logo.svg), in the colours of the active house style.
         static GraphicsPath Shield(float cx, float top, float left, float shoulder, float waist, float c1, float c2, float bottom, float right)
         {
             var p = new GraphicsPath();

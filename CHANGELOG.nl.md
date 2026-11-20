@@ -6,6 +6,13 @@ testversies verschijnen vóór een release als `X.Y.Z-test.N`.
 
 ## Nog niet uitgebracht
 
+### Gewijzigd
+- Nieuwe huisstijl: IJmond360 (paars, roze en aubergine, Inter met Epilogue
+  voor paginatitels, het IJmond360-logo). Die vervangt de blauwe
+  FleetWarden-stijl in de webinterface, e-mails, PDF-rapporten en de
+  Windows-traypop-up. De oude stijl blijft in branding/fleetwarden/.
+  Eigen kleuren onder Beheer > Huisstijl gaan er nog steeds boven.
+
 ### Opgelost
 - Goedgekeurde agentversies kwamen niet aan bij agents op 1.0.0: testversies
   heetten nog 1.0.0-test.N, wat lager sorteert dan de release 1.0.0, dus die

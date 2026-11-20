@@ -14,7 +14,7 @@ func sampleDoc(lang string) Document {
 		rows = append(rows, []Cell{{Text: "PC-ÉÈ-" + strings.Repeat("x", i%9)}, {Text: "Werkplekken"}, {Text: "Mozilla Firefox (x64 nl) with a very long name that will not fit in this column"}, {Text: "158.0", Tone: ToneWarning}, {Text: "159.0"}})
 	}
 	return Document{
-		Title: T(lang, "software.title"), Subtitle: T(lang, "scope.all"), Product: "FleetWarden", Color: "#2f5bea", Lang: lang,
+		Title: T(lang, "software.title"), Subtitle: T(lang, "scope.all"), Product: "FleetWarden", Color: "#713c80", Lang: lang,
 		Generated: time.Date(2026, 11, 8, 14, 30, 0, 0, time.UTC),
 		Sections: []Section{{Title: T(lang, "software.summary"), Text: T(lang, "software.note"),
 			Stats: []Stat{{Label: T(lang, "software.devices"), Value: "12", Tone: ToneWarning}, {Label: "B", Value: "93%", Sub: "12 of 13", Tone: ToneSuccess}, {Label: "C", Value: "0"}, {Label: "D", Value: "1"}, {Label: "E", Value: "5", Tone: ToneDanger}},

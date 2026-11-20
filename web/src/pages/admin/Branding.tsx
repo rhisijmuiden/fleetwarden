@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageUp, RotateCcw, Trash2 } from "lucide-react";
-import tokens from "../../../../branding/tokens.json";
+import tokens from "../../../../branding/ijmond360/tokens.json";
 import { api, del, put, type Branding as BrandingT } from "../../api";
 import { useBranding } from "../../branding";
 import { Alert, Button, Card, Field, Input, PageHeader, useErrorText } from "../../components/ui";

@@ -149,7 +149,7 @@
     "invalid_mail_config": "The mail settings are incomplete.",
     "mail_send_failed": "The test e-mail could not be sent.",
     "name_too_long": "The name can have at most 40 characters.",
-    "invalid_color": "Use a colour such as #2F5BEA.",
+    "invalid_color": "Use a colour such as #713C80.",
     "file_too_large": "The file is larger than 512 KB.",
     "unsupported_image": "Use a PNG, SVG, JPEG, WebP or ICO image.",
     "invalid_channel": "Unknown update channel.",
