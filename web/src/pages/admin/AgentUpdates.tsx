@@ -543,6 +543,7 @@ function ApproveCard({ candidates, busy, lang, onApprove }: { candidates: AgentC
             </Button>
             <span className="text-xs text-muted">{t("agentUpdates.noDowngrade")}</span>
           </div>
+          {sel && !sel.approved && <Reach c={sel} />}
         </div>
       )}
       <Modal
@@ -566,7 +567,28 @@ function ApproveCard({ candidates, busy, lang, onApprove }: { candidates: AgentC
         }
       >
         <p className="text-sm">{t("agentUpdates.approveConfirmText", { version: sel?.version })}</p>
+        {sel && (
+          <div className="mt-3">
+            <Reach c={sel} />
+          </div>
+        )}
       </Modal>
     </Card>
+  );
+}
+
+// Reach says what approving a version does: how many agents update, and why
+// others stay as they are (a newer version, or a group on another channel).
+function Reach({ c }: { c: AgentCandidate }) {
+  const { t } = useTranslation();
+  const nothing = c.wouldUpdate === 0;
+  return (
+    <div className="space-y-1 text-sm" role={nothing ? "alert" : undefined}>
+      <p className={nothing ? "font-medium text-warning" : "text-muted"}>
+        {nothing ? t("agentUpdates.reachNone", { version: c.version }) : t("agentUpdates.reachUpdate", { count: c.wouldUpdate })}
+      </p>
+      {c.newerDevices > 0 && <p className="text-warning">{t("agentUpdates.reachNewer", { count: c.newerDevices, version: c.version })}</p>}
+      {c.otherChannel > 0 && <p className="text-warning">{t("agentUpdates.reachChannel", { count: c.otherChannel })}</p>}
+    </div>
   );
 }

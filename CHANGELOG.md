@@ -6,6 +6,13 @@ published as `X.Y.Z-test.N` before a release.
 
 ## Unreleased
 
+### Fixed
+- Approved agent versions did not reach agents on 1.0.0: test builds were
+  still numbered 1.0.0-test.N, which sorts below the release 1.0.0, so those
+  agents counted as up to date. The version is now 1.1.0, so test builds are
+  1.1.0-test.N. The approve card says how many agents a version will update
+  and why others stay as they are (a newer version, or another channel).
+
 ### Added
 - Agent updates by approval: Agent updates lists the 5 latest agent versions;
   approve one and every agent with an older version updates to it, without

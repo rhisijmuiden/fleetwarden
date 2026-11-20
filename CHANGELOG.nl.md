@@ -6,6 +6,13 @@ testversies verschijnen vóór een release als `X.Y.Z-test.N`.
 
 ## Nog niet uitgebracht
 
+### Opgelost
+- Goedgekeurde agentversies kwamen niet aan bij agents op 1.0.0: testversies
+  heetten nog 1.0.0-test.N, wat lager sorteert dan de release 1.0.0, dus die
+  agents telden als bijgewerkt. De versie is nu 1.1.0, dus testversies heten
+  1.1.0-test.N. De goedkeurkaart zegt hoeveel agents een versie bijwerkt en
+  waarom andere blijven staan (een nieuwere versie, of een ander kanaal).
+
 ### Toegevoegd
 - Agent-updates met goedkeuring: Agent-updates toont de 5 nieuwste
   agentversies; keur er één goed en elke agent met een oudere versie werkt

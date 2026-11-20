@@ -785,6 +785,11 @@ type candidateView struct {
 	Devices     int       `json:"devices"`    // devices running it
 	Approved    bool      `json:"approved"`   // the version its channel follows now
 	Status      string    `json:"status"`     // status of that rollout, when approved
+	// Devices approving it would update; devices on a newer version (never
+	// downgraded) and devices in groups whose channel skips it are counted apart.
+	WouldUpdate  int `json:"wouldUpdate"`
+	NewerDevices int `json:"newerDevices"`
+	OtherChannel int `json:"otherChannel"`
 }
 
 type agentUpdatesView struct {
@@ -865,13 +870,17 @@ func (s *Server) agentUpdatesView(ctx context.Context) (agentUpdatesView, error)
 	sort.Slice(v.Problems, func(i, j int) bool {
 		return strings.ToLower(v.Problems[i].Hostname) < strings.ToLower(v.Problems[j].Hostname)
 	})
-	v.Candidates = s.approveCandidates(groups, v.Channel, rollouts, v.Versions)
+	v.Candidates = s.approveCandidates(groups, v.Channel, rollouts, devs)
 	return v, nil
 }
 
 // approveCandidates lists the latest versions for the channels in use, from
 // GitHub and from the server's own packages, newest first.
-func (s *Server) approveCandidates(groups map[int64]groupInfo, serverChannel string, rollouts []store.Rollout, versions map[string]int) []candidateView {
+func (s *Server) approveCandidates(groups map[int64]groupInfo, serverChannel string, rollouts []store.Rollout, devs []store.DeviceUpdate) []candidateView {
+	versions := map[string]int{}
+	for _, d := range devs {
+		versions[d.AgentVersion]++
+	}
 	channels := map[string]bool{serverChannel: true}
 	for _, g := range groups {
 		channels[g.channel] = true
@@ -923,6 +932,7 @@ func (s *Server) approveCandidates(groups map[int64]groupInfo, serverChannel str
 	out := make([]candidateView, 0, len(byVersion))
 	for _, c := range byVersion {
 		c.Devices = versions[c.Version]
+		c.WouldUpdate, c.NewerDevices, c.OtherChannel = candidateReach(c.Version, groups, devs)
 		if ro, ok := approved[channelOfVersion(c.Version)]; ok && ro.Version == c.Version {
 			c.Approved, c.Status = true, ro.Status
 		}
@@ -933,6 +943,28 @@ func (s *Server) approveCandidates(groups map[int64]groupInfo, serverChannel str
 		out = out[:approveCandidates]
 	}
 	return out
+}
+
+// candidateReach counts what approving v does: devices that would update to
+// it, devices already on a newer version (left alone, no downgrades) and
+// older devices whose group's channel does not take v.
+func candidateReach(v string, groups map[int64]groupInfo, devs []store.DeviceUpdate) (update, newer, otherChannel int) {
+	for _, d := range devs {
+		if !comparableVersion(d.AgentVersion) {
+			continue
+		}
+		g, ok := groups[d.GroupID]
+		switch {
+		case updates.Compare(d.AgentVersion, v) > 0:
+			newer++
+		case !needsVersion(d, v):
+		case !ok || !channelAllows(g.channel, v):
+			otherChannel++
+		default:
+			update++
+		}
+	}
+	return update, newer, otherChannel
 }
 
 func (s *Server) handlePutAgentUpdateSettings(w http.ResponseWriter, r *http.Request) {
