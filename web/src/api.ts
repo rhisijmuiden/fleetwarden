@@ -378,6 +378,9 @@ export type AgentCandidate = {
   devices: number;
   approved: boolean;
   status: RolloutStatus | "";
+  wouldUpdate: number;
+  newerDevices: number;
+  otherChannel: number;
 };
 
 export type AgentUpdates = {

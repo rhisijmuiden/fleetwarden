@@ -382,3 +382,23 @@ func TestFetchAgentReleasesFromGitHub(t *testing.T) {
 		t.Error("the error was not recorded")
 	}
 }
+
+// A test build of the released version sorts below it, so approving it must
+// not count agents on the release as updating (they are never downgraded).
+func TestCandidateReach(t *testing.T) {
+	prod, test := groupInfo{channel: "production"}, groupInfo{channel: "test"}
+	prod.ID, test.ID = 1, 2
+	groups := map[int64]groupInfo{1: prod, 2: test}
+	devs := []store.DeviceUpdate{
+		{GroupID: 2, AgentVersion: "1.0.0"},
+		{GroupID: 2, AgentVersion: "1.0.0-test.120"},
+		{GroupID: 1, AgentVersion: "1.0.0-test.120"},
+		{GroupID: 2, AgentVersion: "0.0.0-dev"},
+	}
+	if u, n, o := candidateReach("1.0.0-test.133", groups, devs); u != 1 || n != 1 || o != 1 {
+		t.Errorf("1.0.0-test.133: update %d newer %d other channel %d", u, n, o)
+	}
+	if u, n, o := candidateReach("1.1.0-test.1", groups, devs); u != 2 || n != 0 || o != 1 {
+		t.Errorf("1.1.0-test.1: update %d newer %d other channel %d", u, n, o)
+	}
+}
