@@ -1,11 +1,16 @@
 @import "tailwindcss";
-@import "../../branding/theme.css";
+/* The active house style. Each house style lives in its own folder under branding/. */
+@import "../../branding/ijmond360/theme.css";
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/epilogue";
+@import "@fontsource-variable/jetbrains-mono";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--fw-font-sans);
+  --font-display: var(--fw-font-display);
+  --font-mono: var(--fw-font-mono);
   --color-bg: var(--fw-background);
   --color-surface: var(--fw-surface);
   --color-surface-muted: var(--fw-surface-muted);
@@ -15,15 +20,19 @@
   --color-primary: var(--fw-primary);
   --color-primary-hover: var(--fw-primary-hover);
   --color-primary-contrast: var(--fw-primary-contrast);
+  --color-accent: var(--fw-accent);
   --color-sidebar: var(--fw-sidebar);
   --color-sidebar-fg: var(--fw-sidebar-text);
   --color-sidebar-active: var(--fw-sidebar-active);
   --color-success: var(--fw-success);
   --color-warning: var(--fw-warning);
   --color-danger: var(--fw-danger);
+  --color-info: var(--fw-info);
   --radius-sm: var(--fw-radius-sm);
   --radius-md: var(--fw-radius-md);
   --radius-lg: var(--fw-radius-lg);
+  --radius-xl: var(--fw-radius-xl);
+  --shadow-card: var(--fw-shadow-card);
 }
 
 html,
@@ -37,4 +46,16 @@ body {
   color: var(--fw-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+@layer base {
+  /* Page and section titles use the display font of the house style. */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+  }
+  h1.font-mono,
+  h2.font-mono {
+    font-family: var(--font-mono);
+  }
 }

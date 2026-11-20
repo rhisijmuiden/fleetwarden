@@ -32,11 +32,11 @@ func hexRGB(s string, fallback rgb) rgb {
 }
 
 var (
-	colFg      = rgb{15, 23, 41}
-	colMuted   = rgb{91, 101, 120}
-	colLine    = rgb{227, 230, 235}
-	colSurface = rgb{246, 247, 249}
-	colPrimary = rgb{47, 91, 234}
+	colFg      = rgb{27, 19, 32}
+	colMuted   = rgb{107, 95, 114}
+	colLine    = rgb{227, 220, 232}
+	colSurface = rgb{247, 245, 249}
+	colPrimary = rgb{113, 60, 128} // IJmond Purple, branding/ijmond360
 	toneRGB    = map[string]rgb{ToneSuccess: {21, 128, 61}, ToneWarning: {180, 83, 9}, ToneDanger: {185, 28, 28}, ToneMuted: colMuted}
 )
 

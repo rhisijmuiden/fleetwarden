@@ -463,7 +463,7 @@ export function RemoteViewer() {
   const hostname = device?.hostname ?? info?.hostname ?? "";
 
   return (
-    <div className="flex h-full flex-col bg-[#0b0f17] text-fg">
+    <div className="flex h-full flex-col bg-[#120a15] text-fg">
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-surface px-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-primary">

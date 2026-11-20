@@ -149,7 +149,7 @@
     "invalid_mail_config": "De mailinstellingen zijn onvolledig.",
     "mail_send_failed": "De testmail kon niet worden verstuurd.",
     "name_too_long": "De naam mag maximaal 40 tekens hebben.",
-    "invalid_color": "Gebruik een kleur zoals #2F5BEA.",
+    "invalid_color": "Gebruik een kleur zoals #713C80.",
     "file_too_large": "Het bestand is groter dan 512 KB.",
     "unsupported_image": "Gebruik een PNG-, SVG-, JPEG-, WebP- of ICO-afbeelding.",
     "invalid_channel": "Onbekend updatekanaal.",

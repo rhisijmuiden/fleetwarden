@@ -6,6 +6,13 @@ published as `X.Y.Z-test.N` before a release.
 
 ## Unreleased
 
+### Changed
+- New house style: IJmond360 (purple, pink and aubergine, Inter with Epilogue
+  for page titles, the IJmond360 logo). It replaces the blue FleetWarden style in
+  the web interface, e-mails, PDF reports and the Windows tray pop-up. The old
+  style stays in branding/fleetwarden/. White-label colours set under
+  Administration > Branding still override it.
+
 ### Fixed
 - Approved agent versions did not reach agents on 1.0.0: test builds were
   still numbered 1.0.0-test.N, which sorts below the release 1.0.0, so those

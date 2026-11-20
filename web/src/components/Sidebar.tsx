@@ -90,13 +90,13 @@ export function Sidebar({ collapsed, onToggle, onInfo }: Props) {
                     title={collapsed ? t(label) : undefined}
                     className={({ isActive }) =>
                       `${itemBase} ${
-                        isActive ? "bg-sidebar-active text-white" : "hover:bg-sidebar-active/60 hover:text-white"
+                        isActive ? "bg-sidebar-active text-white before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-accent" : "hover:bg-sidebar-active/60 hover:text-white"
                       }`
                     }
                   >
                     {({ isActive }) => (
                       <>
-                        <Icon className={`size-[18px] shrink-0 ${isActive ? "text-primary" : ""}`} strokeWidth={1.8} />
+                        <Icon className={`size-[18px] shrink-0 ${isActive ? "text-accent" : ""}`} strokeWidth={1.8} />
                         {!collapsed && <span className="flex-1 truncate">{t(label)}</span>}
                         {badge === "alerts" && openAlerts > 0 && (
                           <span

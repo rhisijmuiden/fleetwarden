@@ -93,17 +93,17 @@ func tr(lang, key string, vars map[string]string) string {
 }
 
 var layout = template.Must(template.New("mail").Parse(`<!doctype html>
-<html lang="{{.Lang}}"><body style="margin:0;background:#f6f7f9;font-family:Inter,Segoe UI,Arial,sans-serif;color:#0f1729">
+<html lang="{{.Lang}}"><body style="margin:0;background:#f7f5f9;font-family:Inter,Segoe UI,Arial,sans-serif;color:#1b1320">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:12px;border:1px solid #e3e6eb">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:12px;border:1px solid #e3dce8">
 <tr><td style="padding:20px 28px;border-bottom:3px solid {{.Color}};font-size:18px;font-weight:600">{{.Product}}</td></tr>
 <tr><td style="padding:28px;font-size:15px;line-height:1.6">{{.Body}}
 {{if .Facts}}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0;border-collapse:collapse;font-size:14px">
-{{range .Facts}}<tr><td style="padding:8px 0;border-bottom:1px solid #e3e6eb;color:#5b6578">{{.Label}}</td><td align="right" style="padding:8px 0;border-bottom:1px solid #e3e6eb;font-weight:600;{{if .Color}}color:{{.Color}}{{end}}">{{.Value}}</td></tr>
+{{range .Facts}}<tr><td style="padding:8px 0;border-bottom:1px solid #e3dce8;color:#6b5f72">{{.Label}}</td><td align="right" style="padding:8px 0;border-bottom:1px solid #e3dce8;font-weight:600;{{if .Color}}color:{{.Color}}{{end}}">{{.Value}}</td></tr>
 {{end}}</table>{{end}}
 {{if .URL}}<p style="margin:24px 0 0"><a href="{{.URL}}" style="display:inline-block;background:{{.Color}};color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">{{.Open}}</a></p>{{end}}
 </td></tr>
-<tr><td style="padding:16px 28px;border-top:1px solid #e3e6eb;font-size:12px;color:#5b6578">{{.Footer}}</td></tr>
+<tr><td style="padding:16px 28px;border-top:1px solid #e3dce8;font-size:12px;color:#6b5f72">{{.Footer}}</td></tr>
 </table></td></tr></table></body></html>`))
 
 // Fact is one key figure shown as a row under the text of a message.
@@ -126,7 +126,7 @@ func RenderFacts(kind, lang, to string, brand Brand, vars map[string]string, fac
 		brand.Product = "FleetWarden"
 	}
 	if !hexColor.MatchString(brand.Color) {
-		brand.Color = "#2f5bea"
+		brand.Color = "#713c80"
 	}
 	v := map[string]string{"product": brand.Product}
 	for k, val := range vars {

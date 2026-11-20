@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import defaultLogo from "../../branding/logo.svg";
+import defaultLogo from "../../branding/ijmond360/logo.svg";
 import { get, type Branding } from "./api";
 
 type BrandingState = {
@@ -44,7 +44,7 @@ export function contrastText(hex: string): string {
 }
 
 function applyBranding(b: Branding) {
-  // White-label colours override the default theme tokens from branding/theme.css.
+  // White-label colours override the default theme tokens from the active house style (branding/ijmond360/theme.css).
   let css = "";
   if (b.primaryColor) {
     css += `:root{--fw-primary:${b.primaryColor};--fw-primary-hover:${shade(b.primaryColor, 0.15)};--fw-primary-contrast:${contrastText(b.primaryColor)}}`;

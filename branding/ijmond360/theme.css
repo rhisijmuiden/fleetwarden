@@ -1,0 +1,58 @@
+/*
+ * IJmond360 house style for FleetWarden. Generated from tokens.json; keep both in sync.
+ * Every colour is a CSS custom property so the white-label settings can
+ * override them at runtime without rebuilding the UI.
+ */
+:root {
+  --fw-radius-sm: 4px;
+  --fw-radius-md: 8px;
+  --fw-radius-lg: 12px;
+  --fw-radius-xl: 16px;
+
+  --fw-font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+  --fw-font-display: "Epilogue Variable", Epilogue, "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+  --fw-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+
+  --fw-background: #f7f5f9;
+  --fw-surface: #ffffff;
+  --fw-surface-muted: #f0ecf3;
+  --fw-border: #e3dce8;
+  --fw-text: #1b1320;
+  --fw-text-muted: #6b5f72;
+  --fw-primary: #713c80;
+  --fw-primary-hover: #5a2e66;
+  --fw-primary-contrast: #ffffff;
+  --fw-accent: #e92e7f;
+  --fw-sidebar: #2a1430;
+  --fw-sidebar-text: #dccfe2;
+  --fw-sidebar-active: #3e2147;
+  --fw-success: #15a06a;
+  --fw-warning: #d98a00;
+  --fw-danger: #dc2f45;
+  --fw-info: #1f8fc4;
+  --fw-shadow-card: 0 1px 2px rgb(42 20 48 / 0.06), 0 4px 16px rgb(42 20 48 / 0.06);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  /* The brand purple is too dark on a dark background, so the dark theme uses a lighter tint. */
+  --fw-background: #0e0911;
+  --fw-surface: #18101c;
+  --fw-surface-muted: #221727;
+  --fw-border: #352840;
+  --fw-text: #efe9f2;
+  --fw-text-muted: #a396aa;
+  --fw-primary: #9a5bae;
+  --fw-primary-hover: #b57fc6;
+  --fw-primary-contrast: #ffffff;
+  --fw-accent: #f0559a;
+  --fw-sidebar: #120a15;
+  --fw-sidebar-text: #dccfe2;
+  --fw-sidebar-active: #2a1830;
+  --fw-success: #1db97a;
+  --fw-warning: #f5a524;
+  --fw-danger: #f0566a;
+  --fw-info: #2fa6df;
+  --fw-shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.3);
+  color-scheme: dark;
+}

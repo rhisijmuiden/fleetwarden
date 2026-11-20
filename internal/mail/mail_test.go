@@ -28,7 +28,7 @@ func TestRender(t *testing.T) {
 	if m.Subject != "Testmail van Acme <EM>" {
 		t.Errorf("subject %q", m.Subject)
 	}
-	if strings.Contains(m.HTML, "<EM>") || !strings.Contains(m.HTML, "#2f5bea") {
+	if strings.Contains(m.HTML, "<EM>") || !strings.Contains(m.HTML, "#713c80") {
 		t.Error("product name not escaped or bad colour used")
 	}
 	en := Render("update_failed", "xx", "a@example.com", Brand{}, map[string]string{"version": "1.2.3", "detail": "boom"})

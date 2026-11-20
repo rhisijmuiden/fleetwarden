@@ -98,14 +98,14 @@ export function TerminalViewer() {
     const el = host.current;
     if (!el) return;
     const styles = getComputedStyle(document.documentElement);
-    const accent = styles.getPropertyValue("--fw-primary").trim() || "#3b82f6";
+    const accent = styles.getPropertyValue("--fw-primary").trim() || "#9a5bae";
     const x = new XTerm({
       cursorBlink: true,
       fontSize: storedFont(),
       fontFamily: "ui-monospace, 'Cascadia Mono', 'JetBrains Mono', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
       scrollback: 10000,
       allowProposedApi: false,
-      theme: { background: "#0b0f17", foreground: "#e5e7eb", cursor: accent, cursorAccent: "#0b0f17", selectionBackground: `${accent}55` },
+      theme: { background: "#120a15", foreground: "#e5e7eb", cursor: accent, cursorAccent: "#120a15", selectionBackground: `${accent}55` },
     });
     const f = new FitAddon();
     x.loadAddon(f);
@@ -283,7 +283,7 @@ export function TerminalViewer() {
   const windows = (info?.platform ?? device?.platform) === "windows";
 
   return (
-    <div className="flex h-full flex-col bg-[#0b0f17] text-fg">
+    <div className="flex h-full flex-col bg-[#120a15] text-fg">
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-surface px-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-primary">
@@ -375,7 +375,7 @@ export function TerminalViewer() {
         )}
 
         {!info && (
-          <div className="absolute inset-0 grid place-items-center bg-[#0b0f17] p-6">
+          <div className="absolute inset-0 grid place-items-center bg-[#120a15] p-6">
             <div className="w-[min(440px,100%)] rounded-lg border border-line bg-surface p-6 text-center shadow-2xl">
               <Overlay
                 phase={phase}
