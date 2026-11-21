@@ -49,13 +49,15 @@ Proxmox VE-nodes via een lichte agent.
 
 ## Installatie
 
-Op een kale Debian 13 (amd64) server:
+Op een kale Debian 13 (amd64) virtuele machine of fysieke server:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/rhisijmuiden/fleetwarden/main/installer/install.sh | sudo bash
 ```
 
-Met `-s -- --channel test` installeer je de nieuwste testversie. Zet de server
+Met `-s -- --channel test` installeer je de nieuwste testversie. Op Proxmox kun
+je ook het kant-en-klare LXC-containertemplate downloaden via **CT Templates >
+Download from URL**. Beide staan beschreven in [docs/install.nl.md](docs/install.nl.md). Zet de server
 daarna achter je reverse proxy, zie [docs/reverse-proxy.nl.md](docs/reverse-proxy.nl.md).
 
 De installer toont een eenmalig wachtwoord voor het account `admin`; bij de
@@ -64,6 +66,7 @@ eerste login kies je je eigen wachtwoord. Kwijt? Voer
 
 ## Documentatie
 
+- Installatie (install.sh en Proxmox LXC-template): [docs/install.nl.md](docs/install.nl.md)
 - Reverse proxy: [docs/reverse-proxy.nl.md](docs/reverse-proxy.nl.md)
 - Beveiliging en checklist voor hardening: [docs/hardening.nl.md](docs/hardening.nl.md)
 - Optioneel inloggen met Microsoft Entra ID: [docs/entra-sso.nl.md](docs/entra-sso.nl.md)

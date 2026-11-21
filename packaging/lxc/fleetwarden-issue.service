@@ -1,0 +1,6 @@
+[Unit]
+Description=Write the FleetWarden console screen (URL and first sign-in)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/fleetwarden-template/fleetwarden-issue

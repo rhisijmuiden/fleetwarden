@@ -1,0 +1,9 @@
+[Unit]
+Description=Update the FleetWarden console screen when the first admin password changes
+
+[Path]
+PathChanged=/var/lib/fleetwarden/initial-admin-password
+Unit=fleetwarden-issue.service
+
+[Install]
+WantedBy=multi-user.target

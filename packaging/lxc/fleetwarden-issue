@@ -1,0 +1,20 @@
+#!/bin/sh
+# Writes the console login screen (/etc/issue) of a FleetWarden container:
+# only the web address and, until the first sign-in, the one-time admin
+# username and password. Runs after first boot and whenever the password file
+# changes (fleetwarden-issue.path), so the password disappears once it is changed.
+set -eu
+pw=/var/lib/fleetwarden/initial-admin-password
+port=$(sed -n 's/^FW_LISTEN=.*:\([0-9]*\)$/\1/p' /etc/fleetwarden/server.env 2>/dev/null || true)
+{
+    echo
+    printf '  URL:       http://\\4:%s\n' "${port:-8080}"
+    if [ -s "$pw" ]; then
+        printf '  Username:  %s\n' "$(sed -n 1p "$pw")"
+        printf '  Password:  %s\n' "$(sed -n 2p "$pw")"
+    fi
+    echo
+} >/etc/issue.new
+mv /etc/issue.new /etc/issue
+# Redraw the login prompt on the consoles that are already showing it.
+agetty --reload >/dev/null 2>&1 || true

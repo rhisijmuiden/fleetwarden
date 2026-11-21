@@ -48,13 +48,15 @@ Proxmox VE nodes through a lightweight agent.
 
 ## Installation
 
-On a clean Debian 13 (amd64) server:
+On a clean Debian 13 (amd64) virtual machine or physical server:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/rhisijmuiden/fleetwarden/main/installer/install.sh | sudo bash
 ```
 
-Add `-s -- --channel test` to install the latest test build. Then put the server
+Add `-s -- --channel test` to install the latest test build. On Proxmox you can
+also download the ready-made LXC container template under **CT Templates >
+Download from URL**. Both are described in [docs/install.md](docs/install.md). Then put the server
 behind your reverse proxy, see [docs/reverse-proxy.md](docs/reverse-proxy.md).
 
 The installer prints a one-time password for the `admin` account; you choose
@@ -65,6 +67,7 @@ your own password at the first sign-in. Lost it? Run
 
 Every page also exists in Dutch (`.nl.md`).
 
+- Installation (install.sh and Proxmox LXC template): [docs/install.md](docs/install.md)
 - Reverse proxy: [docs/reverse-proxy.md](docs/reverse-proxy.md)
 - Security and hardening checklist: [docs/hardening.md](docs/hardening.md)
 - Optional Microsoft Entra ID sign-in: [docs/entra-sso.md](docs/entra-sso.md)
