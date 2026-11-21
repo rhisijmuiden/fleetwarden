@@ -139,10 +139,12 @@ if [[ -z "$DEB" ]]; then
     log "Looking up the latest ${CHANNEL} release"
     api="https://api.github.com/repos/${REPO}/releases"
     if [[ "$CHANNEL" == "production" ]]; then
-        filter='[.[] | select(.prerelease == false and .draft == false)]'
+        filter='[.[] | select(.prerelease == false and .draft == false)'
     else
-        filter='[.[] | select(.prerelease == true and .draft == false)]'
+        filter='[.[] | select(.prerelease == true and .draft == false)'
     fi
+    # Only releases that ship this package (not, for example, the LXC template release).
+    filter="$filter | select(any(.assets[]?; .name | test(\"^fleetwarden-gateway_.*_${ARCH}\\\\.deb$\")))]"
     filter="$filter | sort_by(.published_at) | last"
     url=$(curl -fsSL "$api?per_page=100" | jq -r "$filter | .assets[]? | select(.name | test(\"^fleetwarden-gateway_.*_${ARCH}\\\\.deb$\")) | .browser_download_url" | head -n1)
     [[ -n "$url" && "$url" != "null" ]] || die "No ${CHANNEL} release with a gateway package for ${ARCH} found."

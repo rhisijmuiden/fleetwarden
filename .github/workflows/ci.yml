@@ -134,7 +134,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: shellcheck installer/*.sh packaging/scripts/*.sh packaging/updater/fleetwarden-update tests/*.sh packaging/agent/*.sh packaging/agent/config packaging/gateway/*.sh packaging/gateway/fleetwarden-gateway-update packaging/distribution/*.sh packaging/distribution/fleetwarden-distribution-update
+      - run: shellcheck installer/*.sh packaging/scripts/*.sh packaging/updater/fleetwarden-update tests/*.sh packaging/agent/*.sh packaging/agent/config packaging/gateway/*.sh packaging/gateway/fleetwarden-gateway-update packaging/distribution/*.sh packaging/distribution/fleetwarden-distribution-update packaging/lxc/*.sh packaging/lxc/fleetwarden-firstboot packaging/lxc/fleetwarden-issue
 
   msi:
     name: Windows installer (MSI)
@@ -270,10 +270,30 @@ jobs:
       - name: Install server and distribution server in a clean debian:trixie container, enroll and sync a file
         run: docker run --rm -v "$PWD:/src" -w /src debian:trixie bash -c 'tests/install-distribution-test.sh dist/fleetwarden-server_*_amd64.deb dist/distribution/fleetwarden-distribution_*_amd64.deb'
 
+  lxc-template:
+    name: Proxmox LXC template
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: deb
+          path: dist/
+      - name: Build the Debian 13 template in a privileged debian:trixie container
+        run: docker run --rm --privileged -v "$PWD:/src" -w /src debian:trixie bash -c 'packaging/lxc/build-template.sh dist/fleetwarden-server_*_amd64.deb dist/lxc/fleetwarden-debian-13-lxc_amd64.tar.zst'
+      - name: Boot the template with systemd and check first boot
+        run: sudo tests/lxc-template-test.sh dist/lxc/fleetwarden-debian-13-lxc_amd64.tar.zst
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lxc
+          path: dist/lxc/
+          retention-days: 7
+
   release:
     name: Publish release
     if: github.event_name == 'push'
-    needs: [meta, install-test, install-gateway-test, install-distribution-test]
+    needs: [meta, install-test, install-gateway-test, install-distribution-test, lxc-template]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -297,6 +317,7 @@ jobs:
           cp installer/install.sh release/install.sh
           cp installer/install-gateway.sh release/install-gateway.sh
           cp installer/install-distribution.sh release/install-distribution.sh
+          cp artifacts/lxc/fleetwarden-debian-13-lxc_amd64.tar.zst release/
           (cd release && sha256sum * > SHA256SUMS)
       - name: Create GitHub release
         env:
@@ -308,6 +329,20 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "::notice::Release $tag already exists; bump VERSION to publish a new production release."
             exit 0
+          fi
+          # The test channel has no "latest" release, so the LXC template is also
+          # kept under a fixed tag that every test build overwrites: a stable URL
+          # for Proxmox (CT Templates > Download from URL). Production uses
+          # releases/latest/download/. The tag has no server package, so
+          # installers and the in-app updater skip it.
+          if [[ "$CHANNEL" == "test" ]]; then
+            lxc=release/fleetwarden-debian-13-lxc_amd64.tar.zst
+            notes="Proxmox LXC template of the newest test build ($VERSION). Download: https://github.com/$GITHUB_REPOSITORY/releases/download/lxc-test/fleetwarden-debian-13-lxc_amd64.tar.zst - see docs/install.md."
+            if ! gh release view lxc-test >/dev/null 2>&1; then
+              gh release create lxc-test --prerelease --target "$GITHUB_SHA" --title "FleetWarden LXC template (test channel)" --notes "$notes"
+            fi
+            gh release upload lxc-test "$lxc" --clobber
+            gh release edit lxc-test --notes "$notes"
           fi
           flags=(--target "$GITHUB_SHA" --title "FleetWarden $VERSION" --generate-notes)
           [[ "$CHANNEL" == "test" ]] && flags+=(--prerelease)

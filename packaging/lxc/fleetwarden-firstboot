@@ -1,0 +1,59 @@
+#!/bin/bash
+# First boot of a container created from the FleetWarden LXC template.
+#
+# The template ships Debian 13 with every dependency already installed, but
+# nothing that must be unique per installation: no SSH host keys, no
+# PostgreSQL cluster, no database password, no admin account. This script
+# creates those once, installs the bundled server package (offline) and makes
+# the web interface reachable on port 8080 of the container.
+set -euo pipefail
+
+TEMPLATE_DIR=/usr/lib/fleetwarden-template
+DONE=/var/lib/fleetwarden-template/firstboot-done
+LOG=/var/log/fleetwarden-firstboot.log
+
+# The log holds the one-time admin password; keep it readable for root only.
+[[ -e "$LOG" ]] || install -m 0600 /dev/null "$LOG"
+exec > >(tee -a "$LOG") 2>&1
+echo "fleetwarden-firstboot: $(date -Is) starting"
+
+# Unique per container: SSH host keys and the snakeoil certificate.
+rm -f /etc/ssh/ssh_host_*
+ssh-keygen -A
+if command -v make-ssl-cert >/dev/null 2>&1; then
+    make-ssl-cert generate-default-snakeoil --force-overwrite
+fi
+
+# The template was built without a PostgreSQL cluster; create it now so every
+# container gets its own system identifier and superuser secrets.
+sed -i '/^# fleetwarden-template$/,+1d' /etc/postgresql-common/createcluster.conf
+pg_version=$(find /usr/lib/postgresql -mindepth 1 -maxdepth 1 -printf '%f\n' | sort -V | tail -n1)
+if [[ -z "$(pg_lsclusters -h 2>/dev/null)" ]]; then
+    pg_createcluster "$pg_version" main
+fi
+systemctl start "postgresql@${pg_version}-main.service"
+
+# Install the server package that came with the template. All dependencies
+# are already present, so this needs no network.
+deb=$(find "$TEMPLATE_DIR" -maxdepth 1 -name 'fleetwarden-server_*_amd64.deb' | head -n1)
+[[ -n "$deb" ]] || { echo "fleetwarden-firstboot: no server package in $TEMPLATE_DIR" >&2; exit 1; }
+dpkg -i "$deb"
+
+# A container usually sits behind a reverse proxy on another host (Zoraxy,
+# Nginx, ...), so listen on every interface instead of only on localhost.
+# Trusted proxies can be added later under Admin > Reverse proxy.
+sed -i 's/^FW_LISTEN=127\.0\.0\.1:8080$/FW_LISTEN=0.0.0.0:8080/' /etc/fleetwarden/server.env
+systemctl restart fleetwarden-server.service
+
+for _ in $(seq 1 60); do
+    curl -fsS http://127.0.0.1:8080/healthz >/dev/null 2>&1 && break
+    sleep 1
+done
+
+rm -f "$deb"
+/usr/lib/fleetwarden-template/fleetwarden-issue
+systemctl enable --now fleetwarden-issue.path >/dev/null 2>&1 || true
+install -d -m 0755 "$(dirname "$DONE")"
+date -Is >"$DONE"
+systemctl disable fleetwarden-firstboot.service >/dev/null 2>&1 || true
+echo "fleetwarden-firstboot: $(date -Is) done ($(/usr/bin/fleetwarden-server -version))"

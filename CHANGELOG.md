@@ -6,6 +6,17 @@ published as `X.Y.Z-test.N` before a release.
 
 ## Unreleased
 
+### Added
+- Proxmox LXC container template (Debian 13, `.tar.zst`). Download it under
+  CT Templates > Download from URL, create a container and FleetWarden runs:
+  the first start creates the SSH keys, database and admin account, and the
+  console shows only the URL, username and one-time password. Built and boot
+  tested in CI; the test channel has a fixed URL (release `lxc-test`),
+  production uses `releases/latest/download/`. See docs/install.md.
+- install.sh: `--listen` and `--trusted-proxies` for a reverse proxy on another
+  machine, and a check whether it runs on a VM, physical machine or container
+  with warnings for too little memory or disk.
+
 ### Changed
 - New house style: IJmond360 (purple, pink and aubergine, Inter with Epilogue
   for page titles, the IJmond360 logo). It replaces the blue FleetWarden style in

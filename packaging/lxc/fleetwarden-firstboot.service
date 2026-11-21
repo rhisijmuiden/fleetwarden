@@ -1,0 +1,17 @@
+[Unit]
+Description=FleetWarden first boot (creates keys, database and admin account)
+Documentation=https://github.com/rhisijmuiden/fleetwarden/blob/main/docs/install.md
+ConditionPathExists=!/var/lib/fleetwarden-template/firstboot-done
+After=network-online.target postgresql.service
+Wants=network-online.target
+# SSH needs the host keys this unit creates.
+Before=ssh.service getty.target console-getty.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/fleetwarden-template/fleetwarden-firstboot
+TimeoutStartSec=15min
+
+[Install]
+WantedBy=multi-user.target
