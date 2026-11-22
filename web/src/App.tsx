@@ -11,6 +11,8 @@ import { Placeholder } from "./pages/Placeholder";
 import { Login } from "./pages/Login";
 import { ForcePasswordChange } from "./pages/ForcePasswordChange";
 import { Profile } from "./pages/Profile";
+import { AuthorizeAssistant } from "./pages/AuthorizeAssistant";
+import { Mcp } from "./pages/admin/Mcp";
 import { Users } from "./pages/admin/Users";
 import { Authentication } from "./pages/admin/Authentication";
 import { Mail } from "./pages/admin/Mail";
@@ -51,6 +53,7 @@ const TerminalViewer = lazy(() => import("./pages/remote/Terminal").then((m) => 
 
 const adminPages: { path: string; perm: Permission; element: React.ReactNode }[] = [
   { path: "/admin/integrations", perm: "settings.manage", element: <Integrations /> },
+  { path: "/admin/mcp", perm: "settings.manage", element: <Mcp /> },
   { path: "/admin/integrations/new", perm: "settings.manage", element: <IntegrationEditor /> },
   { path: "/admin/integrations/:id", perm: "settings.manage", element: <IntegrationEditor /> },
   { path: "/devices", perm: "devices.view", element: <Devices /> },
@@ -158,6 +161,7 @@ export function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/authorize-assistant" element={<AuthorizeAssistant />} />
               {adminPages
                 .filter((p) => can(p.perm))
                 .map((p) => (

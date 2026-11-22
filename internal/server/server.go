@@ -80,6 +80,9 @@ type Server struct {
 	manage     manageHub
 	pkgs       pkgCatalog
 	agentFails *auth.Limiter
+	mcpFails   *auth.Limiter // unknown MCP tokens, codes and refresh tokens per address
+	mcpRegs    *auth.Limiter // OAuth client registrations per address
+	mcpCodes   mcpCodes
 	fetcher    releaseFetcher
 	winget     *catalog.Winget
 
@@ -144,6 +147,8 @@ func New(cfg config.Server, d Deps) *Server {
 		cfg: cfg, db: d.DB, st: d.Store, box: d.Secrets, log: d.Log, mailer: d.Mailer, sso: d.SSO, updates: d.Updates, backupOpts: d.Backup,
 		ipFails:  auth.NewLimiter(20, 15*time.Minute),
 		usrFails: auth.NewLimiter(8, 15*time.Minute),
+		mcpFails: auth.NewLimiter(30, 15*time.Minute),
+		mcpRegs:  auth.NewLimiter(20, time.Hour),
 		now:      time.Now,
 	}
 	if s.st != nil {
@@ -216,6 +221,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.distributionRoutes(mux)
 	s.proxyRoutes(mux)
 	s.integrationRoutes(mux)
+	s.mcpRoutes(mux)
 
 	// Signed in. allowPending lets a user with a forced password change reach these.
 	mux.Handle("GET /api/v1/auth/me", s.authed("", allowPending, s.handleMe))
@@ -337,6 +343,7 @@ const (
 	hostKey
 	userKey
 	tokenKey
+	mcpCallKey
 )
 
 // ClientIP returns the client address, taking trusted reverse proxies into account.

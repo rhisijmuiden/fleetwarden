@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { ShieldCheck } from "lucide-react";
-import { post, type Me } from "../api";
+import { get, post, type McpInfo, type Me } from "../api";
+import { McpTokens } from "../components/McpTokens";
 import { useAuth } from "../auth";
 import { languages } from "../i18n";
 import { PasswordForm } from "../components/PasswordForm";
@@ -17,6 +18,10 @@ export function Profile() {
   const [disableOpen, setDisableOpen] = useState(false);
   const [pw, setPw] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [mcp, setMcp] = useState<McpInfo | null>(null);
+  useEffect(() => {
+    get<McpInfo>("/mcp/info").then(setMcp).catch(() => setMcp(null));
+  }, []);
   if (!me) return null;
   const local = me.source === "local";
 
@@ -103,6 +108,8 @@ export function Profile() {
           </Card>
         )}
       </div>
+
+      {mcp?.enabled && <McpTokens url={mcp.url} maxLevel={mcp.maxLevel} enabled />}
 
       <Modal open={totpOpen} onClose={() => setTotpOpen(false)} title={t("profile.totpSetup")}>
         <TotpSetup
