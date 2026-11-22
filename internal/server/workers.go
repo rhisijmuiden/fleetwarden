@@ -79,6 +79,9 @@ func (s *Server) RunWorkers(ctx context.Context) {
 			if err := s.st.PurgeSessions(ctx, sessionIdle); err != nil {
 				s.log.Warn("purge sessions", "err", err)
 			}
+			if err := s.st.PruneMCP(ctx); err != nil {
+				s.log.Warn("purge MCP connections", "err", err)
+			}
 			if err := s.st.PurgeRemoteSessions(ctx, remoteLogDays*24*time.Hour); err != nil {
 				s.log.Warn("purge remote session log", "err", err)
 			}

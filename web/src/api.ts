@@ -2314,3 +2314,47 @@ export type DeviceSecurity = {
   keys: RecoveryKey[];
   actions: SecurityAction[];
 };
+
+// ---- MCP server (AI assistants) ----
+
+export type McpLevel = "read" | "write" | "full";
+
+export type McpTool = {
+  name: string;
+  title: string;
+  description: string;
+  group: string;
+  level: McpLevel;
+  permission: Permission;
+};
+
+export type McpSettings = {
+  enabled: boolean;
+  maxLevel: McpLevel;
+  disabledTools: string[];
+  oauth: boolean;
+};
+
+export type McpSettingsView = McpSettings & { url: string; tools: McpTool[] };
+
+export type McpInfo = { enabled: boolean; maxLevel: McpLevel; oauth: boolean; url: string };
+
+export type McpToken = {
+  id: number;
+  userId: number;
+  username: string;
+  name: string;
+  kind: "personal" | "oauth";
+  clientId: string | null;
+  access: McpLevel;
+  prefix: string;
+  expiresAt: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+  lastIp: string;
+  refreshExpiresAt: string | null;
+};
+
+export type McpTokenCreated = McpToken & { secret: string };
+
+export type McpConsent = { clientName: string; redirectHost: string; requested: McpLevel; maxLevel: McpLevel };

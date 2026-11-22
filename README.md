@@ -89,6 +89,7 @@ Every page also exists in Dutch (`.nl.md`).
 - Asset management (owner, location, warranty, software licences): [docs/assets.md](docs/assets.md)
 - Secure gateway in the DMZ for agents outside the network: [docs/gateway.md](docs/gateway.md)
 - Integrations with service desks (TOPdesk, Freshservice, Jira Service Management, ServiceNow, Zendesk, HaloITSM, Zammad, GLPI) and custom APIs: [docs/integrations.md](docs/integrations.md)
+- AI assistants such as Claude through the built-in MCP server: [docs/mcp.md](docs/mcp.md)
 - Distribution servers in branch offices (cache for installers, drivers and agent updates): [docs/distribution.md](docs/distribution.md)
 - Load test and sizing: [docs/load-test.md](docs/load-test.md)
 - What changed: [CHANGELOG.md](CHANGELOG.md)

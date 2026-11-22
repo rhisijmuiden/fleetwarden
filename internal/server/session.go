@@ -44,6 +44,16 @@ func currentToken(r *http.Request) string {
 // (empty: any signed-in user).
 func (s *Server) authed(perm auth.Permission, flags authFlags, h http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// A tool call of the MCP server runs the API as the token's user. The
+		// context key cannot be set from outside the process.
+		if call, ok := r.Context().Value(mcpCallKey).(*mcpCall); ok {
+			if perm != "" && !auth.Role(call.user.Role).Has(perm) {
+				apiError(w, http.StatusForbidden, "forbidden")
+				return
+			}
+			h(w, r.WithContext(context.WithValue(r.Context(), userKey, call.user)))
+			return
+		}
 		c, err := r.Cookie(sessionCookie)
 		if err != nil || c.Value == "" {
 			apiError(w, http.StatusUnauthorized, "unauthenticated")

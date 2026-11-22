@@ -7,6 +7,14 @@ testversies verschijnen vóór een release als `X.Y.Z-test.N`.
 ## Nog niet uitgebracht
 
 ### Toegevoegd
+- MCP-server voor AI-assistenten zoals Claude (`/mcp`, standaard uit):
+  37 tools om apparaten, updates, kwetsbaarheden, beveiliging, meldingen,
+  software en assets op te zoeken en te beheren. Assistenten handelen als een
+  FleetWarden-gebruiker (rol en apparaatgroepen gelden), elke aanroep staat in
+  het auditlogboek, toegangsniveaus lezen / uitvoeren / volledig (ingrijpende
+  tools vragen de hostnaam als bevestiging). Persoonlijke tokens en OAuth
+  2.1-aanmelding voor claude.ai. Beheer > AI-assistenten (MCP); eigen tokens
+  onder Profiel. Zie docs/mcp.nl.md.
 - Proxmox LXC-containertemplate (Debian 13, `.tar.zst`). Download het via
   CT Templates > Download from URL, maak een container aan en FleetWarden
   draait: de eerste start maakt de SSH-sleutels, database en het admin-account

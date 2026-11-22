@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { Permission } from "./api";
 import {
   Bell,
+  Bot,
   Boxes,
   Bug,
   Cpu,
@@ -85,6 +86,7 @@ export const navigation: NavGroup[] = [
       { path: "/admin/authentication", label: "nav.authentication", icon: KeyRound, perm: "settings.manage" },
       { path: "/admin/mail", label: "nav.mail", icon: Mail, perm: "settings.manage" },
       { path: "/admin/integrations", label: "nav.integrations", icon: Plug, perm: "settings.manage" },
+      { path: "/admin/mcp", label: "nav.mcp", icon: Bot, perm: "settings.manage" },
       { path: "/admin/backup", label: "nav.backup", icon: DatabaseBackup, perm: "backup.manage" },
       { path: "/admin/agent-updates", label: "nav.agentUpdates", icon: RefreshCw, perm: "agents.manage" },
       { path: "/admin/gateways", label: "nav.gateways", icon: ShieldHalf, perm: "settings.manage" },
